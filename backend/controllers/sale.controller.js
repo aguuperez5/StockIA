@@ -1,0 +1,87 @@
+import prisma from '../config/prisma.js';
+
+// SB-042: Confirmar la venta, persistir detalle, descontar stock y registrar salida[cite: 2]
+export const createSale = async (req, res) => {
+  try {
+    const { depositId, items, total } = req.body; // items: [{ productId, quantity, price }]
+
+    if (!depositId || !items || !Array.isArray(items) || items.length === 0 || total === undefined) {
+      return res.status(400).json({ 
+        error: 'Datos incompletos. Se requiere depositId, total y una lista de items.' 
+      });
+    }
+
+    // Transacción para asegurar la integridad de la operación
+    const saleResult = await prisma.$transaction(async (tx) => {
+      // 1. Validar stock suficiente antes de procesar
+      for (const item of items) {
+        const stockRecord = await tx.stock.findUnique({
+          where: {
+            productId_depositId: { 
+              productId: item.productId, 
+              depositId: Number(depositId) 
+            }
+          }
+        });
+
+        if (!stockRecord || stockRecord.quantity < item.quantity) {
+          throw new Error(`Stock insuficiente para el producto ID ${item.productId}`);
+        }
+      }
+
+      // 2. Persistir Venta y DetalleVenta
+      const sale = await tx.sale.create({
+        data: {
+          depositId: Number(depositId),
+          total: parseFloat(total),
+          items: {
+            create: items.map(item => ({
+              productId: Number(item.productId),
+              quantity: Number(item.quantity),
+              price: parseFloat(item.price)
+            }))
+          }
+        },
+        include: { items: true }
+      });
+
+      // 3. Descontar stock y registrar movimiento de salida por cada ítem
+      for (const item of items) {
+        await tx.stock.update({
+          where: {
+            productId_depositId: { 
+              productId: Number(item.productId), 
+              depositId: Number(depositId) 
+            }
+          },
+          data: { 
+            quantity: { decrement: Number(item.quantity) } 
+          }
+        });
+
+        await tx.stockMovement.create({
+          data: {
+            productId: Number(item.productId),
+            depositId: Number(depositId),
+            quantity: Number(item.quantity),
+            type: 'OUT',
+            reason: `Venta #${sale.id}`
+          }
+        });
+      }
+
+      return sale;
+    });
+
+    return res.status(201).json({
+      message: 'Venta confirmada con éxito',
+      sale: saleResult
+    });
+
+  } catch (error) {
+    return res.status(400).json({ 
+      error: 'Error al procesar la venta', 
+      details: error.message 
+    });
+  }
+};
