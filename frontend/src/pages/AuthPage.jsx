@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, CircleUserRound, Mail, Phone, Store, Lock } from "lucide-react";
 import { Field, PasswordField } from "../components/common";
 import { required, email as emailValidator, minLength, phone as phoneValidator, validateForm } from "../utils/validators";
+import { api } from "../services/api";
+import { useToast } from "../context/ToastContext";
 
 const initialState = {
   nombre: "",
@@ -16,9 +18,11 @@ const initialState = {
 export default function AuthPage({ mode }) {
   const isRegister = mode === "register";
   const navigate = useNavigate();
+  const { push: notify } = useToast();
   const [values, setValues] = useState(initialState);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function setField(field, value) {
     setValues(v => ({ ...v, [field]: value }));
@@ -43,7 +47,7 @@ export default function AuthPage({ mode }) {
     return schema;
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     setSubmitError("");
     const { valid, errors: newErrors } = validateForm(values, schemaFor());
@@ -52,7 +56,25 @@ export default function AuthPage({ mode }) {
       setSubmitError("Revisá los campos marcados antes de continuar.");
       return;
     }
-    // Simulación de autenticación en frontend — en producción esto llama a la API.
+
+    if (isRegister) {
+      setLoading(true);
+      try {
+        await api.auth.register(values);
+        notify("Cuenta creada en el servidor. Ahora podés iniciar sesión.", "success");
+        navigate("/login");
+      } catch (err) {
+        // El backend valida email duplicado; se lo mostramos al usuario tal cual.
+        setSubmitError(err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Login: el backend todavía no expone POST /api/auth/login, así que
+    // seguimos en modo demo hasta que ese endpoint exista.
+    notify("Backend sin endpoint de login todavía — ingresando en modo demo.", "info");
     navigate("/panel");
   }
 
@@ -142,8 +164,8 @@ export default function AuthPage({ mode }) {
 
           {submitError && <small className="field-error standalone"><Lock size={11} /> {submitError}</small>}
 
-          <button className="primary-button auth-submit" type="submit">
-            {isRegister ? "Crear cuenta gratuita" : "Iniciar sesión"}
+          <button className="primary-button auth-submit" type="submit" disabled={loading}>
+            {loading ? "Creando cuenta..." : isRegister ? "Crear cuenta gratuita" : "Iniciar sesión"}
           </button>
         </form>
 

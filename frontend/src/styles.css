@@ -299,3 +299,46 @@ td { color: #666; }
   .filter-row { flex-direction: column; align-items: stretch; }
   .mini-search.wide { width: 100%; }
 }
+
+/* ---------- Mejoras visuales: toasts, indicador de conexión, estados disabled (integración backend) ---------- */
+
+.page-heading > *:last-child {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+.api-pill {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600;
+  padding: 5px 10px; border-radius: 20px; margin-right: 10px;
+}
+.api-pill i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.api-pill.checking { background: #f2f2f0; color: #999; }
+.api-pill.online { background: #e9f6ed; color: #3f8452; }
+.api-pill.online i { background: #45925b; }
+.api-pill.demo { background: #fff4df; color: #b3791f; cursor: help; }
+.api-pill.demo i { background: #d9a441; }
+
+.toast-stack {
+  position: fixed; bottom: 18px; right: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 999; max-width: 320px;
+}
+.toast {
+  display: flex; align-items: center; gap: 9px; background: #222; color: #fff; padding: 10px 12px; border-radius: 9px;
+  font-size: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.18); animation: toast-in .18s ease-out;
+}
+.toast span { flex: 1; line-height: 1.4; }
+.toast button { background: transparent; border: 0; color: rgba(255,255,255,.6); display: grid; place-items: center; }
+.toast button:hover { color: #fff; }
+.toast-success { background: #2f6b41; }
+.toast-error { background: #7a3030; }
+.toast-info { background: #2c2c2c; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.primary-button:disabled, .secondary-button:disabled {
+  opacity: .5; cursor: not-allowed;
+}
+
+/* Micro-interacciones sutiles */
+.metric-card, .panel-card, .quick-action, .stock-item {
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.panel-card:hover { box-shadow: 0 2px 14px rgba(0,0,0,.05); }
+.row-clickable { transition: background .1s ease; }

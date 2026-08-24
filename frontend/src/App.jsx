@@ -105,7 +105,6 @@ function AppShell() {
       <div className="app-main">
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMobileOpen(true)}><Menu size={20}/></button>
-          <div className="date">7 may 2026 · 14:32</div>
           <div className="topbar-right">
             <button className="icon-button notification"><Bell size={17}/><i /></button>
             <span className="separator" />

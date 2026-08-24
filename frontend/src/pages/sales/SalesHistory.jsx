@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ChevronUp, Plus, Receipt } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Plus, Receipt, Download } from "lucide-react";
 import { Panel, PageHeading, Banner, EmptyState } from "../../components/common";
 import { useAppData } from "../../context/AppDataContext";
 import { formatCurrency, formatDateTime } from "../../utils/format";
@@ -41,9 +41,29 @@ export default function SalesHistory() {
   const totalPeriodo = filtered.reduce((a, s) => a + s.total, 0);
   const depositoNombre = (id) => deposits.find(d => d.id === id)?.nombre || "—";
 
+  function exportCsv() {
+    const header = ["N°", "Cliente", "Depósito", "Método de pago", "Total", "Fecha"];
+    const rows = filtered.map(s => [
+      s.numero, s.cliente, depositoNombre(s.depositoId), s.metodoPago, s.total.toFixed(2), formatDateTime(s.fecha),
+    ]);
+    const csv = [header, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ventas_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <section>
       <PageHeading title="Historial de ventas" subtitle="Todas las ventas registradas en el sistema">
+        <button className="secondary-button" onClick={exportCsv} disabled={filtered.length === 0}>
+          <Download size={16} /> Exportar CSV
+        </button>
         <button className="primary-button" onClick={() => navigate("/panel/nueva-venta")}><Plus size={17} /> Nueva venta</button>
       </PageHeading>
 

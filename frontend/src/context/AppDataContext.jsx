@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { api, productFromApi, depositFromApi } from "../services/api";
+import { useToast } from "./ToastContext";
 
 const AppDataContext = createContext(null);
 
@@ -192,6 +194,18 @@ export function AppDataProvider({ children }) {
   const [categorias, setCategorias] = useState(initialCategorias);
   const [sales, setSales] = useState(() => buildInitialSales(initialProducts));
   const [nextSaleNumber, setNextSaleNumber] = useState(1248);
+  const [apiStatus, setApiStatus] = useState("checking"); // "checking" | "online" | "demo"
+  const { push: notify } = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+    api.products.list().then(() => {
+      if (!cancelled) setApiStatus("online");
+    }).catch(() => {
+      if (!cancelled) setApiStatus("demo");
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   function getProduct(id) {
     return products.find(p => p.id === id) || null;
@@ -202,66 +216,97 @@ export function AppDataProvider({ children }) {
     return products.some(p => p.sku.toLowerCase() === norm && p.id !== ignoreId);
   }
 
-  function addProduct(data) {
+  function buildLocalProduct(data) {
     const id = `prod-${Date.now()}`;
-    const categoria = data.categoria?.trim();
-    if (categoria && !categorias.includes(categoria)) {
-      setCategorias(prev => [...prev, categoria]);
-    }
-    const nuevo = {
+    return {
       id,
       sku: data.sku.trim(),
       nombre: data.nombre.trim(),
-      categoria,
+      categoria: data.categoria?.trim(),
       unidad: data.unidad,
       precio: Number(data.precio),
       stockMinimo: Number(data.stockMinimo) || 0,
       descripcion: data.descripcion?.trim() || "",
-      stock: data.depositoInicial
-        ? { [data.depositoInicial]: Number(data.stockInicial) || 0 }
-        : {},
+      stock: data.depositoInicial ? { [data.depositoInicial]: Number(data.stockInicial) || 0 } : {},
     };
-    setProducts(prev => [nuevo, ...prev]);
-    return nuevo;
   }
 
-  function updateProduct(id, data) {
-    setProducts(prev =>
-      prev.map(p =>
-        p.id === id
-          ? {
-              ...p,
-              sku: data.sku.trim(),
-              nombre: data.nombre.trim(),
-              categoria: data.categoria?.trim(),
-              unidad: data.unidad,
-              precio: Number(data.precio),
-              stockMinimo: Number(data.stockMinimo) || 0,
-              descripcion: data.descripcion?.trim() || "",
-            }
-          : p
-      )
-    );
+  async function addProduct(data) {
+    const categoria = data.categoria?.trim();
+    if (categoria && !categorias.includes(categoria)) {
+      setCategorias(prev => [...prev, categoria]);
+    }
+    try {
+      const res = await api.products.create(data);
+      const creado = { ...productFromApi(res.product || res), stockMinimo: Number(data.stockMinimo) || 0, stock: {} };
+      setProducts(prev => [creado, ...prev]);
+      notify(`Producto "${creado.nombre}" guardado en el servidor.`, "success");
+      return creado;
+    } catch (err) {
+      const nuevo = buildLocalProduct(data);
+      setProducts(prev => [nuevo, ...prev]);
+      notify(`No se pudo guardar en el servidor (${err.message}). Se guardó en modo demo.`, "error");
+      return nuevo;
+    }
   }
 
-  function addDeposit(data) {
-    const id = `dep-${Date.now()}`;
-    const nuevo = {
-      id,
+  async function updateProduct(id, data) {
+    const patch = {
+      sku: data.sku.trim(),
+      nombre: data.nombre.trim(),
+      categoria: data.categoria?.trim(),
+      unidad: data.unidad,
+      precio: Number(data.precio),
+      stockMinimo: Number(data.stockMinimo) || 0,
+      descripcion: data.descripcion?.trim() || "",
+    };
+    try {
+      await api.products.update(id, data);
+      setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
+      notify(`Producto "${patch.nombre}" actualizado en el servidor.`, "success");
+    } catch (err) {
+      setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
+      notify(`No se pudo actualizar en el servidor (${err.message}). Cambios guardados en modo demo.`, "error");
+    }
+  }
+
+  async function addDeposit(data) {
+    const buildLocal = () => ({
+      id: `dep-${Date.now()}`,
       nombre: data.nombre.trim(),
       tipo: data.tipo,
       direccion: data.direccion.trim(),
       responsable: data.responsable.trim(),
       capacidad: data.capacidad ? Number(data.capacidad) : null,
       telefono: data.telefono?.trim() || "",
-    };
-    setDeposits(prev => [...prev, nuevo]);
-    return nuevo;
+    });
+    try {
+      const res = await api.deposits.create(data);
+      const creado = { ...depositFromApi(res.deposit || res), tipo: data.tipo, responsable: data.responsable.trim(), telefono: data.telefono?.trim() || "", capacidad: data.capacidad ? Number(data.capacidad) : null };
+      setDeposits(prev => [...prev, creado]);
+      notify(`Depósito "${creado.nombre}" guardado en el servidor.`, "success");
+      return creado;
+    } catch (err) {
+      const nuevo = buildLocal();
+      setDeposits(prev => [...prev, nuevo]);
+      notify(`No se pudo guardar en el servidor (${err.message}). Se guardó en modo demo.`, "error");
+      return nuevo;
+    }
   }
 
-  function addSale(data) {
+  async function addSale(data) {
     const byId = Object.fromEntries(products.map(p => [p.id, p]));
-    const numero = String(nextSaleNumber);
+    const total = data.items.reduce((a, it) => a + it.precio * it.cantidad, 0) * 1.21;
+    let numero = String(nextSaleNumber);
+
+    try {
+      const res = await api.sales.create({ depositoId: data.depositoId, items: data.items, total });
+      numero = String(res.sale?.id ?? res.id ?? numero);
+      notify(`Venta #${numero} registrada en el servidor.`, "success");
+    } catch (err) {
+      notify(`No se pudo registrar en el servidor (${err.message}). Venta guardada en modo demo.`, "error");
+    }
+
     const sale = hydrateSale(
       {
         numero,
@@ -279,7 +324,7 @@ export function AppDataProvider({ children }) {
     setSales(prev => [sale, ...prev]);
     setNextSaleNumber(n => n + 1);
 
-    // Descuenta stock del depósito de origen
+    // Descuenta stock del depósito de origen (localmente; el backend lo hace en su transacción)
     setProducts(prev =>
       prev.map(p => {
         const item = data.items.find(it => it.productId === p.id);
@@ -323,8 +368,9 @@ export function AppDataProvider({ children }) {
       skuExists,
       totalStock,
       stockLevel,
+      apiStatus,
     }),
-    [products, deposits, clients, categorias, sales]
+    [products, deposits, clients, categorias, sales, apiStatus]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
