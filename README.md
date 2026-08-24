@@ -1,1 +1,2 @@
 # StockIA
+# StockAI 
