@@ -35,7 +35,7 @@ export default function DepositForm() {
     telefono: values.telefono ? [phoneValidator()] : [],
   };
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     setSubmitError("");
     const { valid, errors: newErrors } = validateForm(values, schema);
@@ -44,8 +44,12 @@ export default function DepositForm() {
       setSubmitError("Revisá los campos marcados antes de guardar.");
       return;
     }
-    addDeposit(values);
-    navigate("/panel/depositos", { state: { success: `Depósito "${values.nombre}" creado correctamente.` } });
+    try {
+      await addDeposit(values);
+      navigate("/panel/depositos", { state: { success: `Depósito "${values.nombre}" creado correctamente.` } });
+    } catch (err) {
+      setSubmitError(err.message || "No se pudo guardar el depósito.");
+    }
   }
 
   return (

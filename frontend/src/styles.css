@@ -238,6 +238,8 @@ td { color: #666; }
 .status { font-size: 8px; padding: 3px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; background: #eee; color: #777; }
 .status.green { background: #e9f6ed; color: #45925b; }
 .status.yellow { background: #fff4df; color: #c98f29; }
+.status.red { background: #fdecec; color: #c9432f; }
+.status.gray { background: #eee; color: #777; }
 .badge { font-size: 8px; padding: 3px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
 .badge.danger { background: #fbe5e5; color: #df5358; }
 .badge.warning { background: #fff0d5; color: #c98f29; }

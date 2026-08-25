@@ -7,10 +7,13 @@
 //   Venta     -> { depositId, items: [{ productId, quantity, price }], total }
 //   Ajuste    -> { productId, depositId, quantity, type: 'IN' | 'OUT' }
 //
-// Nota: el backend recibido todavía no corre (schema.prisma sin modelos, falta
-// /api/auth/login, bug de sintaxis en auth.routes.js). Mientras eso no esté
-// resuelto, cada función cae a datos mock para que el frontend siga siendo
-// demostrable — ver el catch de cada método.
+// El backend ya arranca y persiste correctamente. Sigue faltando
+// POST /api/auth/login del lado del servidor — ver BACKEND_NOTES.md.
+// Mientras eso no esté resuelto, el login sigue en modo demo (ver AuthPage).
+// El resto de las operaciones (alta/edición de producto, depósito, venta)
+// pegan contra la API real; solo caen a datos mock si el servidor es
+// inalcanzable (no si el servidor responde rechazando la operación —
+// ver ApiError y su uso en AppDataContext).
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -42,7 +45,9 @@ export function productToApi(p) {
 
 export function productFromApi(p) {
   return {
-    id: p.id,
+    // String siempre: los IDs mock del modo demo son strings ("prod-1") y las
+    // rutas usan useParams() (siempre string) — mezclar tipos rompe `p.id === id`.
+    id: String(p.id),
     sku: p.code,
     nombre: p.name,
     categoria: p.category,
@@ -60,7 +65,7 @@ export function depositToApi(d) {
 
 export function depositFromApi(d) {
   return {
-    id: d.id,
+    id: String(d.id),
     nombre: d.name,
     tipo: d.tipo || "Secundario",
     direccion: d.location || "",

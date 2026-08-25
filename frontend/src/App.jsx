@@ -6,6 +6,7 @@ import {
 import {
   Routes, Route, NavLink, useLocation, useNavigate
 } from "react-router-dom";
+import { useAppData } from "./context/AppDataContext";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import ProductList from "./pages/products/ProductList";
@@ -57,6 +58,7 @@ function NavigateTo({ to }) {
 function AppShell() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { apiStatus } = useAppData();
 
   return (
     <div className="app-shell">
@@ -106,6 +108,8 @@ function AppShell() {
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMobileOpen(true)}><Menu size={20}/></button>
           <div className="topbar-right">
+            <ApiStatusBadge status={apiStatus} />
+            <span className="separator" />
             <button className="icon-button notification"><Bell size={17}/><i /></button>
             <span className="separator" />
             <span>Depósito Principal</span>
@@ -138,6 +142,12 @@ function AppShell() {
       </div>
     </div>
   );
+}
+
+function ApiStatusBadge({ status }) {
+  if (status === "online") return <span className="status green" title="Conectado al servidor">CONECTADO</span>;
+  if (status === "demo") return <span className="status yellow" title="Sin conexión con el servidor, guardando en memoria">MODO DEMO</span>;
+  return <span className="status gray">VERIFICANDO...</span>;
 }
 
 function Placeholder({ title, icon: Icon }) {

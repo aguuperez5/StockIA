@@ -88,7 +88,7 @@ export default function NewSale() {
   const iva = subtotal * IVA_RATE;
   const total = subtotal + iva;
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     setFormError("");
     setCartError("");
@@ -108,15 +108,18 @@ export default function NewSale() {
     }
 
     const clienteNombre = clients.find(c => c.id === clienteId)?.nombre || "Mostrador";
-    addSale({
-      cliente: clienteNombre,
-      depositoId,
-      metodoPago,
-      notas,
-      items: cart.map(it => ({ productId: it.productId, cantidad: it.cantidad, precio: it.precio })),
-    });
-
-    navigate("/panel/ventas", { state: { success: `Venta registrada correctamente por ${formatCurrency(total)}.` } });
+    try {
+      await addSale({
+        cliente: clienteNombre,
+        depositoId,
+        metodoPago,
+        notas,
+        items: cart.map(it => ({ productId: it.productId, cantidad: it.cantidad, precio: it.precio })),
+      });
+      navigate("/panel/ventas", { state: { success: `Venta registrada correctamente por ${formatCurrency(total)}.` } });
+    } catch (err) {
+      setFormError(err.message || "No se pudo registrar la venta.");
+    }
   }
 
   return (

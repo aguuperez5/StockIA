@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, productFromApi, depositFromApi } from "../services/api";
+import { api, productFromApi, depositFromApi, ApiError } from "../services/api";
 import { useToast } from "./ToastContext";
 
 const AppDataContext = createContext(null);
@@ -243,9 +243,14 @@ export function AppDataProvider({ children }) {
       notify(`Producto "${creado.nombre}" guardado en el servidor.`, "success");
       return creado;
     } catch (err) {
+      if (err instanceof ApiError) {
+        // El servidor respondió y rechazó la operación (p.ej. SKU duplicado):
+        // no lo guardamos localmente, hay que mostrar el error real y no fingir éxito.
+        throw err;
+      }
       const nuevo = buildLocalProduct(data);
       setProducts(prev => [nuevo, ...prev]);
-      notify(`No se pudo guardar en el servidor (${err.message}). Se guardó en modo demo.`, "error");
+      notify(`No se pudo conectar con el servidor (${err.message}). Se guardó en modo demo.`, "error");
       return nuevo;
     }
   }
@@ -265,8 +270,11 @@ export function AppDataProvider({ children }) {
       setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
       notify(`Producto "${patch.nombre}" actualizado en el servidor.`, "success");
     } catch (err) {
+      if (err instanceof ApiError) {
+        throw err;
+      }
       setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
-      notify(`No se pudo actualizar en el servidor (${err.message}). Cambios guardados en modo demo.`, "error");
+      notify(`No se pudo conectar con el servidor (${err.message}). Cambios guardados en modo demo.`, "error");
     }
   }
 
@@ -287,9 +295,12 @@ export function AppDataProvider({ children }) {
       notify(`Depósito "${creado.nombre}" guardado en el servidor.`, "success");
       return creado;
     } catch (err) {
+      if (err instanceof ApiError) {
+        throw err;
+      }
       const nuevo = buildLocal();
       setDeposits(prev => [...prev, nuevo]);
-      notify(`No se pudo guardar en el servidor (${err.message}). Se guardó en modo demo.`, "error");
+      notify(`No se pudo conectar con el servidor (${err.message}). Se guardó en modo demo.`, "error");
       return nuevo;
     }
   }
@@ -304,7 +315,12 @@ export function AppDataProvider({ children }) {
       numero = String(res.sale?.id ?? res.id ?? numero);
       notify(`Venta #${numero} registrada en el servidor.`, "success");
     } catch (err) {
-      notify(`No se pudo registrar en el servidor (${err.message}). Venta guardada en modo demo.`, "error");
+      if (err instanceof ApiError) {
+        // El servidor rechazó la venta (p.ej. stock insuficiente): no la
+        // registramos como completada ni descontamos stock local.
+        throw err;
+      }
+      notify(`No se pudo conectar con el servidor (${err.message}). Venta guardada en modo demo.`, "error");
     }
 
     const sale = hydrateSale(

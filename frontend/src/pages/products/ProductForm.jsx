@@ -56,7 +56,7 @@ export default function ProductForm({ mode }) {
     };
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     setSubmitError("");
     const { valid, errors: newErrors } = validateForm(values, schema());
@@ -66,12 +66,16 @@ export default function ProductForm({ mode }) {
       return;
     }
 
-    if (isEdit) {
-      updateProduct(existing.id, values);
-      navigate("/panel/productos", { state: { success: `Producto "${values.nombre}" actualizado correctamente.` } });
-    } else {
-      addProduct(values);
-      navigate("/panel/productos", { state: { success: `Producto "${values.nombre}" creado correctamente.` } });
+    try {
+      if (isEdit) {
+        await updateProduct(existing.id, values);
+        navigate("/panel/productos", { state: { success: `Producto "${values.nombre}" actualizado correctamente.` } });
+      } else {
+        await addProduct(values);
+        navigate("/panel/productos", { state: { success: `Producto "${values.nombre}" creado correctamente.` } });
+      }
+    } catch (err) {
+      setSubmitError(err.message || "No se pudo guardar el producto.");
     }
   }
 
