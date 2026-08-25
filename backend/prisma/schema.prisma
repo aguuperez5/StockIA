@@ -11,3 +11,135 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  // Identidad real del producto: el nombre puede repetirse, el code (SKU) no.
+  code      String   @unique
+  category  String?
+  // Precio base (1 unidad). Precios por cantidad mayor viven en PriceRule.
+  price     Decimal  @db.Decimal(10, 2)
+  // Referencia a un almacenamiento externo (no se guardan blobs en Postgres).
+  imageUrl  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  priceRules      PriceRule[]
+  stocks          Stock[]
+  stockMovements  StockMovement[]
+  saleItems       SaleItem[]
+
+  @@map("products")
+}
+
+// Precio aplicable a partir de una cantidad mínima de unidades.
+// Ej: minQuantity=1 -> precio unitario, minQuantity=6 -> precio por caja.
+// El precio aplicable a una cantidad N es el de mayor minQuantity <= N
+// (si no hay regla, se usa Product.price).
+model PriceRule {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  price       Decimal @db.Decimal(10, 2)
+
+  @@unique([productId, minQuantity])
+  @@index([productId])
+  @@map("price_rules")
+}
+
+model Deposit {
+  id        Int      @id @default(autoincrement())
+  name      String
+  location  String?
+  createdAt DateTime @default(now())
+
+  stocks         Stock[]
+  stockMovements StockMovement[]
+  sales          Sale[]
+
+  @@map("deposits")
+}
+
+// El stock es propiedad de la relación Producto+Depósito, nunca un atributo
+// suelto de Producto: así el mismo producto tiene cantidades distintas por depósito.
+model Stock {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  depositId Int
+  deposit   Deposit  @relation(fields: [depositId], references: [id], onDelete: Restrict)
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, depositId])
+  @@index([depositId])
+  @@map("stock")
+}
+
+// Toda modificación de Stock.quantity debe ir acompañada de un StockMovement
+// dentro de la misma transacción (trazabilidad obligatoria).
+model StockMovement {
+  id        Int          @id @default(autoincrement())
+  productId Int
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  depositId Int
+  deposit   Deposit      @relation(fields: [depositId], references: [id], onDelete: Restrict)
+  quantity  Int
+  type      MovementType
+  reason    String?
+  createdAt DateTime     @default(now())
+
+  @@index([productId, depositId, createdAt])
+  @@map("stock_movements")
+}
+
+model Sale {
+  id        Int        @id @default(autoincrement())
+  depositId Int
+  deposit   Deposit    @relation(fields: [depositId], references: [id], onDelete: Restrict)
+  total     Decimal    @db.Decimal(10, 2)
+  createdAt DateTime   @default(now())
+
+  items SaleItem[]
+
+  @@index([depositId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  @@index([saleId])
+  @@map("sale_items")
+}

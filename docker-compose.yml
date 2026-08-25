@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stockia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stockia
+      POSTGRES_PASSWORD: stockia
+      POSTGRES_DB: stockia
+    ports:
+      - "5434:5432"
+    volumes:
+      - stockia-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  stockia-postgres-data:

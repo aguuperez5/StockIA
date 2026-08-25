@@ -1,5 +1,18 @@
 import prisma from '../config/prisma.js';
 
+// Historial de ventas
+export const getSales = async (req, res) => {
+  try {
+    const sales = await prisma.sale.findMany({
+      include: { items: { include: { product: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json(sales);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener el historial de ventas', details: error.message });
+  }
+};
+
 // SB-042: Confirmar la venta, persistir detalle, descontar stock y registrar salida[cite: 2]
 export const createSale = async (req, res) => {
   try {
