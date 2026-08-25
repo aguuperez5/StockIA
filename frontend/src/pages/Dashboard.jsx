@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart, ArrowRightLeft, Package, Users, FileBarChart,
-  ChevronRight, CircleAlert, CircleCheck, Clock3, Box
+  ChevronRight, CircleAlert, CircleCheck, Box
 } from "lucide-react";
 import { Panel, StatusBadge } from "../components/common";
 import { useAppData } from "../context/AppDataContext";
@@ -128,10 +128,10 @@ function DaySummary({ sales }) {
     <Panel title="RESUMEN DEL DÍA">
       <div className="summary-list">
         <SummaryRow icon={CircleCheck} label="Ventas procesadas" value={String(sales.length)} tone="green"/>
-        <SummaryRow icon={CircleCheck} label="Transferencias completadas" value="3" tone="blue"/>
-        <SummaryRow icon={Clock3} label="Aprobaciones pendientes" value="2" tone="yellow"/>
-        <SummaryRow icon={Box} label="Productos escaneados" value="147" tone="gray"/>
       </div>
+      <p className="helper" style={{ padding: "8px 13px 0" }}>
+        Transferencias y reconocimiento por imagen todavía no están conectados a datos reales — no forman parte del alcance de este Sprint.
+      </p>
     </Panel>
   );
 }
