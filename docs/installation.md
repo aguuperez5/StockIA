@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js 22+ (usa strip de tipos nativo de Node para importar el cliente Prisma generado como `.ts`; no requiere `ts-node`).
+- Node.js 22+ (usa `--experimental-strip-types` para importar el cliente Prisma generado como `.ts`; no requiere `ts-node`).
 - Docker (para levantar PostgreSQL localmente).
 
 ## 1. Base de datos

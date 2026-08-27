@@ -1,5 +1,14 @@
 import prisma from '../config/prisma.js';
 
+export const getDeposits = async (req, res) => {
+  try {
+    const deposits = await prisma.deposit.findMany({ orderBy: { createdAt: 'asc' } });
+    return res.json(deposits);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener depósitos', details: error.message });
+  }
+};
+
 // SB-030: Registrar un nuevo depósito[cite: 2]
 export const createDeposit = async (req, res) => {
   try {

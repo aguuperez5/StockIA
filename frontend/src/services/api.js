@@ -92,8 +92,11 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ name: data.nombre, email: data.email, password: data.password }),
       }),
-    // No existe /api/auth/login todavía en el backend recibido.
-    login: () => Promise.reject(new ApiError("El backend todavía no expone POST /api/auth/login.", 501)),
+    login: (data) =>
+      request("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      }),
   },
   products: {
     list: (search) => request(`/products${search ? `?search=${encodeURIComponent(search)}` : ""}`),
@@ -101,6 +104,7 @@ export const api = {
     update: (id, data) => request(`/products/${id}`, { method: "PUT", body: JSON.stringify(productToApi(data)) }),
   },
   deposits: {
+    list: () => request("/deposits"),
     create: (data) => request("/deposits", { method: "POST", body: JSON.stringify(depositToApi(data)) }),
     stockByDeposit: (id) => request(`/deposits/${id}/stock`),
   },

@@ -10,7 +10,9 @@ import saleRoutes from './routes/sale.routes.js';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
+}));
 app.use(express.json());
 
 // Montado de rutas del Sprint 1[cite: 2]
@@ -19,6 +21,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/deposits', depositRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/sales', saleRoutes);
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

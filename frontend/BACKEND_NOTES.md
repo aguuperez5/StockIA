@@ -13,8 +13,8 @@ Estado real verificado (no solo documentado) al momento de escribir esto.
 
 ## Lo que sigue pendiente
 
-- **`POST /api/auth/login` no existe del lado del servidor.** `AuthPage` en modo login no llama a la API — directamente entra en modo demo con un aviso. No hay sesión ni token en ningún lado, y `/panel/*` no está protegido por ningún guard.
-- **Ninguna pantalla de listado lee de la API todavía.** `ProductList`, `DepositList`, `StockQuery`, `SalesHistory` muestran el estado en memoria (seed local + lo que se agregó en la sesión del navegador). Solo las altas/ediciones pegan contra el servidor. Esto significa que, aunque el backend esté online, la lista visible puede no reflejar el estado real de la base de datos hasta que se implemente una carga inicial (`useEffect` + `api.products.list()`, etc.) que reemplace el estado inicial.
+- El login consulta `POST /api/auth/login`, valida la contraseña con bcrypt y guarda el usuario devuelto en `localStorage`. Todavía no hay JWT ni middleware de protección de rutas.
+- Al iniciar, `AppDataContext` carga productos, depósitos, stock y ventas desde la API; si el servidor no responde conserva el modo demo en memoria.
 - La detección de productos por imagen (Nueva Venta, Transferencias) sigue simulada en frontend — no hay backend de reconocimiento todavía, es correcto que así sea para este Sprint.
 
 ## Indicador de conexión

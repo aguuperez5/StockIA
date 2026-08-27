@@ -199,11 +199,52 @@ export function AppDataProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    api.products.list().then(() => {
-      if (!cancelled) setApiStatus("online");
-    }).catch(() => {
-      if (!cancelled) setApiStatus("demo");
-    });
+    Promise.all([api.products.list(), api.deposits.list(), api.sales.list()])
+      .then(async ([productRows, depositRows, saleRows]) => {
+        const mappedProducts = productRows.map(productFromApi);
+        const mappedDeposits = depositRows.map(depositFromApi);
+        const stockRows = await Promise.all(mappedDeposits.map(async (deposit) => {
+          const response = await api.deposits.stockByDeposit(deposit.id);
+          return response.stock || [];
+        }));
+        const stockByProduct = {};
+        stockRows.flat().forEach(row => {
+          const productId = String(row.productId);
+          stockByProduct[productId] = {
+            ...(stockByProduct[productId] || {}),
+            [String(row.depositId)]: row.quantity,
+          };
+        });
+        const hydratedProducts = mappedProducts.map(product => ({
+          ...product,
+          stock: stockByProduct[product.id] || {},
+        }));
+        const byId = Object.fromEntries(hydratedProducts.map(product => [product.id, product]));
+        const hydratedSales = saleRows.map(sale => hydrateSale({
+          numero: String(sale.id),
+          cliente: "Mostrador",
+          depositoId: String(sale.depositId),
+          metodoPago: "No especificado",
+          notas: "",
+          fecha: sale.createdAt,
+          estado: "Completado",
+          items: sale.items.map(item => ({
+            productId: String(item.productId),
+            cantidad: item.quantity,
+            precio: Number(item.price),
+          })),
+        }, byId));
+        if (!cancelled) {
+          setProducts(hydratedProducts);
+          setDeposits(mappedDeposits);
+          setSales(hydratedSales);
+          setCategorias([...new Set(hydratedProducts.map(p => p.categoria).filter(Boolean))]);
+          setApiStatus("online");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setApiStatus("demo");
+      });
     return () => { cancelled = true; };
   }, []);
 

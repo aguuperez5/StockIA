@@ -72,10 +72,17 @@ export default function AuthPage({ mode }) {
       return;
     }
 
-    // Login: el backend todavía no expone POST /api/auth/login, así que
-    // seguimos en modo demo hasta que ese endpoint exista.
-    notify("Backend sin endpoint de login todavía — ingresando en modo demo.", "info");
-    navigate("/panel");
+    setLoading(true);
+    try {
+      const res = await api.auth.login(values);
+      localStorage.setItem("stockia_user", JSON.stringify(res.user));
+      notify("Sesión iniciada correctamente.", "success");
+      navigate("/panel");
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -165,7 +172,7 @@ export default function AuthPage({ mode }) {
           {submitError && <small className="field-error standalone"><Lock size={11} /> {submitError}</small>}
 
           <button className="primary-button auth-submit" type="submit" disabled={loading}>
-            {loading ? "Creando cuenta..." : isRegister ? "Crear cuenta gratuita" : "Iniciar sesión"}
+            {loading ? (isRegister ? "Creando cuenta..." : "Ingresando...") : isRegister ? "Crear cuenta gratuita" : "Iniciar sesión"}
           </button>
         </form>
 

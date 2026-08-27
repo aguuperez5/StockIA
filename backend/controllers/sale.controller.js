@@ -28,16 +28,19 @@ export const createSale = async (req, res) => {
     const saleResult = await prisma.$transaction(async (tx) => {
       // 1. Validar stock suficiente antes de procesar
       for (const item of items) {
+        const productId = Number(item.productId);
+        const quantity = Number(item.quantity);
         const stockRecord = await tx.stock.findUnique({
           where: {
-            productId_depositId: { 
-              productId: item.productId, 
+            productId_depositId: {
+              productId,
               depositId: Number(depositId) 
             }
           }
         });
 
-        if (!stockRecord || stockRecord.quantity < item.quantity) {
+        if (!Number.isInteger(productId) || !Number.isInteger(quantity) || quantity <= 0 ||
+            !stockRecord || stockRecord.quantity < quantity) {
           throw new Error(`Stock insuficiente para el producto ID ${item.productId}`);
         }
       }

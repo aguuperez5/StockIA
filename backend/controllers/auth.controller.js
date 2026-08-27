@@ -3,7 +3,9 @@ import bcrypt from 'bcryptjs';
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const name = String(req.body.name || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const { password, role } = req.body;
 
     // 1. Validar datos obligatorios (SB-019)
     if (!name || !email || !password) {
@@ -54,5 +56,34 @@ export const register = async (req, res) => {
       error: 'Error interno del servidor', 
       details: error.message 
     });
+  }
+};
+
+export const login = async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Los campos email y password son obligatorios.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+    }
+
+    return res.json({
+      message: 'Inicio de sesión exitoso',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
   }
 };

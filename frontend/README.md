@@ -7,7 +7,7 @@ del backlog asignado a la parte de frontend del proyecto.
 - React 18 + Vite 6 (SB-011)
 - React Router 7
 - Lucide React (iconografía)
-- Context API para estado global en memoria (productos, depósitos, clientes, ventas)
+- Context API para estado global cargado desde la API (con fallback demo si no responde)
 - CSS propio, responsive
 
 ## Ejecutar
@@ -64,18 +64,12 @@ npm run preview
 ver `.env.example`) y mapea los nombres de campo entre el modelo interno del front (en
 español) y el contrato del backend (en inglés).
 
-`AppDataContext` intenta cada operación (alta de producto, alta de depósito, registrar venta,
-registro de usuario) contra la API real primero. Si el backend no responde —hoy mismo no
-levanta, ver `BACKEND_NOTES.md`— cae automáticamente a guardar el cambio en memoria
-("modo demo") y lo avisa con un toast y un indicador en la topbar. Así la app se puede seguir
-usando y demostrando aunque el backend esté caído o incompleto, y una vez que arranque, va a
-usarse solo con volver a cargar la página (o inmediatamente en cada acción nueva).
+``AppDataContext` carga productos, depósitos, stock y ventas desde la API al iniciar. Las
+operaciones de alta, edición y venta también se persisten en la API y mantienen un fallback
+en memoria únicamente si el servidor no responde.
 
-Pendiente para cuando el backend esté 100% operativo:
-- Login real (`POST /api/auth/login` todavía no existe del lado del server).
+Pendiente para una siguiente etapa:
 - Persistir sesión (token) y proteger rutas de `/panel/*`.
-- Traer productos/depósitos/ventas desde la API al cargar el panel (hoy se listan desde el
-  seed local; el `create`/`update` sí pegan contra la API cuando está disponible).
 
 La detección de productos por IA en Nueva Venta y Transferencias sigue simulada en frontend:
 al subir una imagen se muestra una previsualización y un estado de detección. Esa parte debe
