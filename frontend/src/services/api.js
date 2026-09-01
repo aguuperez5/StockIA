@@ -1,19 +1,14 @@
-// Capa de acceso a la API real (Express + Prisma) que hicieron tus compañeros.
+// Capa de acceso a la API real (Express + Prisma).
 // Centraliza URLs, mapeo de campos (ES <-> EN) y manejo de errores.
 //
-// Contrato relevado desde backend/controllers y backend/routes:
-//   Producto  -> { name, code, price, category, imageUrl }
-//   Depósito  -> { name, location }
-//   Venta     -> { depositId, items: [{ productId, quantity, price }], total }
-//   Ajuste    -> { productId, depositId, quantity, type: 'IN' | 'OUT' }
+// Contrato (backend/controllers + backend/routes):
+//   Producto  -> { id, name, code, category, price, imageUrl, active, stock: {depositId: qty} }
+//   Depósito  -> { id, name, location, stockTotal }
+//   Stock     -> POST /stock/adjust   { productId, depositId, quantity, type: 'IN'|'OUT'|'ADJUST', reason? }
+//               POST /stock/transfer  { productId, fromDepositId, toDepositId, quantity, reason? }
+//   Venta     -> POST /sales { depositId, items: [{ productId, quantity }] }  (precio y total los pone el server)
 //
-// El backend ya arranca y persiste correctamente. Sigue faltando
-// POST /api/auth/login del lado del servidor — ver BACKEND_NOTES.md.
-// Mientras eso no esté resuelto, el login sigue en modo demo (ver AuthPage).
-// El resto de las operaciones (alta/edición de producto, depósito, venta)
-// pegan contra la API real; solo caen a datos mock si el servidor es
-// inalcanzable (no si el servidor responde rechazando la operación —
-// ver ApiError y su uso en AppDataContext).
+// El login sigue en modo demo hasta que exista POST /api/auth/login (ver BACKEND_NOTES.md).
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -25,42 +20,58 @@ class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options,
+    });
+  } catch (networkErr) {
+    // fetch sólo rechaza por fallo de red / servidor inalcanzable.
+    throw networkErr;
+  }
   let body = null;
   try { body = await res.json(); } catch { /* respuesta vacía */ }
   if (!res.ok) {
-    throw new ApiError(body?.error || `Error ${res.status} al conectar con la API`, res.status);
+    const msg = body?.error || body?.details || `Error ${res.status} al conectar con la API`;
+    throw new ApiError(msg, res.status);
   }
   return body;
 }
 
-/* ---------- Mapeo de campos: nuestro modelo interno (ES) <-> API (EN) ---------- */
+/* ---------- Mapeo de campos: modelo interno (ES) <-> API (EN) ---------- */
 
 export function productToApi(p) {
-  return { name: p.nombre, code: p.sku, price: Number(p.precio), category: p.categoria, imageUrl: p.imagen || undefined };
+  return {
+    name: p.nombre,
+    code: p.sku,
+    price: Number(p.precio),
+    category: p.categoria || undefined,
+    imageUrl: p.imagen || undefined,
+  };
 }
 
 export function productFromApi(p) {
   return {
-    // String siempre: los IDs mock del modo demo son strings ("prod-1") y las
-    // rutas usan useParams() (siempre string) — mezclar tipos rompe `p.id === id`.
+    // String siempre: las rutas usan useParams() (string) — mezclar tipos rompe `p.id === id`.
     id: String(p.id),
     sku: p.code,
     nombre: p.name,
-    categoria: p.category,
+    categoria: p.category || "",
     unidad: p.unidad || "unidad",
     precio: Number(p.price),
     stockMinimo: p.stockMinimo ?? 0,
     descripcion: p.description || "",
-    stock: p.stock || {},
+    activo: p.active ?? true,
+    // stock: { depositId(string): cantidad }  — lo llena el backend en getProducts/getProductById.
+    stock: p.stock
+      ? Object.fromEntries(Object.entries(p.stock).map(([k, v]) => [String(k), Number(v)]))
+      : {},
   };
 }
 
 export function depositToApi(d) {
-  return { name: d.nombre, location: d.direccion };
+  return { name: d.nombre, location: d.direccion || undefined };
 }
 
 export function depositFromApi(d) {
@@ -72,14 +83,31 @@ export function depositFromApi(d) {
     responsable: d.responsable || "",
     capacidad: d.capacidad ?? null,
     telefono: d.telefono || "",
+    stockTotal: d.stockTotal ?? 0,
   };
 }
 
-export function saleToApi(sale) {
+export function saleFromApi(s) {
+  const items = (s.items || []).map((it) => {
+    const precio = Number(it.price);
+    return {
+      productId: String(it.productId),
+      nombre: it.product?.name || "Producto eliminado",
+      cantidad: it.quantity,
+      precio,
+      subtotal: precio * it.quantity,
+    };
+  });
   return {
-    depositId: sale.depositoId,
-    total: sale.total,
-    items: sale.items.map(it => ({ productId: it.productId, quantity: it.cantidad, price: it.precio })),
+    numero: String(s.id),
+    cliente: "Mostrador",
+    depositoId: String(s.depositId),
+    metodoPago: "—",
+    notas: "",
+    fecha: s.createdAt,
+    estado: "Completado",
+    items,
+    total: Number(s.total),
   };
 }
 
@@ -92,24 +120,36 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ name: data.nombre, email: data.email, password: data.password }),
       }),
-    // No existe /api/auth/login todavía en el backend recibido.
     login: () => Promise.reject(new ApiError("El backend todavía no expone POST /api/auth/login.", 501)),
   },
   products: {
     list: (search) => request(`/products${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    get: (id) => request(`/products/${id}`),
     create: (data) => request("/products", { method: "POST", body: JSON.stringify(productToApi(data)) }),
     update: (id, data) => request(`/products/${id}`, { method: "PUT", body: JSON.stringify(productToApi(data)) }),
+    remove: (id) => request(`/products/${id}`, { method: "DELETE" }),
   },
   deposits: {
+    list: () => request("/deposits"),
     create: (data) => request("/deposits", { method: "POST", body: JSON.stringify(depositToApi(data)) }),
+    update: (id, data) => request(`/deposits/${id}`, { method: "PUT", body: JSON.stringify(depositToApi(data)) }),
     stockByDeposit: (id) => request(`/deposits/${id}/stock`),
   },
   stock: {
+    byProduct: (productId) => request(`/stock?productId=${encodeURIComponent(productId)}`),
     adjust: (data) => request("/stock/adjust", { method: "POST", body: JSON.stringify(data) }),
+    transfer: (data) => request("/stock/transfer", { method: "POST", body: JSON.stringify(data) }),
   },
   sales: {
     list: () => request("/sales"),
-    create: (data) => request("/sales", { method: "POST", body: JSON.stringify(saleToApi(data)) }),
+    create: (data) =>
+      request("/sales", {
+        method: "POST",
+        body: JSON.stringify({
+          depositId: Number(data.depositoId),
+          items: data.items.map((it) => ({ productId: Number(it.productId), quantity: it.cantidad })),
+        }),
+      }),
   },
 };
 

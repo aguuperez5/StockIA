@@ -1,12 +1,16 @@
 import { Router } from 'express';
-import { createDeposit, getStockByDeposit } from '../controllers/deposit.controller.js';
+import {
+  getDeposits,
+  createDeposit,
+  updateDeposit,
+  getStockByDeposit,
+} from '../controllers/deposit.controller.js';
 
 const router = Router();
 
-// POST /api/deposits[cite: 2]
-router.post('/', createDeposit);
-
-// GET /api/deposits/:id/stock[cite: 2]
-router.get('/:id/stock', getStockByDeposit);
+router.get('/', getDeposits);                 // GET /api/deposits
+router.post('/', createDeposit);              // POST /api/deposits
+router.put('/:id', updateDeposit);            // PUT /api/deposits/:id
+router.get('/:id/stock', getStockByDeposit);  // GET /api/deposits/:id/stock
 
 export default router;
