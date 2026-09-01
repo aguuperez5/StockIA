@@ -1,11 +1,40 @@
 import prisma from '../config/prisma.js';
 
+// Precio aplicable a una cantidad: la regla de mayor minQuantity <= cantidad,
+// o el precio base del producto si no hay ninguna.
+function priceForQuantity(product, quantity) {
+  const rules = (product.priceRules || [])
+    .filter((r) => r.minQuantity <= quantity)
+    .sort((a, b) => b.minQuantity - a.minQuantity);
+  return Number(rules[0]?.price ?? product.price);
+}
+
+// SB-044: arma el ticket de una venta ya confirmada (Sale + SaleItem persistidos,
+// dentro de la transacción exitosa). No persiste nada nuevo: es una proyección de
+// datos que ya existen en el modelo (Sale, SaleItem, Product, Deposit).
+function buildTicket(sale, deposit) {
+  return {
+    saleId: sale.id,
+    createdAt: sale.createdAt,
+    deposit: { id: deposit.id, name: deposit.name },
+    items: sale.items.map((it) => ({
+      productId: it.productId,
+      productName: it.product?.name ?? null,
+      productCode: it.product?.code ?? null,
+      quantity: it.quantity,
+      price: Number(it.price),
+      subtotal: Number(it.price) * it.quantity,
+    })),
+    total: Number(sale.total),
+  };
+}
+
 // Historial de ventas
 export const getSales = async (req, res) => {
   try {
     const sales = await prisma.sale.findMany({
-      include: { items: { include: { product: true } } },
-      orderBy: { createdAt: 'desc' }
+      include: { items: { include: { product: true } }, deposit: true },
+      orderBy: { createdAt: 'desc' },
     });
     return res.json(sales);
   } catch (error) {
@@ -13,88 +42,95 @@ export const getSales = async (req, res) => {
   }
 };
 
-// SB-042: Confirmar la venta, persistir detalle, descontar stock y registrar salida[cite: 2]
+// SB-042: Confirmar la venta, persistir detalle, descontar stock y registrar salida.
+// El precio unitario y el total se calculan en el servidor (no se confía en el cliente).
 export const createSale = async (req, res) => {
   try {
-    const { depositId, items, total } = req.body; // items: [{ productId, quantity, price }]
+    const { depositId, items } = req.body; // items: [{ productId, quantity }]
+    const depositIdNum = Number(depositId);
 
-    if (!depositId || !items || !Array.isArray(items) || items.length === 0 || total === undefined) {
-      return res.status(400).json({ 
-        error: 'Datos incompletos. Se requiere depositId, total y una lista de items.' 
+    if (!Number.isInteger(depositIdNum) || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        error: 'Datos incompletos. Se requiere depositId y una lista de items.',
       });
     }
 
-    // Transacción para asegurar la integridad de la operación
-    const saleResult = await prisma.$transaction(async (tx) => {
-      // 1. Validar stock suficiente antes de procesar
-      for (const item of items) {
-        const stockRecord = await tx.stock.findUnique({
-          where: {
-            productId_depositId: { 
-              productId: item.productId, 
-              depositId: Number(depositId) 
-            }
-          }
-        });
+    // Consolida cantidades por producto y valida el formato de cada ítem.
+    const wanted = new Map();
+    for (const item of items) {
+      const pid = Number(item.productId);
+      const qty = Number(item.quantity);
+      if (!Number.isInteger(pid) || !Number.isInteger(qty) || qty <= 0) {
+        return res.status(400).json({ error: 'Cada ítem requiere productId válido y quantity entero mayor a 0' });
+      }
+      wanted.set(pid, (wanted.get(pid) ?? 0) + qty);
+    }
 
-        if (!stockRecord || stockRecord.quantity < item.quantity) {
-          throw new Error(`Stock insuficiente para el producto ID ${item.productId}`);
+    const saleResult = await prisma.$transaction(async (tx) => {
+      const deposit = await tx.deposit.findUnique({ where: { id: depositIdNum } });
+      if (!deposit) throw Object.assign(new Error('El depósito especificado no existe'), { status: 404 });
+
+      const lineItems = [];
+      for (const [productId, quantity] of wanted) {
+        const product = await tx.product.findUnique({
+          where: { id: productId },
+          include: { priceRules: true },
+        });
+        if (!product) {
+          throw Object.assign(new Error(`El producto ID ${productId} no existe`), { status: 404 });
         }
+
+        const stockRecord = await tx.stock.findUnique({
+          where: { productId_depositId: { productId, depositId: depositIdNum } },
+        });
+        if (!stockRecord || stockRecord.quantity < quantity) {
+          throw Object.assign(
+            new Error(`Stock insuficiente para "${product.name}": disponible ${stockRecord?.quantity ?? 0}, solicitado ${quantity}`),
+            { status: 400 }
+          );
+        }
+
+        lineItems.push({ productId, quantity, price: priceForQuantity(product, quantity) });
       }
 
-      // 2. Persistir Venta y DetalleVenta
+      const total = lineItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+
       const sale = await tx.sale.create({
         data: {
-          depositId: Number(depositId),
-          total: parseFloat(total),
-          items: {
-            create: items.map(item => ({
-              productId: Number(item.productId),
-              quantity: Number(item.quantity),
-              price: parseFloat(item.price)
-            }))
-          }
+          depositId: depositIdNum,
+          total,
+          items: { create: lineItems },
         },
-        include: { items: true }
+        include: { items: { include: { product: true } } },
       });
 
-      // 3. Descontar stock y registrar movimiento de salida por cada ítem
-      for (const item of items) {
+      for (const it of lineItems) {
         await tx.stock.update({
-          where: {
-            productId_depositId: { 
-              productId: Number(item.productId), 
-              depositId: Number(depositId) 
-            }
-          },
-          data: { 
-            quantity: { decrement: Number(item.quantity) } 
-          }
+          where: { productId_depositId: { productId: it.productId, depositId: depositIdNum } },
+          data: { quantity: { decrement: it.quantity } },
         });
-
         await tx.stockMovement.create({
           data: {
-            productId: Number(item.productId),
-            depositId: Number(depositId),
-            quantity: Number(item.quantity),
+            productId: it.productId,
+            depositId: depositIdNum,
+            quantity: it.quantity,
             type: 'OUT',
-            reason: `Venta #${sale.id}`
-          }
+            reason: `Venta #${sale.id}`,
+          },
         });
       }
 
-      return sale;
+      return { sale, deposit };
     });
 
-    return res.status(201).json({
-      message: 'Venta confirmada con éxito',
-      sale: saleResult
-    });
+    const ticket = buildTicket(saleResult.sale, saleResult.deposit);
 
+    return res.status(201).json({ message: 'Venta confirmada con éxito', sale: saleResult.sale, ticket });
   } catch (error) {
-    return res.status(400).json({ 
-      error: 'Error al procesar la venta', 
-      details: error.message 
-    });
+    const status = error.status || 500;
+    if (status === 500) {
+      return res.status(500).json({ error: 'Error al procesar la venta', details: error.message });
+    }
+    return res.status(status).json({ error: error.message });
   }
 };
