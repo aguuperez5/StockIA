@@ -28,7 +28,6 @@ function buildTicket(sale, deposit) {
     total: Number(sale.total),
   };
 }
-
 // Historial de ventas
 export const getSales = async (req, res) => {
   try {

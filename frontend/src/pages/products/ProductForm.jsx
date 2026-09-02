@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Tag, DollarSign, Boxes, Warehouse } from "lucide-react";
+import { Tag, DollarSign, Boxes, Warehouse, Trash2 } from "lucide-react";
 import { BackHeading, Panel, Field, TextAreaField, SelectField } from "../../components/common";
 import { useAppData } from "../../context/AppDataContext";
 import { required, numberGreaterThan, numberGreaterOrEqual, validateForm } from "../../utils/validators";
@@ -11,7 +11,7 @@ export default function ProductForm({ mode }) {
   const isEdit = mode === "edit";
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProduct, addProduct, updateProduct, categorias, deposits, skuExists, totalStock } = useAppData();
+  const { getProduct, addProduct, updateProduct, deleteProduct, adjustStock, categorias, deposits, skuExists, totalStock } = useAppData();
 
   const existing = isEdit ? getProduct(id) : null;
 
@@ -28,6 +28,8 @@ export default function ProductForm({ mode }) {
   }));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
+  const [stockError, setStockError] = useState("");
+  const [stockBusy, setStockBusy] = useState(false);
 
   if (isEdit && !existing) {
     return (
@@ -76,6 +78,35 @@ export default function ProductForm({ mode }) {
       }
     } catch (err) {
       setSubmitError(err.message || "No se pudo guardar el producto.");
+    }
+  }
+
+  async function handleAdjust(depositId, type) {
+    setStockError("");
+    const raw = window.prompt(type === "IN" ? "¿Cuántas unidades ingresan?" : "¿Cuántas unidades salen?");
+    if (raw == null) return;
+    const cantidad = Number(raw);
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+      setStockError("Ingresá un número entero mayor a 0.");
+      return;
+    }
+    setStockBusy(true);
+    try {
+      await adjustStock({ productId: existing.id, depositId, quantity: cantidad, type });
+    } catch (err) {
+      setStockError(err.message || "No se pudo ajustar el stock.");
+    } finally {
+      setStockBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`¿Dar de baja el producto "${existing.nombre}"?`)) return;
+    try {
+      await deleteProduct(existing.id);
+      navigate("/panel/productos", { state: { success: `Producto "${existing.nombre}" dado de baja.` } });
+    } catch (err) {
+      setSubmitError(err.message || "No se pudo dar de baja el producto.");
     }
   }
 
@@ -182,6 +213,11 @@ export default function ProductForm({ mode }) {
             {submitError && <small className="field-error standalone">{submitError}</small>}
 
             <div className="form-actions">
+              {isEdit && (
+                <button type="button" className="icon-button danger" onClick={handleDelete} title="Dar de baja" style={{ marginRight: "auto" }}>
+                  <Trash2 size={15} /> Dar de baja
+                </button>
+              )}
               <button type="button" className="secondary-button" onClick={() => navigate("/panel/productos")}>Cancelar</button>
               <button type="submit" className="primary-button">{isEdit ? "Guardar cambios" : "Crear producto"}</button>
             </div>
@@ -193,12 +229,20 @@ export default function ProductForm({ mode }) {
             <div className="stock-list">
               {deposits.map(d => (
                 <div className="stock-item" key={d.id}>
-                  <div className="stock-item-head"><span>{d.nombre}</span><b>{existing.stock[d.id] || 0} {existing.unidad}</b></div>
+                  <div className="stock-item-head">
+                    <span>{d.nombre}</span>
+                    <b>{existing.stock[d.id] || 0} {existing.unidad}</b>
+                  </div>
+                  <div className="form-actions" style={{ gap: 6, marginTop: 4 }}>
+                    <button type="button" className="secondary-button" disabled={stockBusy} onClick={() => handleAdjust(d.id, "IN")}>+ Entrada</button>
+                    <button type="button" className="secondary-button" disabled={stockBusy} onClick={() => handleAdjust(d.id, "OUT")}>− Salida</button>
+                  </div>
                 </div>
               ))}
+              {stockError && <small className="field-error standalone">{stockError}</small>}
               <p className="helper" style={{ padding: "10px 0 0" }}>
-                Total en todos los depósitos: <strong>{totalStock(existing)} {existing.unidad}</strong>. Para mover stock entre
-                depósitos, usá la sección de Transferencias.
+                Total en todos los depósitos: <strong>{totalStock(existing)} {existing.unidad}</strong>. Cada entrada o salida
+                queda registrada como movimiento. Para mover stock entre depósitos, usá Transferencias.
               </p>
             </div>
           </Panel>

@@ -1,12 +1,15 @@
 import { Router } from 'express';
-import { getStock, adjustStock } from '../controllers/stock.controller.js';
+import { getStock, adjustStock, transferStock } from '../controllers/stock.controller.js';
 
 const router = Router();
 
-// GET /api/stock?productId=&depositId= (SB-032: consultar stock puntual)
+// GET /api/stock?productId=&depositId=  (stock puntual o por producto en todos los depósitos)
 router.get('/', getStock);
 
-// POST /api/stock/adjust (SB-034/SB-035/SB-046: actualización manual de stock + movimiento)
+// POST /api/stock/adjust    (entrada / salida / ajuste manual + movimiento)
 router.post('/adjust', adjustStock);
+
+// POST /api/stock/transfer  (mover stock entre depósitos)
+router.post('/transfer', transferStock);
 
 export default router;
