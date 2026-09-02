@@ -9,6 +9,25 @@ function priceForQuantity(product, quantity) {
   return Number(rules[0]?.price ?? product.price);
 }
 
+// SB-044: arma el ticket de una venta ya confirmada (Sale + SaleItem persistidos,
+// dentro de la transacción exitosa). No persiste nada nuevo: es una proyección de
+// datos que ya existen en el modelo (Sale, SaleItem, Product, Deposit).
+function buildTicket(sale, deposit) {
+  return {
+    saleId: sale.id,
+    createdAt: sale.createdAt,
+    deposit: { id: deposit.id, name: deposit.name },
+    items: sale.items.map((it) => ({
+      productId: it.productId,
+      productName: it.product?.name ?? null,
+      productCode: it.product?.code ?? null,
+      quantity: it.quantity,
+      price: Number(it.price),
+      subtotal: Number(it.price) * it.quantity,
+    })),
+    total: Number(sale.total),
+  };
+}
 // Historial de ventas
 export const getSales = async (req, res) => {
   try {
@@ -100,10 +119,12 @@ export const createSale = async (req, res) => {
         });
       }
 
-      return sale;
+      return { sale, deposit };
     });
 
-    return res.status(201).json({ message: 'Venta confirmada con éxito', sale: saleResult });
+    const ticket = buildTicket(saleResult.sale, saleResult.deposit);
+
+    return res.status(201).json({ message: 'Venta confirmada con éxito', sale: saleResult.sale, ticket });
   } catch (error) {
     const status = error.status || 500;
     if (status === 500) {
