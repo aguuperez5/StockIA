@@ -22,11 +22,12 @@ cd backend
 cp .env.example .env
 ```
 
-`.env.example` documenta las únicas dos variables que el código realmente lee:
+`.env.example` documenta las variables que el backend realmente lee:
 - `DATABASE_URL` — cadena de conexión a Postgres (usada por Prisma).
-- `PORT` — puerto HTTP del servidor Express (default 3000 si no se define).
+- `PORT` — puerto HTTP del servidor Express (default 3001 si no se define).
+- `FRONTEND_URL` — origen permitido por CORS (default `http://localhost:3000`).
+- `SESSION_SECRET` — secreto para firmar la cookie de sesión; usar uno aleatorio fuera de desarrollo.
 
-No hay otros secretos en este Sprint (no hay JWT, no hay claves de servicios externos).
 
 ## 3. Dependencias
 
@@ -58,7 +59,7 @@ npm start        # producción
 npm run dev       # con --watch
 ```
 
-Sirve en `http://localhost:<PORT>` con rutas bajo `/api/{auth,products,deposits,stock,sales}`.
+Sirve en `http://localhost:<PORT>` con rutas bajo `/api` (auth, products, warehouses, inventory, sales y transfers).
 
 ## 7. Tests
 
@@ -70,6 +71,4 @@ Corre contra la base definida en `DATABASE_URL` (usar la de desarrollo, nunca pr
 
 ## Notas sobre Prisma 7
 
-Este proyecto usa el generador `prisma-client` (no el clásico `prisma-client-js`) con `output` custom (`backend/generated/prisma`). Dos consecuencias no obvias:
-- El cliente **no** se importa desde `@prisma/client`, sino desde la ruta generada: `../generated/prisma/client.ts` (ver [backend/config/prisma.js](../backend/config/prisma.js)).
-- `PrismaClient` ya no abre conexión implícita por `DATABASE_URL`: requiere un *driver adapter* explícito (`@prisma/adapter-pg`), pasado en el constructor.
+El cliente se genera con `prisma-client-js` y usa el adaptador PostgreSQL `@prisma/adapter-pg` (ver `backend/config/prisma.js`).

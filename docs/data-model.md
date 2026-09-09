@@ -1,4 +1,4 @@
-# Modelo de datos — StockIA (Sprint 1)
+# Modelo de datos — StockIA
 
 Implementado en [backend/prisma/schema.prisma](../backend/prisma/schema.prisma).
 
@@ -6,7 +6,7 @@ Implementado en [backend/prisma/schema.prisma](../backend/prisma/schema.prisma).
 
 ### User
 Usuarios del sistema (autenticación, SB-016/018/019).
-- `id`, `name`, `email` (único), `password` (hash bcrypt), `role` (`ADMIN`|`USER`), `createdAt`.
+- `id`, `name`, `email` (único), `password` (hash bcrypt), `role` (`ADMIN`|`USER`), `appRole` (`administrador`|`caja`|`deposito`), `createdAt`.
 
 ### Product
 Catálogo de productos.
@@ -20,8 +20,8 @@ Precio aplicable a partir de una cantidad mínima de unidades (ver [pricing.md](
 
 ### Deposit
 Depósitos/sucursales físicas.
-- `id`, `name`, `location?`, `createdAt`.
-- Relaciones: `stocks[]`, `stockMovements[]`, `sales[]`.
+- `id`, `name`, `location?`, `type`, `address`, `manager`, `createdAt`.
+- Relaciones: `stocks[]`, `stockMovements[]`, `sales[]`, `transfers[]`.
 
 ### Stock
 El stock es propiedad de la **relación** Producto+Depósito, nunca un atributo de Producto. Así el mismo producto puede tener cantidades distintas en cada depósito sin duplicar el producto.
@@ -38,15 +38,22 @@ Registro de trazabilidad de toda modificación de stock (ver [stock-rules.md](st
 
 ### Sale / SaleItem
 Ventas confirmadas.
-- `Sale`: `id`, `depositId` FK → Deposit (`Restrict`), `total` (Decimal 10,2), `createdAt`.
+- `Sale`: `id`, `depositId` FK → Deposit (`Restrict`), `customerId?`, `userId?`, `total` (Decimal 10,2), `photoData?`, `photoMimeType?`, `createdAt`.
 - `SaleItem`: `id`, `saleId` FK → Sale (`onDelete: Cascade` — el detalle no tiene sentido sin la venta), `productId` FK → Product (`Restrict`), `quantity`, `price` (precio aplicado en el momento de la venta, no el precio actual del producto).
 
-## Por qué no hay más entidades todavía
+### Transfer / TransferItem
+Transferencias confirmadas entre depósitos. Se crean con sus ítems, descuentos y entradas
+de stock y movimientos dentro de una única transacción.
+- `Transfer`: origen, destino, `status`, `userId?`, `photoData?`, `photoMimeType?`, `createdAt`.
+- `TransferItem`: producto y cantidad, con FK en cascada al remito.
 
-`Cliente`, `Transferencia` y `Reconocimiento` no se implementan en este Sprint (fuera de alcance explícito). El modelo actual no las bloquea:
-- `Sale` puede ganar `customerId?` sin romper nada existente.
-- Los tipos `TRANSFER_IN`/`TRANSFER_OUT` en `MovementType` cubren la trazabilidad de una futura transferencia entre depósitos sin cambiar `Stock` ni `StockMovement`.
-- El reconocimiento de imágenes es un flujo previo a la creación/actualización de `Product`/`Stock`, no requiere cambios en estas entidades.
+Las fotos se reciben como data URL validada (máximo 4 MB) y se persisten junto al
+comprobante para que el ticket/remito pueda recuperarlas.
+
+## Entidades complementarias
+
+`Customer` guarda clientes asociados a ventas. `TelegramOffer` conserva campañas
+preparadas y `PriceRule` mantiene precios por volumen.
 
 ## Diagrama de relaciones
 

@@ -7,6 +7,11 @@ services:
       POSTGRES_USER: stockia
       POSTGRES_PASSWORD: stockia
       POSTGRES_DB: stockia
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stockia -d stockia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     ports:
       - "5434:5432"
     volumes:

@@ -2,8 +2,12 @@ import prisma from '../config/prisma.js';
 
 // Limpia las tablas en orden seguro respetando FKs (para tests aislados).
 export async function resetDb() {
+  await prisma.transferItem.deleteMany();
+  await prisma.transfer.deleteMany();
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.telegramOffer.deleteMany();
+  await prisma.customer.deleteMany();
   await prisma.stockMovement.deleteMany();
   await prisma.stock.deleteMany();
   await prisma.priceRule.deleteMany();
