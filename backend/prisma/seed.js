@@ -7,15 +7,15 @@ import bcrypt from 'bcryptjs';
 async function findOrCreateDeposit(client, name, location) {
   const existing = await client.deposit.findFirst({ where: { name } });
   if (existing) return existing;
-  return client.deposit.create({ data: { name, location } });
+  return client.deposit.create({ data: { name, location, address: location, type: name.includes('Norte') ? 'Sucursal' : 'Principal', manager: 'Admin StockIA' } });
 }
 
 async function main() {
   const password = await bcrypt.hash('test1234', 10);
   await prisma.user.upsert({
     where: { email: 'admin@stockia.dev' },
-    update: {},
-    create: { name: 'Admin StockIA', email: 'admin@stockia.dev', password, role: 'ADMIN' }
+    update: { appRole: 'administrador', role: 'ADMIN' },
+    create: { name: 'Admin StockIA', email: 'admin@stockia.dev', password, role: 'ADMIN', appRole: 'administrador' }
   });
 
   const central = await findOrCreateDeposit(prisma, 'Depósito Central', 'Sede principal');

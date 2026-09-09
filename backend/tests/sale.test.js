@@ -24,11 +24,14 @@ test('confirma una venta válida: descuenta stock y registra movimiento OUT', as
 
   const res = mockRes();
   await createSale({
-    body: { depositId: deposit.id, total: 200, items: [{ productId: product.id, quantity: 2, price: 100 }] }
+    body: { depositId: deposit.id, total: 200, photoData: 'data:image/png;base64,AA==', photoMimeType: 'image/png', items: [{ productId: product.id, quantity: 2, price: 100 }] }
   }, res);
 
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.sale.items.length, 1);
+  assert.equal(res.body.ticket.photoData, 'data:image/png;base64,AA==');
+  const persistedSale = await prisma.sale.findUnique({ where: { id: res.body.sale.id } });
+  assert.equal(persistedSale.photoData, 'data:image/png;base64,AA==');
 
   const stock = await prisma.stock.findUnique({ where: { productId_depositId: { productId: product.id, depositId: deposit.id } } });
   assert.equal(stock.quantity, 18);

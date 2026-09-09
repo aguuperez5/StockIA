@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -29,7 +23,12 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(USER)
+  appRole   String   @default("caja")
   createdAt DateTime @default(now())
+
+  sales Sale[]
+  telegramOffers TelegramOffer[]
+  transfersCreated Transfer[] @relation("TransferCreator")
 
   @@map("users")
 }
@@ -37,12 +36,10 @@ model User {
 model Product {
   id        Int      @id @default(autoincrement())
   name      String
-  // Identidad real del producto: el nombre puede repetirse, el code (SKU) no.
   code      String   @unique
   category  String?
-  // Precio base (1 unidad). Precios por cantidad mayor viven en PriceRule.
   price     Decimal  @db.Decimal(10, 2)
-  // Referencia a un almacenamiento externo (no se guardan blobs en Postgres).
+  lowStockThreshold Int @default(5)
   imageUrl  String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -52,14 +49,11 @@ model Product {
   stocks          Stock[]
   stockMovements  StockMovement[]
   saleItems       SaleItem[]
+  transferItems   TransferItem[]
 
   @@map("products")
 }
 
-// Precio aplicable a partir de una cantidad mínima de unidades.
-// Ej: minQuantity=1 -> precio unitario, minQuantity=6 -> precio por caja.
-// El precio aplicable a una cantidad N es el de mayor minQuantity <= N
-// (si no hay regla, se usa Product.price).
 model PriceRule {
   id          Int     @id @default(autoincrement())
   productId   Int
@@ -76,17 +70,21 @@ model Deposit {
   id        Int      @id @default(autoincrement())
   name      String
   location  String?
+  type      String   @default("Principal")
+  address  String   @default("")
+  manager  String   @default("")
   createdAt DateTime @default(now())
 
   stocks         Stock[]
   stockMovements StockMovement[]
   sales          Sale[]
+  saleItems      SaleItem[] @relation("SaleItemWarehouse")
+  transfersOrigin Transfer[] @relation("TransferOrigin")
+  transfersDestination Transfer[] @relation("TransferDestination")
 
   @@map("deposits")
 }
 
-// El stock es propiedad de la relación Producto+Depósito, nunca un atributo
-// suelto de Producto: así el mismo producto tiene cantidades distintas por depósito.
 model Stock {
   id        Int      @id @default(autoincrement())
   productId Int
@@ -101,8 +99,6 @@ model Stock {
   @@map("stock")
 }
 
-// Toda modificación de Stock.quantity debe ir acompañada de un StockMovement
-// dentro de la misma transacción (trazabilidad obligatoria).
 model StockMovement {
   id        Int          @id @default(autoincrement())
   productId Int
@@ -118,16 +114,37 @@ model StockMovement {
   @@map("stock_movements")
 }
 
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  contact   String
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales Sale[]
+
+  @@map("customers")
+}
+
 model Sale {
   id        Int        @id @default(autoincrement())
   depositId Int
   deposit   Deposit    @relation(fields: [depositId], references: [id], onDelete: Restrict)
+  customerId Int?
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  userId Int?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   total     Decimal    @db.Decimal(10, 2)
+  photoData String?    @db.Text
+  photoMimeType String?
   createdAt DateTime   @default(now())
 
   items SaleItem[]
 
   @@index([depositId])
+  @@index([customerId])
   @@map("sales")
 }
 
@@ -139,7 +156,54 @@ model SaleItem {
   product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
+  warehouseId Int?
+  warehouse Deposit? @relation("SaleItemWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
 
   @@index([saleId])
+  @@index([warehouseId])
   @@map("sale_items")
+}
+
+model Transfer {
+  id Int @id @default(autoincrement())
+  originWarehouseId Int
+  originWarehouse Deposit @relation("TransferOrigin", fields: [originWarehouseId], references: [id], onDelete: Restrict)
+  destinationWarehouseId Int
+  destinationWarehouse Deposit @relation("TransferDestination", fields: [destinationWarehouseId], references: [id], onDelete: Restrict)
+  status String @default("Confirmada")
+  userId Int?
+  creator User? @relation("TransferCreator", fields: [userId], references: [id], onDelete: SetNull)
+  photoData String? @db.Text
+  photoMimeType String?
+  createdAt DateTime @default(now())
+  items TransferItem[]
+
+  @@index([originWarehouseId])
+  @@index([destinationWarehouseId])
+  @@map("transfers")
+}
+
+model TransferItem {
+  id Int @id @default(autoincrement())
+  transferId Int
+  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity Int
+
+  @@index([transferId])
+  @@map("transfer_items")
+}
+
+model TelegramOffer {
+  id Int @id @default(autoincrement())
+  message String
+  status String
+  productIds Json
+  customerIds Json
+  createdAt DateTime @default(now())
+  userId Int?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("telegram_offers")
 }
