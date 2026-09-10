@@ -13,9 +13,11 @@ router.get('/products', requireAuth, c.listProducts);
 router.get('/products/:id', requireAuth, c.getProductCompat);
 router.post('/products', requireAuth, requireAppRole(ROLE.ADMIN), c.createProductCompat);
 router.put('/products/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.updateProductCompat);
+router.delete('/products/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.deleteProductCompat);
 
 router.get('/warehouses', requireAuth, c.listWarehouses);
 router.post('/warehouses', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.createWarehouse);
+router.put('/warehouses/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.updateWarehouse);
 router.get('/inventory', requireAuth, c.listInventory);
 router.patch('/inventory/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.updateInventory);
 
@@ -35,6 +37,7 @@ router.get('/customers', requireAuth, c.listCustomers);
 router.post('/customers', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.createCustomer);
 router.get('/customers/:id', requireAuth, c.customerDetail);
 router.put('/customers/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.updateCustomer);
+router.delete('/customers/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.deleteCustomer);
 
 router.get('/reports', requireAuth, requireAppRole('administrador'), c.reports);
 router.get('/team', requireAuth, requireAppRole('administrador'), c.team);

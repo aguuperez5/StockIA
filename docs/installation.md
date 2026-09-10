@@ -1,74 +1,153 @@
-# Instalación — Backend StockIA
+# Instructivo de Instalación y Ejecución — StockIA
 
-## Requisitos
+Guía paso a paso para clonar, configurar, inicializar y verificar el ambiente de desarrollo completo del sistema **StockIA** (Backend, Base de Datos, Frontend y Módulo de Visión).
 
-- Node.js 22+ (usa strip de tipos nativo de Node para importar el cliente Prisma generado como `.ts`; no requiere `ts-node`).
-- Docker (para levantar PostgreSQL localmente).
+---
 
-## 1. Base de datos
+## Requisitos Previos
 
-Desde la raíz del repo:
+- **Node.js:** Versión 20+ o 22+ (recomendada v22 por soporte nativo de strips de TypeScript).
+- **npm** o **yarn** instalado.
+- **Docker & Docker Desktop:** Para levantar el motor de base de datos PostgreSQL de forma aislada.
+- **Git:** Para clonar el repositorio y gestionar versiones.
+- **Python 3.10+** (opcional para el pipeline local de IA / visión computacional).
+
+---
+
+## 1. Clonación del Repositorio
+
+```bash
+git clone https://github.com/aguuperez5/StockIA.git
+cd StockIA
+```
+
+---
+
+## 2. Base de Datos (PostgreSQL en Docker)
+
+Desde la raíz del repositorio, levantar el contenedor de PostgreSQL dedicado:
 
 ```bash
 docker compose up -d
 ```
 
-Levanta un Postgres 16 dedicado a StockIA en el contenedor `stockia-postgres`, puerto host **5434** (no interfiere con otros proyectos que puedan tener su propio Postgres en 5432/5433). Credenciales y base: `stockia`/`stockia`/`stockia` (ver [docker-compose.yml](../docker-compose.yml)).
+- **Contenedor:** `stockia-postgres`
+- **Puerto expuesto en host:** `5434` (diseñado para no colisionar con instalaciones locales de PostgreSQL en los puertos estándar `5432` o `5433`).
+- **Base de datos / Usuario / Password:** `stockia` / `stockia` / `stockia` (ver [docker-compose.yml](../docker-compose.yml)).
 
-## 2. Variables de entorno
+---
+
+## 3. Configuración y Puesta en Marcha del Backend
+
+### 3.1. Navegar e instalar dependencias
 
 ```bash
 cd backend
-cp .env.example .env
-```
-
-`.env.example` documenta las variables que el backend realmente lee:
-- `DATABASE_URL` — cadena de conexión a Postgres (usada por Prisma).
-- `PORT` — puerto HTTP del servidor Express (default 3001 si no se define).
-- `FRONTEND_URL` — origen permitido por CORS (default `http://localhost:3000`).
-- `SESSION_SECRET` — secreto para firmar la cookie de sesión; usar uno aleatorio fuera de desarrollo.
-
-
-## 3. Dependencias
-
-```bash
 npm install
 ```
 
-## 4. Cliente Prisma y migraciones
+### 3.2. Variables de entorno
+
+Crear el archivo `.env` a partir del ejemplo:
 
 ```bash
-npx prisma generate       # genera backend/generated/prisma (gitignored)
-npx prisma migrate deploy # aplica las migraciones existentes (entorno limpio/CI)
-# o, en desarrollo, para crear+aplicar nuevas migraciones:
-npx prisma migrate dev
+# En Windows PowerShell:
+Copy-Item .env.example .env
+
+# En Linux o macOS:
+cp .env.example .env
 ```
 
-## 5. Datos de prueba (seed)
+Variables requeridas en `backend/.env`:
+- `DATABASE_URL="postgresql://stockia:stockia@localhost:5434/stockia?schema=public"`
+- `PORT=3001`
+- `FRONTEND_URL="http://localhost:3000"`
+- `SESSION_SECRET="desarrollo_secreto_seguro_stockia"`
+
+### 3.3. Generación de Cliente Prisma y Migraciones
+
+```bash
+# 1. Generar cliente Prisma
+npx prisma generate
+
+# 2. Aplicar las migraciones existentes a la base de datos
+npx prisma migrate deploy
+
+# (Opcional en desarrollo para crear nuevas migraciones):
+# npx prisma migrate dev
+```
+
+### 3.4. Carga de Datos Iniciales (Seed Idempotente)
 
 ```bash
 npm run seed
 ```
 
-Reproducible e idempotente (usa `upsert`/`findOrCreate`): crea un usuario admin (`admin@stockia.dev` / `test1234`), dos depósitos, dos productos (uno con `PriceRule` de ejemplo) y su stock inicial.
+El script de seed es reproducible e idempotente (emplea `upsert` / `findOrCreate`) y carga:
+- **Usuario Administrador:** `admin@stockia.dev` | Contraseña: `test1234`
+- **Depósitos iniciales:** Depósito Central y Sucursal 1.
+- **Productos de catálogo:** Artículos con códigos de barra de prueba y reglas de precios por volumen (`PriceRule`).
+- **Stock inicial:** Existencias asignadas por depósito con balance verificado.
 
-## 6. Levantar el servidor
+### 3.5. Iniciar el Servidor Backend
 
 ```bash
-npm start        # producción
-npm run dev       # con --watch
+npm run dev       # En modo desarrollo con hot-reload (--watch)
+# o bien:
+npm start         # Modo estándar
 ```
 
-Sirve en `http://localhost:<PORT>` con rutas bajo `/api` (auth, products, warehouses, inventory, sales y transfers).
+La API REST quedará escuchando en `http://localhost:3001/api`.
 
-## 7. Tests
+---
+
+## 4. Configuración y Puesta en Marcha del Frontend
+
+En una nueva terminal:
+
+### 4.1. Navegar e instalar dependencias
 
 ```bash
+cd frontend
+npm install
+```
+
+### 4.2. Variables de entorno
+
+Verificar que `frontend/.env` contenga la URL de conexión a la API:
+
+```env
+VITE_API_URL=http://localhost:3001/api
+```
+
+### 4.3. Iniciar el Servidor de Desarrollo (Vite)
+
+```bash
+npm run dev
+```
+
+La interfaz web quedará disponible en el navegador en `http://localhost:3000`.
+
+---
+
+## 5. Verificación del Ambiente de Trabajo
+
+Para corroborar que todos los servicios operan de forma articulada:
+1. Abrir `http://localhost:3000` en el navegador.
+2. Iniciar sesión con el usuario de prueba cargado en el seed (`admin@stockia.dev` / `test1234`).
+3. Navegar a **Productos** para validar la lectura del catálogo desde PostgreSQL.
+4. Navegar a **Depósitos y Stock** para verificar existencias.
+5. Acceder a **Nueva Venta** para simular la emisión de un comprobante manual con descuento automático de inventario.
+
+---
+
+## 6. Ejecución de Pruebas Automatizadas (QA)
+
+Para validar la integridad de las APIs y lógica de negocio del backend:
+
+```bash
+cd backend
 npm test
 ```
 
-Corre contra la base definida en `DATABASE_URL` (usar la de desarrollo, nunca producción — los tests **borran todas las tablas** en cada `beforeEach`, ver [backend/tests/helpers.js](../backend/tests/helpers.js)). Se ejecuta con `--test-concurrency=1` porque los archivos de test comparten la misma base de datos y una limpieza concurrente entre archivos generaría condiciones de carrera.
-
-## Notas sobre Prisma 7
-
-El cliente se genera con `prisma-client-js` y usa el adaptador PostgreSQL `@prisma/adapter-pg` (ver `backend/config/prisma.js`).
+> **Nota:** La suite de pruebas de integración se ejecuta con concurrencia controlada (`--test-concurrency=1`) y limpia las tablas en cada ciclo para garantizar aislamiento total y resultados deterministas.

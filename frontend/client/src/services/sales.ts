@@ -9,13 +9,14 @@ export type Sale = {
   itemCount: number;
   warehouseId?: number;
   warehouseName?: string;
+  customerName?: string | null;
   photoData?: boolean;
 };
 
 export type SaleLine = { productId: number; warehouseId: number; quantity: number };
 
 export type Receipt = {
-  sale: { id: number; receiptNumber: string; totalCents: number; status: string; createdAt: string; photoData?: string | null; photoMimeType?: string | null };
+  sale: { id: number; receiptNumber: string; totalCents: number; status: string; createdAt: string; photoData?: string | null; photoMimeType?: string | null; customer?: { id: number; name: string; contact: string } | null };
   items: Array<{ id: number; quantity: number; unitPriceCents: number; subtotalCents: number; productName: string; sku: string; warehouseName: string }>;
 };
 

@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Store, UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
 export default function RegisterPage() {
@@ -21,7 +22,7 @@ export default function RegisterPage() {
     setErrors(next);
     if (Object.keys(next).length) return;
     setPending(true);
-    try { await register(form.fullName, form.email, form.password); setLocation("/"); }
+    try { await register(form.fullName, form.email, form.password); toast.success("Cuenta creada. ¡Bienvenido a StockIA!"); setLocation("/"); }
     catch (reason) { setErrors({ form: (reason as Error).message }); }
     finally { setPending(false); }
   };

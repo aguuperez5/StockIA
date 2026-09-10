@@ -38,7 +38,7 @@ Catálogo oficial de Historias de Usuario desarrolladas y validadas durante el *
 | **Tareas Backlog** | `SB-016`, `SB-017`, `SB-018`, `SB-019` |
 
 #### Criterios de Aceptación
-- **CA-01:** Se muestra el formulario de registro con los campos necesarios: nombre, apellido, legajo, contraseña y confirmación de contraseña.
+- **CA-01:** Se muestra el formulario de registro con los campos necesarios: nombre completo, email, contraseña y confirmación de contraseña. (Decisión de diseño verificada: la identidad es el email único; no se piden apellido ni legajo.)
 - **CA-02:** El sistema valida que los campos obligatorios no estén vacíos.
 - **CA-03:** El sistema permite registrar al usuario correctamente si los datos ingresados son válidos.
 - **CA-04:** El sistema muestra un mensaje de confirmación al completar el registro.

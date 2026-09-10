@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import prisma from '../config/prisma.js';
 import { resetDb, createProduct, createDeposit } from './helpers.js';
 import { createDeposit as createDepositHandler, updateDeposit, getStockByDeposit } from '../controllers/deposit.controller.js';
-import { createWarehouse } from '../controllers/integration.controller.js';
+import { createWarehouse, updateWarehouse } from '../controllers/integration.controller.js';
 
 function mockRes() {
   return {
@@ -107,4 +107,33 @@ test('el endpoint integrado también rechaza nombres duplicados', async () => {
   const second = mockRes();
   await createWarehouse({ body: { name: 'norte único', address: 'Calle 2', manager: 'Otro' } }, second);
   assert.equal(second.statusCode, 409);
+});
+
+test('editar un depósito por el endpoint integrado', async () => {
+  const created = mockRes();
+  await createWarehouse({ body: { name: 'Editable', address: 'Calle 1', manager: 'Jefe' } }, created);
+  assert.equal(created.statusCode, 201);
+
+  const ok = mockRes();
+  await updateWarehouse({ params: { id: String(created.body.id) }, body: { name: 'Editado', type: 'Sucursal', address: 'Calle 9', manager: 'Otra' } }, ok);
+  assert.equal(ok.statusCode, 200);
+
+  const stored = await prisma.deposit.findUnique({ where: { id: created.body.id } });
+  assert.equal(stored.name, 'Editado');
+  assert.equal(stored.manager, 'Otra');
+});
+
+test('editar al nombre de otro depósito devuelve 409 y uno inexistente 404', async () => {
+  const a = mockRes();
+  await createWarehouse({ body: { name: 'Dep A', address: 'X', manager: 'Y' } }, a);
+  const b = mockRes();
+  await createWarehouse({ body: { name: 'Dep B', address: 'X', manager: 'Y' } }, b);
+
+  const dup = mockRes();
+  await updateWarehouse({ params: { id: String(b.body.id) }, body: { name: 'dep a', address: 'X', manager: 'Y' } }, dup);
+  assert.equal(dup.statusCode, 409);
+
+  const missing = mockRes();
+  await updateWarehouse({ params: { id: '999999' }, body: { name: 'Z', address: 'X', manager: 'Y' } }, missing);
+  assert.equal(missing.statusCode, 404);
 });
