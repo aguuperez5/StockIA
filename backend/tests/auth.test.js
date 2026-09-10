@@ -79,3 +79,16 @@ test('rechaza registro con email ya existente', async () => {
   await register({ body: { name: 'Segundo', email: 'duplicado@test.com', password: 'otraPassword' } }, second);
   assert.equal(second.statusCode, 400);
 });
+
+test('normaliza mayúsculas del email a minúsculas', async () => {
+  const res = mockRes();
+  await register({ body: { name: 'Mayúsculas', email: 'MAYUS@test.com', password: 'password123' } }, res);
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.body.user.email, 'mayus@test.com');
+});
+
+test('rechaza rol inválido con 400 en lugar de 500', async () => {
+  const res = mockRes();
+  await register({ body: { name: 'Rol Raro', email: 'rol@test.com', password: 'password123', role: 'SUPERADMIN' } }, res);
+  assert.equal(res.statusCode, 400);
+});

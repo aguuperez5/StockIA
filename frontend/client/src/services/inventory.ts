@@ -1,4 +1,4 @@
-import { get, patch, post } from "./http";
+import { get, patch, post, put } from "./http";
 
 export type Warehouse = {
   id: number;
@@ -26,6 +26,7 @@ export type InventoryItem = {
 export const warehouseService = {
   list: () => get<{ items: Warehouse[] }>("/warehouses"),
   create: (input: Omit<Warehouse, "id" | "createdAt">) => post<{ id: number; message: string }>("/warehouses", input),
+  update: (id: string | number, input: Omit<Warehouse, "id" | "createdAt">) => put<{ message: string }>(`/warehouses/${id}`, input),
 };
 
 export const inventoryService = {

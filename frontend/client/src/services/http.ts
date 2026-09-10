@@ -27,3 +27,4 @@ export const get = <T,>(path: string) => api<T>(path);
 export const post = <T,>(path: string, data: unknown) => api<T>(path, { method: "POST", body: JSON.stringify(data) });
 export const put = <T,>(path: string, data: unknown) => api<T>(path, { method: "PUT", body: JSON.stringify(data) });
 export const patch = <T,>(path: string, data: unknown) => api<T>(path, { method: "PATCH", body: JSON.stringify(data) });
+export const remove = <T,>(path: string) => api<T>(path, { method: "DELETE" });

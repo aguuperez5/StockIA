@@ -19,6 +19,15 @@ export const getDeposits = async (req, res) => {
   }
 };
 
+// HU-05 CA-02: no se admiten nombres de depósito duplicados (comparación
+// insensible a mayúsculas para evitar "Central" vs "central").
+async function depositNameTaken(name, excludeId) {
+  const existing = await prisma.deposit.findFirst({
+    where: { name: { equals: name, mode: 'insensitive' } },
+  });
+  return !!existing && existing.id !== excludeId;
+}
+
 // SB-030: Registrar un nuevo depósito
 export const createDeposit = async (req, res) => {
   try {
@@ -26,6 +35,10 @@ export const createDeposit = async (req, res) => {
 
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: 'El nombre del depósito es obligatorio' });
+    }
+
+    if (await depositNameTaken(String(name).trim())) {
+      return res.status(409).json({ error: 'Ya existe un depósito registrado con ese nombre' });
     }
 
     const newDeposit = await prisma.deposit.create({
@@ -52,6 +65,9 @@ export const updateDeposit = async (req, res) => {
     const { name, location } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'El nombre del depósito no puede quedar vacío' });
+    }
+    if (name !== undefined && (await depositNameTaken(String(name).trim(), depositId))) {
+      return res.status(409).json({ error: 'Ya existe otro depósito registrado con ese nombre' });
     }
 
     const deposit = await prisma.deposit.update({

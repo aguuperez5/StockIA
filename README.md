@@ -1,25 +1,77 @@
 # StockIA
 
-Sistema de reconocimiento de productos para ventas y gestión de stock.
+Sistema inteligente de reconocimiento visual de productos para automatizar puntos de venta (caja), control de inventario multi-sucursal y emisión de documentación operativa (tickets y remitos).
 
-- `backend/` — API Express + Prisma + PostgreSQL.
-- `frontend/` — UI Vite + React conectada a la API.
+**Cátedra:** Ingeniería y Calidad de Software — Ciclo Lectivo 2026  
+**Institución:** UTN – Facultad Regional San Francisco  
+**Carrera:** Ingeniería en Sistemas de Información  
 
-## Arranque rápido
+**Integrantes:**
+- Camino Matías
+- Mecchia Valentín
+- Perez Agustín
+- Sereno Facundo José
+
+**Profesores:**
+- Gandino Diego
+- Saldarini Javier Daniel
+
+**Repositorio oficial:** [https://github.com/aguuperez5/StockIA](https://github.com/aguuperez5/StockIA)
+
+---
+
+## Estructura del Repositorio
+
+- `frontend/` — Single Page Application en React, TypeScript y Vite.
+- `backend/` — API RESTful en Node.js, Express y Prisma ORM sobre PostgreSQL.
+- `ai/` — Pipeline de visión computacional y PoC en Python (zxing-cpp + PaddleOCR).
+- `docs/` — Documentación académica, metodológica y técnica de arquitectura.
+
+---
+
+## Documentación del Proyecto
+
+### Metodología Ágil y Entregas de Sprint
+- 📄 [Sprint 0 — Visión, Alcance, DoD y Calidad QA](docs/sprint-0.md)
+- 📄 [Sprint 1 — Informe de Entrega, Pivot Tecnológico y Retrospectiva](docs/sprint-1-informe.md)
+- 📋 [Historias de Usuario (HU-01 a HU-11)](docs/historias-de-usuario.md)
+- 📝 [Sprint Backlog — Descomposición de Tareas (SB-001 a SB-055)](docs/sprint-backlog.md)
+
+### Arquitectura Técnica y Reglas de Negocio
+- 🗄️ [Modelo de Datos y Diagrama Entidad-Relación (DER)](docs/data-model.md)
+- 📦 [Reglas de Negocio de Stock y Multi-Sucursal](docs/stock-rules.md)
+- 🏷️ [Reglas de Precios Dinámicos por Volumen](docs/pricing.md)
+- 🛒 [Flujo Transaccional de Venta Manual](docs/flujo-venta-manual.md)
+- 🔌 [Contrato de Integración y Endpoints de API Backend](docs/backend-integration.md)
+- ⚙️ [Instructivo de Instalación y Puesta en Marcha](docs/installation.md)
+
+---
+
+## Arranque Rápido del Entorno Local
+
+### 1. Base de Datos y Backend
 
 ```bash
-docker compose up -d              # Postgres dedicado (puerto 5434)
+# 1. Iniciar PostgreSQL en Docker (puerto 5434)
+docker compose up -d
+
+# 2. Configurar dependencias y esquema
 cd backend
 npm install
-# Windows: Copy-Item .env.example .env
-# macOS/Linux: cp .env.example .env
+# En Windows: Copy-Item .env.example .env (o copiar manualmente)
+# En Linux/macOS: cp .env.example .env
+
 npx prisma generate
 npx prisma migrate deploy
 npm run seed
 npm start
 ```
 
-En otra terminal:
+La API quedará accesible en `http://localhost:3001`.
+
+### 2. Frontend
+
+En una terminal independiente:
 
 ```bash
 cd frontend
@@ -27,12 +79,4 @@ npm install
 npm run dev
 ```
 
-La API queda en `http://localhost:3001` y Vite en `http://localhost:3000`.
-
-## Documentación
-
-- [Modelo de datos](docs/data-model.md)
-- [Reglas de stock](docs/stock-rules.md)
-- [Precios por cantidad](docs/pricing.md)
-- [Instalación detallada](docs/installation.md)
-- [Contrato de integración con Backend](docs/backend-integration.md)
+La aplicación web estará disponible en `http://localhost:3000`.

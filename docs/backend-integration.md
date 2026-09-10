@@ -42,7 +42,8 @@ Cualquier endpoint nuevo que:
 ## Cambios hechos fuera del alcance formal de este rol (documentados para Matías/Facundo)
 
 - **`backend/routes/auth.routes.js`**: había un typo (`router.post('/register', register); r` — una `r` suelta al final de la línea) que lanzaba `ReferenceError` al importar el módulo y **rompía el arranque completo del servidor**. Se corrigió (se quitó el carácter suelto) porque bloqueaba poder verificar el resto del backend end-to-end. No se tocó ninguna otra lógica de `auth`.
-- **Desalineación frontend/backend**: el frontend actual ([frontend/src/context/AppDataContext.jsx](../frontend/src/context/AppDataContext.jsx)) es un mock en memoria con nombres de campo en español (`nombre`, `sku`, `precio`, `stockMinimo`, `stock: {depositoId: cantidad}`) y **no llama a la API real**. La API expone nombres en inglés (`name`, `code`, `price`, `imageUrl`) y stock como filas `Stock` por depósito. Este cableado es responsabilidad de Facundo; se documenta acá para que la integración no se descubra tarde.
+- **Estado del frontend (actualizado Sprint 1, verificado con 58 casos E2E HTTP):** el frontend canónico es [frontend/client/src](../frontend/client/src) (el directorio [frontend/src](../frontend/src) quedó como legado y ya no lo usa Vite). El cliente nuevo **sí consume la API real** para listados y altas: productos, depósitos, inventario, ventas, transferencias, clientes, dashboard, reportes, Telegram y reconocimiento simulado. Los totales de venta y los tramos de `PriceRule` se calculan en el servidor (`createSaleCompat`), sin IVA: el total persistido es la suma de `precio_unitario × cantidad` con el tramo aplicable.
+- **Compatibilidad legada:** `sale.controller.js` (contrato original SB-042 de un solo depósito) sigue cubierto por tests directos y expuesto solo como `POST /api/sales-legacy`; el flujo canónico es `POST /api/sales` del `integration.controller.js`.
 
 ## Pendiente de coordinación (fuera de este Sprint)
 
