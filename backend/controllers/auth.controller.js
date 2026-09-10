@@ -24,11 +24,20 @@ export const register = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.trim();
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
       return res.status(400).json({
         error: 'El email ingresado no tiene un formato válido.'
+      });
+    }
+
+    // El rol viaja como string libre desde el cliente: solo se aceptan los
+    // valores del enum Role de Prisma, cualquier otro valor es 400 en lugar
+    // de un 500 por violación del enum en la base.
+    if (role !== undefined && role !== 'ADMIN' && role !== 'USER') {
+      return res.status(400).json({
+        error: 'El rol indicado no es válido.'
       });
     }
 

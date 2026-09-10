@@ -1,6 +1,8 @@
 # Flujo de una venta manual — StockIA (SB-003)
 
-> Este documento describe el comportamiento **real** implementado en el código a la fecha de este análisis. No describe cómo debería funcionar una venta, sino cómo funciona hoy, incluyendo lo que todavía es mock, lo que no está conectado y las inconsistencias detectadas entre frontend, backend y otra documentación.
+> **Nota de vigencia (auditoría Sprint 1):** este documento describe el flujo con el frontend legado `frontend/src` (mock en memoria, IVA 21% solo visual, totales calculados en el cliente). El frontend canónico actual es `frontend/client/src` + `integration.controller.js`: los totales y tramos de `PriceRule` se calculan en el servidor, cada línea de venta lleva su propio `warehouseId`, no hay IVA, y las pantallas leen la API real. Lo que sigue se conserva como registro histórico del análisis original.
+>
+> Comportamiento **real** implementado en el código a la fecha de este análisis. No describe cómo debería funcionar una venta, sino cómo funciona hoy, incluyendo lo que todavía es mock, lo que no está conectado y las inconsistencias detectadas entre frontend, backend y otra documentación.
 
 ## 1. Dónde se inicia una venta manual
 
