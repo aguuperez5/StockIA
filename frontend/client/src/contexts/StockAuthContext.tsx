@@ -6,7 +6,7 @@ type AuthContextValue = {
   loading: boolean;
   error: string;
   login: (email: string, password: string) => Promise<StockUser>;
-  register: (fullName: string, email: string, password: string) => Promise<StockUser>;
+  register: (fullName: string, legajo: string, email: string, password: string) => Promise<StockUser>;
   logout: () => Promise<void>;
 };
 
@@ -19,6 +19,12 @@ export function StockAuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     authService.me().then(result => setUser(result.user)).catch(() => setUser(null)).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener("stockia:unauthorized", onExpired);
+    return () => window.removeEventListener("stockia:unauthorized", onExpired);
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
@@ -37,10 +43,10 @@ export function StockAuthProvider({ children }: { children: React.ReactNode }) {
         throw reason;
       }
     },
-    async register(fullName, email, password) {
+    async register(fullName, legajo, email, password) {
       setError("");
       try {
-        const result = await authService.register({ fullName, email, password });
+        const result = await authService.register({ fullName, legajo, email, password });
         setUser(result.user);
         return result.user;
       } catch (reason) {

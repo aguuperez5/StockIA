@@ -38,5 +38,5 @@ export const saleService = {
 };
 
 export const accountService = {
-  register: (input: { fullName: string; email: string; password: string }) => post<{ message: string }>("/users/register", input),
+  register: (input: { fullName: string; legajo: string; email: string; password: string }) => post<{ message: string }>("/users/register", input),
 };

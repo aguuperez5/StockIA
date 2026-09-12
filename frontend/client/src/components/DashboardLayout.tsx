@@ -1,7 +1,8 @@
-import { Boxes, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, PackagePlus, ReceiptText, ShoppingCart, Store, Users, Warehouse, ArrowRightLeft, BarChart3, Send, X } from "lucide-react";
+import { ArrowRightLeft, BarChart3, Boxes, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, Moon, PackagePlus, ReceiptText, Send, ShoppingCart, Store, Sun, Users, Warehouse, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const navigation = [
   { label: "Resumen", path: "/", icon: LayoutDashboard },
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useStockAuth();
+  const { theme, toggleTheme } = useTheme();
   const visibleNavigation = navigation.filter(item => !item.roles || item.roles.includes(user?.appRole ?? "caja"));
   const active = visibleNavigation.find(item => location === item.path || (item.path === "/products" && location.startsWith("/products/")));
   const navigate = (path: string) => { setLocation(path); setMobileOpen(false); };
@@ -34,6 +36,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="rail-bottom"><button className="profile-chip" onClick={() => void logout().then(() => navigate("/login"))}><span className="profile-avatar">{initials}</span><span><b>{user?.fullName || "Mi cuenta"}</b><small>{user?.email || "Sesión activa"}</small></span><LogOut size={15} /></button><div className="workspace-chip"><span className="workspace-icon"><MapPin size={14} /></span><span><b>Mi comercio</b><small>Operación activa</small></span></div></div>
     </aside>
     {mobileOpen && <button className="mobile-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú" />}
-    <section className="main-stage"><header className="topbar"><div className="topbar-leading"><button className="menu-button" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación"><Menu size={21} /></button><span className="section-kicker">{active?.label ?? "StockIA"}</span></div><div className="topbar-status"><span className="live-dot" />Sesión protegida</div></header><main className="page-content">{children}</main></section>
+    <section className="main-stage"><header className="topbar"><div className="topbar-leading"><button className="menu-button" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación"><Menu size={21} /></button><span className="section-kicker">{active?.label ?? "StockIA"}</span></div><div className="topbar-trailing"><div className="topbar-status"><span className="live-dot" />Sesión protegida</div><button className="theme-toggle" onClick={toggleTheme} aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"} title={theme === "dark" ? "Modo claro" : "Modo oscuro"}>{theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}</button></div></header><main className="page-content">{children}</main></section>
   </div>;
 }

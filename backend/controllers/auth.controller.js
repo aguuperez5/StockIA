@@ -12,13 +12,14 @@ function isNonEmptyString(value) {
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, fullName, legajo = '', email, password, role } = req.body;
+    const resolvedName = name || fullName;
 
     // 1. Validar datos obligatorios (SB-019)
     // El backend valida de forma independiente del frontend: no alcanza con
     // que los campos existan, deben ser strings no vacíos (rechaza espacios
     // en blanco) y, en el caso del email, tener un formato válido.
-    if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
+    if (!isNonEmptyString(resolvedName) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
       return res.status(400).json({
         error: 'Los campos name, email y password son obligatorios.'
       });
@@ -59,7 +60,8 @@ export const register = async (req, res) => {
     // 4. Registrar el usuario en la BD (SB-016, SB-018)
     const user = await prisma.user.create({
       data: {
-        name: name.trim(),
+        name: resolvedName.trim(),
+        legajo: typeof legajo === 'string' ? legajo.trim() : '',
         email: normalizedEmail,
         password: hashedPassword,
         role: role || 'USER'
@@ -67,6 +69,7 @@ export const register = async (req, res) => {
       select: {
         id: true,
         name: true,
+        legajo: true,
         email: true,
         role: true,
         createdAt: true

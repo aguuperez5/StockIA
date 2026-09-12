@@ -53,7 +53,7 @@ export function appRole(user) {
 }
 
 export function publicUser(user) {
-  return { id: user.id, fullName: user.name, email: user.email, appRole: appRole(user) };
+  return { id: user.id, fullName: user.name, legajo: user.legajo || '', email: user.email, appRole: appRole(user) };
 }
 
 export function requireAppRole(...roles) { return (req, res, next) => roles.includes(appRole(req.user)) ? next() : res.status(403).json({ message: "No tenés permisos para realizar esta operación." }); };
@@ -63,3 +63,16 @@ export const ROLE = Object.freeze({
   SALES: 'caja',
   WAREHOUSE: 'deposito',
 });
+
+const loginAttempts = new Map();
+
+export function rateLimitLogin(req, res, next) {
+  const key = req.body?.email?.trim().toLowerCase() || req.ip;
+  const now = Date.now();
+  const entry = loginAttempts.get(key) || { count: 0, windowStart: now };
+  if (now - entry.windowStart > 15 * 60 * 1000) { entry.count = 0; entry.windowStart = now; }
+  entry.count += 1;
+  loginAttempts.set(key, entry);
+  if (entry.count > 8) return res.status(429).json({ message: 'Demasiados intentos. Probá de nuevo en unos minutos.' });
+  next();
+}

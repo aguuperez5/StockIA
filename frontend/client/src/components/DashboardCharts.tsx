@@ -28,4 +28,4 @@ export default function DashboardCharts({ data }: { data: DashboardChartData }) 
 
 function SalesTooltip({ active, payload, label, mode }: { active?: boolean; payload?: Array<{ value: number }>; label?: string; mode: "totalCents" | "count" }) { if (!active || !payload?.length) return null; const value = payload[0].value; return <div className="chart-tooltip"><b>{label}</b><span>{mode === "totalCents" ? tooltipMoney(value) : `${value} comprobante${value === 1 ? "" : "s"}`}</span></div>; }
 function InventoryTooltip({ active, payload, label, mode }: { active?: boolean; payload?: Array<{ value: number }>; label?: string; mode: "valueCents" | "units" }) { if (!active || !payload?.length) return null; const value = payload[0].value; return <div className="chart-tooltip"><b>{label}</b><span>{mode === "valueCents" ? tooltipMoney(value) : `${value} unidades`}</span></div>; }
-function ChartEmpty({ text }: { text: string }) { return <div className="chart-empty"><span>—</span><p>{text}</p></div>; }
+export function ChartEmpty({ text }: { text: string }) { return <div className="chart-empty"><span>—</span><p>{text}</p></div>; }

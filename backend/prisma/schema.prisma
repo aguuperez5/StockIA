@@ -20,6 +20,7 @@ enum MovementType {
 model User {
   id        Int      @id @default(autoincrement())
   name      String
+  legajo    String   @default("")
   email     String   @unique
   password  String
   role      Role     @default(USER)
@@ -73,6 +74,7 @@ model Deposit {
   type      String   @default("Principal")
   address  String   @default("")
   manager  String   @default("")
+  capacity Int      @default(0)
   createdAt DateTime @default(now())
 
   stocks         Stock[]
@@ -105,6 +107,8 @@ model StockMovement {
   product   Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
   depositId Int
   deposit   Deposit      @relation(fields: [depositId], references: [id], onDelete: Restrict)
+  saleId    Int?
+  sale      Sale?        @relation(fields: [saleId], references: [id], onDelete: SetNull)
   quantity  Int
   type      MovementType
   reason    String?
@@ -136,6 +140,7 @@ model Sale {
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   userId Int?
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  stockMovements StockMovement[]
   total     Decimal    @db.Decimal(10, 2)
   photoData String?    @db.Text
   photoMimeType String?
