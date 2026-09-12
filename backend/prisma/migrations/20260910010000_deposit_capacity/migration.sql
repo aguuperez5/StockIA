@@ -1,0 +1,1 @@
+ALTER TABLE "deposits" ADD COLUMN "capacity" INTEGER NOT NULL DEFAULT 0;

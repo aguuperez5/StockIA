@@ -16,11 +16,18 @@ export function ClientsPage() {
   const [form, setForm] = useState({ name: "", contact: "", email: "", phone: "" });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const load = (term = "") => customerService.list(term).then(r => setItems(r.items)).catch(e => setError(e.message));
   useEffect(() => { void load(); }, []);
   useEffect(() => { const timer = window.setTimeout(() => void load(search), 220); return () => window.clearTimeout(timer); }, [search]);
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    const next: Record<string, string> = {};
+    if (!form.name.trim()) next.name = "Ingresá el nombre.";
+    if (!form.contact.trim()) next.contact = "Ingresá un medio de contacto.";
+    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) next.email = "Ingresá un email válido.";
+    setFormErrors(next);
+    if (Object.keys(next).length) return;
     setPending(true);
     try {
       await customerService.create(form);
@@ -35,7 +42,7 @@ export function ClientsPage() {
     {error && <ErrorPanel message={error} />}
     {canManageClients && <form className="form-card form-card-pad" onSubmit={create}>
       <div className="form-grid two">
-        {(["name", "contact", "email", "phone"] as const).map(key => <label className="field" key={key}><span>{key === "name" ? "Nombre" : key === "contact" ? "Contacto" : key === "email" ? "Email" : "Teléfono"}</span><input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} required={key === "name" || key === "contact"} placeholder={key === "name" ? "Ej. Ana Gómez" : key === "contact" ? "Ej. telegram:@ana" : "Opcional"} /></label>)}
+        {(["name", "contact", "email", "phone"] as const).map(key => <label className="field" key={key}><span>{key === "name" ? "Nombre" : key === "contact" ? "Contacto" : key === "email" ? "Email" : "Teléfono"}</span><input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} placeholder={key === "name" ? "Ej. Ana Gómez" : key === "contact" ? "Ej. telegram:@ana" : "Opcional"} />{formErrors[key] && <small className="field-error">{formErrors[key]}</small>}</label>)}
       </div>
       <button className="button-primary" disabled={pending}>{pending ? "Agregando…" : "Agregar cliente"}</button>
     </form>}
@@ -55,11 +62,18 @@ export function ClientDetailPage() {
   const [form, setForm] = useState({ name: "", contact: "", email: "", phone: "" });
   const [pending, setPending] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const reload = () => { if (params?.id) customerService.get(params.id).then(result => { setData(result); setForm({ name: result.customer.name, contact: result.customer.contact, email: result.customer.email ?? "", phone: result.customer.phone ?? "" }); }).catch(e => setError(e.message)); };
   useEffect(reload, [params?.id]);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!params?.id) return;
+    const next: Record<string, string> = {};
+    if (!form.name.trim()) next.name = "Ingresá el nombre.";
+    if (!form.contact.trim()) next.contact = "Ingresá un medio de contacto.";
+    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) next.email = "Ingresá un email válido.";
+    setFormErrors(next);
+    if (Object.keys(next).length) return;
     setPending(true);
     try { await customerService.update(params.id, { ...form }); toast.success("Cliente actualizado correctamente."); setEditing(false); reload(); }
     catch (e) { setError((e as Error).message); }
@@ -78,9 +92,9 @@ export function ClientDetailPage() {
     <PageHeader eyebrow="Cliente" title={data.customer.name} description={`Contacto: ${data.customer.contact}`} action={canManageClients ? <span className="row-actions"><button className="button-secondary" onClick={() => setEditing(v => !v)}>{editing ? "Cancelar edición" : "Editar"}</button><button className="button-secondary" onClick={() => setConfirmingDelete(true)}>Eliminar</button></span> : undefined} />
     {editing && <form className="form-card form-card-pad" onSubmit={save}>
       <div className="form-grid two">
-        <label className="field"><span>Nombre</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></label>
-        <label className="field"><span>Contacto</span><input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} required /></label>
-        <label className="field"><span>Email</span><input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></label>
+        <label className="field"><span>Nombre</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />{formErrors.name && <small className="field-error">{formErrors.name}</small>}</label>
+        <label className="field"><span>Contacto</span><input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} />{formErrors.contact && <small className="field-error">{formErrors.contact}</small>}</label>
+        <label className="field"><span>Email</span><input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />{formErrors.email && <small className="field-error">{formErrors.email}</small>}</label>
         <label className="field"><span>Teléfono</span><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></label>
       </div>
       <button className="button-primary" disabled={pending}>{pending ? "Guardando…" : "Guardar cambios"}</button>

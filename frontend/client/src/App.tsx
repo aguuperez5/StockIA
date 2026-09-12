@@ -58,5 +58,5 @@ function Router() {
 }
 
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><StockAuthProvider><TooltipProvider><Toaster /><Router /></TooltipProvider></StockAuthProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider><StockAuthProvider><TooltipProvider><Toaster /><Router /></TooltipProvider></StockAuthProvider></ThemeProvider></ErrorBoundary>;
 }

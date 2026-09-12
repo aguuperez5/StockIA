@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { requireAuth, requireAppRole, ROLE } from '../middleware.js';
+import { rateLimitLogin, requireAuth, requireAppRole, ROLE } from '../middleware.js';
 import * as c from '../controllers/integration.controller.js';
 
 const router = Router();
 router.get('/health', (req,res)=>res.json({status:'ok'}));
 router.post('/users/register', c.registerCompat);
-router.post('/auth/login', c.login);
+router.post('/auth/login', rateLimitLogin, c.login);
 router.get('/auth/me', requireAuth, c.me);
 router.post('/auth/logout', c.logout);
 
@@ -16,8 +16,10 @@ router.put('/products/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.updatePro
 router.delete('/products/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.deleteProductCompat);
 
 router.get('/warehouses', requireAuth, c.listWarehouses);
+router.get('/warehouses/:id/summary', requireAuth, c.warehouseSummary);
 router.post('/warehouses', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.createWarehouse);
 router.put('/warehouses/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.updateWarehouse);
+router.delete('/warehouses/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.deleteWarehouse);
 router.get('/inventory', requireAuth, c.listInventory);
 router.patch('/inventory/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.updateInventory);
 

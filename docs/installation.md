@@ -117,7 +117,7 @@ npm install
 Verificar que `frontend/.env` contenga la URL de conexión a la API:
 
 ```env
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3001
 ```
 
 ### 4.3. Iniciar el Servidor de Desarrollo (Vite)

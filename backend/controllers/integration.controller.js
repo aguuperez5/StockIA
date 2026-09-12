@@ -20,13 +20,15 @@ const serializeProduct = p => ({ id: p.id, name: p.name, sku: p.code, category: 
 
 export async function registerCompat(req, res) {
   try {
-    const { fullName, name, email, password } = req.body;
+    const { fullName, name, legajo = '', email, password } = req.body;
     if (!fullName?.trim() && !name?.trim() || !email?.trim() || !password) return res.status(400).json({ message: 'Nombre, email y contraseña son obligatorios.' });
+    if (typeof legajo !== 'string' || !legajo.trim()) return res.status(400).json({ message: 'El legajo es obligatorio.' });
+    if (!/^\d+$/.test(legajo.trim())) return res.status(400).json({ message: 'El legajo debe ser numérico.' });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return res.status(400).json({ message: 'El email ingresado no tiene un formato válido.' });
     if (password.length < 6) return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
     const normalized = email.trim().toLowerCase();
     if (await prisma.user.findUnique({ where: { email: normalized } })) return res.status(409).json({ message: 'El email ya se encuentra registrado.' });
-    const user = await prisma.user.create({ data: { name: (fullName || name).trim(), email: normalized, password: await bcrypt.hash(password, 10), role: 'USER' } });
+    const user = await prisma.user.create({ data: { name: (fullName || name).trim(), legajo: legajo.trim(), email: normalized, password: await bcrypt.hash(password, 10), role: 'USER' } });
     setSession(res, createSession(user.id));
     return res.status(201).json({ message: 'Usuario registrado exitosamente.', user: publicUser(user) });
   } catch (e) { return res.status(500).json({ message: 'No pudimos registrar el usuario.', details: e.message }); }
@@ -96,19 +98,33 @@ export async function deleteProductCompat(req, res) {
   } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Producto no encontrado.' : e.message }); }
 }
 
-export async function listWarehouses(req, res) { const items = await prisma.deposit.findMany({ orderBy: { createdAt: 'asc' } }); res.json({ items: items.map(d => ({ id: d.id, name: d.name, type: d.type, address: d.address || d.location || '', manager: d.manager || 'Sin asignar', createdAt: d.createdAt })) }); }
+export async function listWarehouses(req, res) { const items = await prisma.deposit.findMany({ include: { stocks: true }, orderBy: { createdAt: 'asc' } }); res.json({ items: items.map(d => ({ id: d.id, name: d.name, type: d.type, address: d.address || d.location || '', manager: d.manager || 'Sin asignar', capacity: d.capacity, stockTotal: d.stocks.reduce((total, stock) => total + stock.quantity, 0), skuCount: d.stocks.filter(stock => stock.quantity > 0).length, createdAt: d.createdAt })) }); }
+export async function warehouseSummary(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
+  const deposit = await prisma.deposit.findUnique({ where: { id }, include: { stocks: { include: { product: true } } } });
+  if (!deposit) return res.status(404).json({ message: 'Depósito no encontrado.' });
+  const sales = await prisma.sale.findMany({ where: { depositId: id }, include: { customer: true, items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } });
+  res.json({
+    deposit: { id: deposit.id, name: deposit.name, type: deposit.type, address: deposit.address || deposit.location || '', manager: deposit.manager, capacity: deposit.capacity },
+    stock: deposit.stocks.map(stock => ({ productId: stock.productId, productName: stock.product.name, sku: stock.product.code, category: stock.product.category || '', priceCents: moneyToCents(stock.product.price), quantity: stock.quantity, threshold: stock.product.lowStockThreshold })),
+    sales: sales.map(sale => ({ id: sale.id, totalCents: moneyToCents(sale.total), createdAt: sale.createdAt, customerName: sale.customer?.name || 'Venta mostrador', itemCount: sale.items.reduce((total, item) => total + item.quantity, 0) })),
+  });
+}
 export async function updateWarehouse(req, res) {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
-    const { name, type = 'Principal', address = '', manager = '' } = req.body || {};
+    const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body || {};
     if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' });
+    if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' });
     if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' }, NOT: { id } } })) return res.status(409).json({ message: 'Ya existe otro depósito registrado con ese nombre.' });
-    await prisma.deposit.update({ where: { id }, data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim() } });
+    await prisma.deposit.update({ where: { id }, data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } });
     res.json({ message: 'Depósito actualizado correctamente.' });
   } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message }); }
 }
-export async function createWarehouse(req, res) { const { name, type = 'Principal', address = '', manager = '' } = req.body; if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' }); if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' } } })) return res.status(409).json({ message: 'Ya existe un depósito registrado con ese nombre.' }); const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim() } }); res.status(201).json({ id: d.id, message: 'Depósito registrado correctamente.' }); }
+export async function createWarehouse(req, res) { const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body; if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' }); if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' }); if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' } } })) return res.status(409).json({ message: 'Ya existe un depósito registrado con ese nombre.' }); const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } }); res.status(201).json({ id: d.id, message: 'Depósito registrado correctamente.' }); }
+export async function deleteWarehouse(req, res) { try { const id = Number(req.params.id); if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' }); const [stock, movements, sales, transfers] = await Promise.all([prisma.stock.count({ where: { depositId: id } }), prisma.stockMovement.count({ where: { depositId: id } }), prisma.sale.count({ where: { depositId: id } }), prisma.transfer.count({ where: { OR: [{ originWarehouseId: id }, { destinationWarehouseId: id }] } })]); if (stock || movements || sales || transfers) return res.status(409).json({ message: 'No se puede eliminar un depósito con stock o movimientos asociados.' }); await prisma.deposit.delete({ where: { id } }); res.json({ message: 'Depósito eliminado correctamente.' }); } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message }); } }
 export async function listInventory(req, res) { const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined; const stocks = await prisma.stock.findMany({ where: warehouseId ? { depositId: warehouseId } : {}, include: { product: true, deposit: true }, orderBy: { updatedAt: 'desc' } }); res.json({ items: stocks.map(s => ({ inventoryId: s.id, quantity: s.quantity, updatedAt: s.updatedAt, productId: s.productId, productName: s.product.name, sku: s.product.code, category: s.product.category || '', priceCents: moneyToCents(s.product.price), lowStockThreshold: s.product.lowStockThreshold, warehouseId: s.depositId, warehouseName: s.deposit.name })) }); }
 export async function updateInventory(req, res) { const id = Number(req.params.id); const quantity = Number(req.body.quantity); if (!Number.isInteger(quantity) || quantity < 0) return res.status(400).json({ message: 'La cantidad debe ser un entero mayor o igual a cero.' }); try { await prisma.$transaction(async tx => { const stock = await tx.stock.findUnique({ where: { id } }); if (!stock) throw Object.assign(new Error('Posición de inventario no encontrada.'), { status: 404 }); const delta = quantity - stock.quantity; if (delta === 0) return; await tx.stock.update({ where: { id }, data: { quantity } }); await tx.stockMovement.create({ data: { productId: stock.productId, depositId: stock.depositId, quantity: Math.abs(delta), type: 'ADJUST', reason: req.body.note || 'Ajuste manual' } }); }); res.json({ message: 'Inventario actualizado correctamente.' }); } catch (e) { res.status(e.status || 500).json({ message: e.message }); } }
 
@@ -145,6 +161,7 @@ export async function createSaleCompat(req, res) {
         const key = `${did}:${pid}`; grouped.set(key, { productId: pid, depositId: did, quantity: (grouped.get(key)?.quantity || 0) + qty });
       }
       const groups = [...grouped.values()];
+      if (new Set(groups.map(group => group.depositId)).size > 1) throw Object.assign(new Error('Una venta debe corresponder a un único depósito.'), { status: 400 });
       const lineItems = [];
       for (const group of groups) {
         const dep = await tx.deposit.findUnique({ where: { id: group.depositId } }); if (!dep) throw Object.assign(new Error('Uno de los depósitos no existe.'), { status: 400 });
@@ -158,7 +175,7 @@ export async function createSaleCompat(req, res) {
       const sale = await tx.sale.create({ data: { depositId: lineItems[0].warehouseId, customerId, userId: req.user.id, total, ...photo, items: { create: lineItems } }, include: { items: { include: { product: true, warehouse: true } }, deposit: true } });
       for (const line of lineItems) {
         await tx.stock.update({ where: { productId_depositId: { productId: line.productId, depositId: line.warehouseId } }, data: { quantity: { decrement: line.quantity } } });
-        await tx.stockMovement.create({ data: { productId: line.productId, depositId: line.warehouseId, quantity: line.quantity, type: 'OUT', reason: `Venta #${sale.id}` } });
+        await tx.stockMovement.create({ data: { productId: line.productId, depositId: line.warehouseId, saleId: sale.id, quantity: line.quantity, type: 'OUT', reason: `Venta #${sale.id}` } });
       }
       return sale;
     });
@@ -284,7 +301,29 @@ export async function deleteCustomer(req,res){
 }
 export async function customerDetail(req,res){const c=await prisma.customer.findUnique({where:{id:Number(req.params.id)}});if(!c)return res.status(404).json({message:'Cliente no encontrado.'});const rows=await prisma.saleItem.findMany({where:{sale:{customerId:c.id}},include:{product:true}});const frequentMap=new Map();for(const r of rows)frequentMap.set(r.productId,(frequentMap.get(r.productId)||0)+r.quantity);const frequent=[...frequentMap].map(([productId,units])=>({productId,productName:rows.find(r=>r.productId===productId)?.product.name,units})).sort((a,b)=>b.units-a.units);res.json({customer:c,frequent});}
 
-export async function reports(req,res){const sales=await prisma.sale.findMany({include:{items:{include:{product:true}}}});const stocks=await prisma.stock.findMany({include:{product:true}});const lowStock=stocks.filter(s=>s.quantity<=s.product.lowStockThreshold).map(s=>({id:s.product.id,name:s.product.name,stock:s.quantity,threshold:s.product.lowStockThreshold}));const map=new Map();sales.forEach(s=>s.items.forEach(i=>map.set(i.product.name,(map.get(i.product.name)||0)+i.quantity)));const bestSellers=[...map].map(([productName,units])=>({productName,units})).sort((a,b)=>b.units-a.units).slice(0,10);const transfers=await prisma.transfer.count();res.json({lowStock,bestSellers,sales:{totalCents:sales.reduce((n,s)=>n+moneyToCents(s.total),0),count:sales.length},transfers});}
+export async function reports(req, res) {
+  const { from, to } = req.query;
+  const range = {};
+  if (from) range.gte = new Date(`${from}T00:00:00`);
+  if (to) range.lte = new Date(`${to}T23:59:59`);
+  const dateFilter = (from || to) ? { createdAt: range } : {};
+
+  const sales = await prisma.sale.findMany({ where: dateFilter, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'asc' } });
+  const stocks = await prisma.stock.findMany({ include: { product: true } });
+  const lowStock = stocks.filter(s => s.quantity <= s.product.lowStockThreshold).map(s => ({ id: s.product.id, name: s.product.name, stock: s.quantity, threshold: s.product.lowStockThreshold }));
+
+  const map = new Map();
+  sales.forEach(s => s.items.forEach(i => map.set(i.product.name, (map.get(i.product.name) || 0) + i.quantity)));
+  const bestSellers = [...map].map(([productName, units]) => ({ productName, units })).sort((a, b) => b.units - a.units).slice(0, 10);
+
+  const dailyMap = new Map();
+  sales.forEach(s => { const key = s.createdAt.toISOString().slice(0, 10); dailyMap.set(key, (dailyMap.get(key) || 0) + moneyToCents(s.total)); });
+  const dailySales = [...dailyMap].sort(([a], [b]) => a.localeCompare(b)).map(([date, totalCents]) => ({ date, totalCents }));
+
+  const transfers = await prisma.transfer.count({ where: dateFilter });
+
+  res.json({ lowStock, bestSellers, dailySales, sales: { totalCents: sales.reduce((n, s) => n + moneyToCents(s.total), 0), count: sales.length }, transfers });
+}
 export async function team(req,res){const users=await prisma.user.findMany({orderBy:{name:'asc'}});res.json({items:users.map(u=>({id:u.id,fullName:u.name,email:u.email,appRole:appRole(u)}))});}
 export async function updateRole(req,res){const next=String(req.body.appRole||'caja');if(!['administrador','caja','deposito'].includes(next))return res.status(400).json({message:'Rol inválido.'});await prisma.user.update({where:{id:Number(req.params.id)},data:{role:next==='administrador'?'ADMIN':'USER',appRole:next}});res.json({message:'Rol actualizado correctamente.'});}
 export async function recognition(req,res){try{const q=String(req.body.query||'').trim();const photo=photoFields(req.body);const products=await prisma.product.findMany({where:q?{OR:[{name:{contains:q,mode:'insensitive'}},{code:{contains:q,mode:'insensitive'}}]}:{},take:8});res.json({simulated:true,photoData:photo.photoData,photoMimeType:photo.photoMimeType,items:products.map(p=>({id:p.id,name:p.name,sku:p.code,priceCents:moneyToCents(p.price),confidence:q?0.96:0.7}))});}catch(e){res.status(e.status||400).json({message:e.message});}}

@@ -136,6 +136,7 @@ export const createSale = async (req, res) => {
             depositId: depositIdNum,
             quantity: it.quantity,
             type: 'OUT',
+            saleId: sale.id,
             reason: `Venta #${sale.id}`,
           },
         });
