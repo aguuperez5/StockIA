@@ -85,9 +85,11 @@ npm run seed
 
 El script de seed es reproducible e idempotente (emplea `upsert` / `findOrCreate`) y carga:
 - **Usuario Administrador:** `admin@stockia.dev` | Contraseña: `test1234`
-- **Depósitos iniciales:** Depósito Central y Sucursal 1.
+- **Depósitos iniciales:** Depósito Central, Depósito Norte y Depósito Sur.
 - **Productos de catálogo:** Artículos con códigos de barra de prueba y reglas de precios por volumen (`PriceRule`).
 - **Stock inicial:** Existencias asignadas por depósito con balance verificado.
+
+> **Nota:** Podés ejecutar `npm run seed` directamente desde la raíz del repositorio o dentro de la carpeta `backend/`.
 
 ### 3.5. Iniciar el Servidor Backend
 

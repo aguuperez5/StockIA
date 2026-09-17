@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import prisma from './config/prisma.js';
 
-const SECRET = process.env.SESSION_SECRET || 'stockia-dev-secret-change-me';
+const SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'stockia-dev-secret-change-me';
 const COOKIE = 'stockia_session';
 
 function sign(value) {

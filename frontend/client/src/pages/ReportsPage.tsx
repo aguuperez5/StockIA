@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Download } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartEmpty } from "@/components/DashboardCharts";
-import { ErrorPanel, LoadingPanel, PageHeader, StockBadge, day, money } from "@/components/StockUI";
+import { ErrorPanel, LoadingPanel, PageHeader, StockBadge, day, formatAxisMoney, money } from "@/components/StockUI";
 import { reportService } from "@/services/backlog";
 
 type ReportData = Awaited<ReturnType<typeof reportService.get>>;
@@ -64,7 +64,7 @@ export default function ReportsPage() {
               <LineChart data={data.dailySales} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="#e7efec" strokeDasharray="4 4" />
                 <XAxis dataKey="date" tickFormatter={value => day(value)} axisLine={false} tickLine={false} tick={{ fill: "#849490", fontSize: 11 }} tickMargin={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#849490", fontSize: 10 }} tickFormatter={value => (value === 0 ? "$0" : `$${Math.round(value / 1000)}k`)} allowDecimals={false} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#849490", fontSize: 10 }} tickFormatter={value => formatAxisMoney(value)} allowDecimals={false} />
                 <Tooltip formatter={(value: number) => money(value)} labelFormatter={value => day(value)} />
                 <Line type="monotone" dataKey="totalCents" stroke="#159666" strokeWidth={2} dot={false} />
               </LineChart>

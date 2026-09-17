@@ -77,6 +77,9 @@ export async function updateProductCompat(req, res) {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del producto no es válido.' });
     const { name, sku, category, price, lowStockThreshold, imageUrl, active } = req.body;
+    if (price !== undefined && (!Number.isFinite(Number(price)) || Number(price) <= 0)) {
+      return res.status(400).json({ message: 'El precio debe ser un número mayor a cero.' });
+    }
     let image;
     try { if (imageUrl !== undefined) image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
     if (active !== undefined && typeof active !== 'boolean') return res.status(400).json({ message: 'El estado debe ser verdadero o falso.' });
@@ -190,8 +193,9 @@ export async function listSales(req, res) {
     const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined;
     const search = String(req.query.search || '').trim();
     const productId = req.query.productId ? Number(req.query.productId) : undefined;
-    const searchNumber = Number(search);
-    const searchFilter = search ? { OR: [...(Number.isInteger(searchNumber) ? [{ id: searchNumber }] : []), { customer: { name: { contains: search, mode: 'insensitive' } } }, { items: { some: { product: { OR: [{ name: { contains: search, mode: 'insensitive' } }, { code: { contains: search, mode: 'insensitive' } }] } } } }] } : {};
+    const receiptMatch = search.match(/^[vV]-0*(\d+)$/);
+    const searchNumber = receiptMatch ? Number(receiptMatch[1]) : (Number.isInteger(Number(search)) ? Number(search) : null);
+    const searchFilter = search ? { OR: [...(searchNumber !== null ? [{ id: searchNumber }] : []), { customer: { name: { contains: search, mode: 'insensitive' } } }, { items: { some: { product: { OR: [{ name: { contains: search, mode: 'insensitive' } }, { code: { contains: search, mode: 'insensitive' } }] } } } }] } : {};
     const sales = await prisma.sale.findMany({
       where: {
         ...(warehouseId !== undefined && Number.isInteger(warehouseId) ? { depositId: warehouseId } : {}),
@@ -208,27 +212,44 @@ export async function listSales(req, res) {
 export async function getSale(req, res) { const s = await prisma.sale.findUnique({ where: { id: Number(req.params.id) }, include: { items: { include: { product: true, warehouse: true } }, deposit: true, customer: true } }); if (!s) return res.status(404).json({ message: 'Venta no encontrada.' }); res.json({ sale: { id: s.id, receiptNumber: receiptNumber(s.id), totalCents: moneyToCents(s.total), status: 'Confirmada', createdAt: s.createdAt, photoData: s.photoData, photoMimeType: s.photoMimeType, customer: s.customer ? { id: s.customer.id, name: s.customer.name, contact: s.customer.contact } : null }, items: s.items.map(i => ({ id:i.id, quantity:i.quantity, unitPriceCents:moneyToCents(i.price), subtotalCents:moneyToCents(i.price)*i.quantity, productName:i.product.name, sku:i.product.code, warehouseName:i.warehouse?.name || s.deposit.name })) }); }
 
 export async function dashboard(req, res) {
-  const [productsList, warehouses, stocks, salesToday] = await Promise.all([
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+  const [productsList, warehouses, stocks, salesToday, weekSales] = await Promise.all([
     prisma.product.findMany({ where: { active: true } }),
     prisma.deposit.count(),
     prisma.stock.findMany({ include: { product: true } }),
     prisma.sale.findMany({ where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } } }),
+    prisma.sale.findMany({ where: { createdAt: { gte: sevenDaysAgo } } }),
   ]);
   const stockByProduct = new Map();
   for (const s of stocks) stockByProduct.set(s.productId, (stockByProduct.get(s.productId) || 0) + s.quantity);
   const inventoryValueCents = productsList.reduce((n, p) => n + (stockByProduct.get(p.id) || 0) * moneyToCents(p.price), 0);
   const lowStock = productsList.filter(p => (stockByProduct.get(p.id) || 0) <= p.lowStockThreshold).map(p => ({ id:p.id, name:p.name, sku:p.code, stock:stockByProduct.get(p.id)||0, threshold:p.lowStockThreshold }));
-  const days=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i); const next=new Date(d); next.setDate(next.getDate()+1);
-    const ss=await prisma.sale.findMany({where:{createdAt:{gte:d,lt:next}}});
-    days.push({date:d.toISOString().slice(0,10),label:d.toLocaleDateString('es-AR',{weekday:'short'}).replace('.',''),totalCents:ss.reduce((n,x)=>n+moneyToCents(x.total),0),count:ss.length});
+
+  const salesByDayMap = new Map();
+  for (const s of weekSales) {
+    const key = s.createdAt.toISOString().slice(0, 10);
+    const existing = salesByDayMap.get(key) || { totalCents: 0, count: 0 };
+    existing.totalCents += moneyToCents(s.total);
+    existing.count += 1;
+    salesByDayMap.set(key, existing);
   }
-  const cats={};
-  for(const p of productsList){const units=stockByProduct.get(p.id)||0;const c=p.category||'Sin categoría';cats[c]??={category:c,units:0,valueCents:0};cats[c].units+=units;cats[c].valueCents+=units*moneyToCents(p.price);}
-  const status=[{label:'Saludable',value:0,color:'#159666'},{label:'Bajo mínimo',value:0,color:'#d88936'},{label:'Sin stock',value:0,color:'#d45b55'}];
-  for(const p of productsList){const q=stockByProduct.get(p.id)||0;if(q===0)status[2].value++;else if(q<=p.lowStockThreshold)status[1].value++;else status[0].value++;}
-  res.json({products:productsList.length,warehouses,inventoryValueCents,todaySalesCents:salesToday.reduce((n,x)=>n+moneyToCents(x.total),0),todaySaleCount:salesToday.length,lowStock,salesByDay:days,inventoryByCategory:Object.values(cats),inventoryStatus:status});
+
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayData = salesByDayMap.get(dateStr) || { totalCents: 0, count: 0 };
+    days.push({ date: dateStr, label: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', ''), totalCents: dayData.totalCents, count: dayData.count });
+  }
+
+  const cats = {};
+  for (const p of productsList) { const units = stockByProduct.get(p.id) || 0; const c = p.category || 'Sin categoría'; cats[c] ??= { category: c, units: 0, valueCents: 0 }; cats[c].units += units; cats[c].valueCents += units * moneyToCents(p.price); }
+  const status = [{ label: 'Saludable', value: 0, color: '#159666' }, { label: 'Bajo mínimo', value: 0, color: '#d88936' }, { label: 'Sin stock', value: 0, color: '#d45b55' }];
+  for (const p of productsList) { const q = stockByProduct.get(p.id) || 0; if (q === 0) status[2].value++; else if (q <= p.lowStockThreshold) status[1].value++; else status[0].value++; }
+  res.json({ products: productsList.length, warehouses, inventoryValueCents, todaySalesCents: salesToday.reduce((n, x) => n + moneyToCents(x.total), 0), todaySaleCount: salesToday.length, lowStock, salesByDay: days, inventoryByCategory: Object.values(cats), inventoryStatus: status });
 }
 export async function createTransfer(req, res) {
   const originId = Number(req.body?.originWarehouseId), destinationId = Number(req.body?.destinationWarehouseId), items = req.body?.items;
@@ -302,27 +323,40 @@ export async function deleteCustomer(req,res){
 export async function customerDetail(req,res){const c=await prisma.customer.findUnique({where:{id:Number(req.params.id)}});if(!c)return res.status(404).json({message:'Cliente no encontrado.'});const rows=await prisma.saleItem.findMany({where:{sale:{customerId:c.id}},include:{product:true}});const frequentMap=new Map();for(const r of rows)frequentMap.set(r.productId,(frequentMap.get(r.productId)||0)+r.quantity);const frequent=[...frequentMap].map(([productId,units])=>({productId,productName:rows.find(r=>r.productId===productId)?.product.name,units})).sort((a,b)=>b.units-a.units);res.json({customer:c,frequent});}
 
 export async function reports(req, res) {
-  const { from, to } = req.query;
-  const range = {};
-  if (from) range.gte = new Date(`${from}T00:00:00`);
-  if (to) range.lte = new Date(`${to}T23:59:59`);
-  const dateFilter = (from || to) ? { createdAt: range } : {};
+  try {
+    const { from, to } = req.query;
+    const fromDate = from ? new Date(`${from}T00:00:00`) : null;
+    const toDate = to ? new Date(`${to}T23:59:59.999`) : null;
+    if ((fromDate && Number.isNaN(fromDate.getTime())) || (toDate && Number.isNaN(toDate.getTime()))) {
+      return res.status(400).json({ message: 'Las fechas del filtro no son válidas.' });
+    }
+    const dateFilter = (fromDate || toDate) ? { createdAt: { ...(fromDate ? { gte: fromDate } : {}), ...(toDate ? { lte: toDate } : {}) } } : {};
 
-  const sales = await prisma.sale.findMany({ where: dateFilter, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'asc' } });
-  const stocks = await prisma.stock.findMany({ include: { product: true } });
-  const lowStock = stocks.filter(s => s.quantity <= s.product.lowStockThreshold).map(s => ({ id: s.product.id, name: s.product.name, stock: s.quantity, threshold: s.product.lowStockThreshold }));
+    const [sales, stocks, products, transfers] = await Promise.all([
+      prisma.sale.findMany({ where: dateFilter, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'asc' } }),
+      prisma.stock.findMany({ include: { product: true } }),
+      prisma.product.findMany({ where: { active: true } }),
+      prisma.transfer.count({ where: dateFilter }),
+    ]);
 
-  const map = new Map();
-  sales.forEach(s => s.items.forEach(i => map.set(i.product.name, (map.get(i.product.name) || 0) + i.quantity)));
-  const bestSellers = [...map].map(([productName, units]) => ({ productName, units })).sort((a, b) => b.units - a.units).slice(0, 10);
+    const stockByProduct = new Map();
+    for (const s of stocks) stockByProduct.set(s.productId, (stockByProduct.get(s.productId) || 0) + s.quantity);
+    const lowStock = products
+      .filter(p => (stockByProduct.get(p.id) || 0) <= p.lowStockThreshold)
+      .map(p => ({ id: p.id, name: p.name, stock: stockByProduct.get(p.id) || 0, threshold: p.lowStockThreshold }));
 
-  const dailyMap = new Map();
-  sales.forEach(s => { const key = s.createdAt.toISOString().slice(0, 10); dailyMap.set(key, (dailyMap.get(key) || 0) + moneyToCents(s.total)); });
-  const dailySales = [...dailyMap].sort(([a], [b]) => a.localeCompare(b)).map(([date, totalCents]) => ({ date, totalCents }));
+    const map = new Map();
+    sales.forEach(s => s.items.forEach(i => map.set(i.product.name, (map.get(i.product.name) || 0) + i.quantity)));
+    const bestSellers = [...map].map(([productName, units]) => ({ productName, units })).sort((a, b) => b.units - a.units).slice(0, 10);
 
-  const transfers = await prisma.transfer.count({ where: dateFilter });
+    const dailyMap = new Map();
+    sales.forEach(s => { const key = s.createdAt.toISOString().slice(0, 10); dailyMap.set(key, (dailyMap.get(key) || 0) + moneyToCents(s.total)); });
+    const dailySales = [...dailyMap].sort(([a], [b]) => a.localeCompare(b)).map(([date, totalCents]) => ({ date, totalCents }));
 
-  res.json({ lowStock, bestSellers, dailySales, sales: { totalCents: sales.reduce((n, s) => n + moneyToCents(s.total), 0), count: sales.length }, transfers });
+    res.json({ lowStock, bestSellers, dailySales, sales: { totalCents: sales.reduce((n, s) => n + moneyToCents(s.total), 0), count: sales.length }, transfers });
+  } catch (e) {
+    return res.status(500).json({ message: 'No pudimos generar los reportes.', details: e.message });
+  }
 }
 export async function team(req,res){const users=await prisma.user.findMany({orderBy:{name:'asc'}});res.json({items:users.map(u=>({id:u.id,fullName:u.name,email:u.email,appRole:appRole(u)}))});}
 export async function updateRole(req,res){const next=String(req.body.appRole||'caja');if(!['administrador','caja','deposito'].includes(next))return res.status(400).json({message:'Rol inválido.'});await prisma.user.update({where:{id:Number(req.params.id)},data:{role:next==='administrador'?'ADMIN':'USER',appRole:next}});res.json({message:'Rol actualizado correctamente.'});}

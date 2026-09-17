@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useMemo, useState } from "react";
-import { money } from "@/components/StockUI";
+import { formatAxisMoney, money } from "@/components/StockUI";
 
 type DashboardChartData = {
   salesByDay: Array<{ date: string; label: string; totalCents: number; count: number }>;
@@ -8,7 +8,6 @@ type DashboardChartData = {
   inventoryStatus: Array<{ label: string; value: number; color: string }>;
 };
 
-const formatAxisMoney = (value: number) => value === 0 ? "$0" : `$${Math.round(value / 1000)}k`;
 const tooltipMoney = (value: number) => money(value);
 
 export default function DashboardCharts({ data }: { data: DashboardChartData }) {
