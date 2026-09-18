@@ -126,8 +126,81 @@ export async function updateWarehouse(req, res) {
   } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message }); }
 }
 export async function createWarehouse(req, res) { const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body; if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' }); if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' }); if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' } } })) return res.status(409).json({ message: 'Ya existe un depósito registrado con ese nombre.' }); const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } }); res.status(201).json({ id: d.id, message: 'Depósito registrado correctamente.' }); }
-export async function deleteWarehouse(req, res) { try { const id = Number(req.params.id); if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' }); const [stock, movements, sales, transfers] = await Promise.all([prisma.stock.count({ where: { depositId: id } }), prisma.stockMovement.count({ where: { depositId: id } }), prisma.sale.count({ where: { depositId: id } }), prisma.transfer.count({ where: { OR: [{ originWarehouseId: id }, { destinationWarehouseId: id }] } })]); if (stock || movements || sales || transfers) return res.status(409).json({ message: 'No se puede eliminar un depósito con stock o movimientos asociados.' }); await prisma.deposit.delete({ where: { id } }); res.json({ message: 'Depósito eliminado correctamente.' }); } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message }); } }
-export async function listInventory(req, res) { const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined; const stocks = await prisma.stock.findMany({ where: warehouseId ? { depositId: warehouseId } : {}, include: { product: true, deposit: true }, orderBy: { updatedAt: 'desc' } }); res.json({ items: stocks.map(s => ({ inventoryId: s.id, quantity: s.quantity, updatedAt: s.updatedAt, productId: s.productId, productName: s.product.name, sku: s.product.code, category: s.product.category || '', priceCents: moneyToCents(s.product.price), lowStockThreshold: s.product.lowStockThreshold, warehouseId: s.depositId, warehouseName: s.deposit.name })) }); }
+export async function deleteWarehouse(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
+    const [stockAgg, movements, sales, transfers] = await Promise.all([
+      prisma.stock.aggregate({ where: { depositId: id }, _sum: { quantity: true } }),
+      prisma.stockMovement.count({ where: { depositId: id } }),
+      prisma.sale.count({ where: { depositId: id } }),
+      prisma.transfer.count({ where: { OR: [{ originWarehouseId: id }, { destinationWarehouseId: id }] } })
+    ]);
+    if ((stockAgg._sum.quantity ?? 0) > 0 || movements || sales || transfers) {
+      return res.status(409).json({ message: 'No se puede eliminar un depósito con stock o movimientos asociados.' });
+    }
+    await prisma.stock.deleteMany({ where: { depositId: id } });
+    await prisma.deposit.delete({ where: { id } });
+    res.json({ message: 'Depósito eliminado correctamente.' });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message });
+  }
+}
+export async function listInventory(req, res) {
+  const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined;
+  if (warehouseId !== undefined && !Number.isInteger(warehouseId)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
+
+  const [activeProducts, deposits] = await Promise.all([
+    prisma.product.findMany({ where: { active: true }, select: { id: true } }),
+    prisma.deposit.findMany({ where: warehouseId ? { id: warehouseId } : {}, select: { id: true } })
+  ]);
+
+  if (activeProducts.length > 0 && deposits.length > 0) {
+    const existingStocks = await prisma.stock.findMany({
+      where: {
+        productId: { in: activeProducts.map(p => p.id) },
+        depositId: { in: deposits.map(d => d.id) }
+      },
+      select: { productId: true, depositId: true }
+    });
+    const existingSet = new Set(existingStocks.map(s => `${s.productId}:${s.depositId}`));
+    const toCreate = [];
+    for (const p of activeProducts) {
+      for (const d of deposits) {
+        if (!existingSet.has(`${p.id}:${d.id}`)) {
+          toCreate.push({ productId: p.id, depositId: d.id, quantity: 0 });
+        }
+      }
+    }
+    if (toCreate.length > 0) {
+      await prisma.stock.createMany({ data: toCreate, skipDuplicates: true });
+    }
+  }
+
+  const stocks = await prisma.stock.findMany({
+    where: {
+      ...(warehouseId ? { depositId: warehouseId } : {}),
+      product: { active: true }
+    },
+    include: { product: true, deposit: true },
+    orderBy: [{ product: { name: 'asc' } }, { deposit: { name: 'asc' } }]
+  });
+  res.json({
+    items: stocks.map(s => ({
+      inventoryId: s.id,
+      quantity: s.quantity,
+      updatedAt: s.updatedAt,
+      productId: s.productId,
+      productName: s.product.name,
+      sku: s.product.code,
+      category: s.product.category || '',
+      priceCents: moneyToCents(s.product.price),
+      lowStockThreshold: s.product.lowStockThreshold,
+      warehouseId: s.depositId,
+      warehouseName: s.deposit.name
+    }))
+  });
+}
 export async function updateInventory(req, res) { const id = Number(req.params.id); const quantity = Number(req.body.quantity); if (!Number.isInteger(quantity) || quantity < 0) return res.status(400).json({ message: 'La cantidad debe ser un entero mayor o igual a cero.' }); try { await prisma.$transaction(async tx => { const stock = await tx.stock.findUnique({ where: { id } }); if (!stock) throw Object.assign(new Error('Posición de inventario no encontrada.'), { status: 404 }); const delta = quantity - stock.quantity; if (delta === 0) return; await tx.stock.update({ where: { id }, data: { quantity } }); await tx.stockMovement.create({ data: { productId: stock.productId, depositId: stock.depositId, quantity: Math.abs(delta), type: 'ADJUST', reason: req.body.note || 'Ajuste manual' } }); }); res.json({ message: 'Inventario actualizado correctamente.' }); } catch (e) { res.status(e.status || 500).json({ message: e.message }); } }
 
 export async function listPriceRules(req, res) { const rules = await prisma.priceRule.findMany({ where: { productId: Number(req.params.id) }, orderBy: { minQuantity: 'asc' } }); res.json({ items: rules.map(r => ({ id: r.id, productId: r.productId, minQuantity: r.minQuantity, priceCents: moneyToCents(r.price), price: Number(r.price) })) }); }
