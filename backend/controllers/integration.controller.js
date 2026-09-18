@@ -28,7 +28,9 @@ export async function registerCompat(req, res) {
     if (password.length < 6) return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
     const normalized = email.trim().toLowerCase();
     if (await prisma.user.findUnique({ where: { email: normalized } })) return res.status(409).json({ message: 'El email ya se encuentra registrado.' });
-    const user = await prisma.user.create({ data: { name: (fullName || name).trim(), legajo: legajo.trim(), email: normalized, password: await bcrypt.hash(password, 10), role: 'USER' } });
+    const userCount = await prisma.user.count();
+    const isFirst = userCount === 0;
+    const user = await prisma.user.create({ data: { name: (fullName || name).trim(), legajo: legajo.trim(), email: normalized, password: await bcrypt.hash(password, 10), role: isFirst ? 'ADMIN' : 'USER', appRole: isFirst ? 'administrador' : 'caja' } });
     setSession(res, createSession(user.id));
     return res.status(201).json({ message: 'Usuario registrado exitosamente.', user: publicUser(user) });
   } catch (e) { return res.status(500).json({ message: 'No pudimos registrar el usuario.', details: e.message }); }
