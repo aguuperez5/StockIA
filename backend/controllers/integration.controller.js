@@ -54,8 +54,12 @@ export async function getProductCompat(req, res) { const p = await prisma.produc
 function cleanImageUrl(value) {
   if (value === undefined || value === null || String(value).trim() === '') return null;
   const url = String(value).trim();
-  if (url.length > 2000) throw Object.assign(new Error('La URL de la imagen es demasiado larga.'), { status: 400 });
-  if (!/^(https?:\/\/|data:image\/)/i.test(url)) throw Object.assign(new Error('La imagen debe ser una URL http(s) o un data:image.'), { status: 400 });
+  if (url.startsWith('data:image/')) {
+    if (url.length > 5 * 1024 * 1024) throw Object.assign(new Error('La imagen capturada es demasiado pesada (máximo 5MB).'), { status: 400 });
+    return url;
+  }
+  if (url.length > 2048) throw Object.assign(new Error('La URL de la imagen es demasiado larga.'), { status: 400 });
+  if (!/^https?:\/\//i.test(url)) throw Object.assign(new Error('La imagen debe ser una URL http(s) o una fotografía válida.'), { status: 400 });
   return url;
 }
 
@@ -130,17 +134,30 @@ export async function deleteWarehouse(req, res) {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
-    const [stockAgg, movements, sales, transfers] = await Promise.all([
+    const deposit = await prisma.deposit.findUnique({ where: { id } });
+    if (!deposit) return res.status(404).json({ message: 'Depósito no encontrado.' });
+
+    const [stockAgg, sales, transfers, saleItems] = await Promise.all([
       prisma.stock.aggregate({ where: { depositId: id }, _sum: { quantity: true } }),
-      prisma.stockMovement.count({ where: { depositId: id } }),
       prisma.sale.count({ where: { depositId: id } }),
-      prisma.transfer.count({ where: { OR: [{ originWarehouseId: id }, { destinationWarehouseId: id }] } })
+      prisma.transfer.count({ where: { OR: [{ originWarehouseId: id }, { destinationWarehouseId: id }] } }),
+      prisma.saleItem.count({ where: { warehouseId: id } })
     ]);
-    if ((stockAgg._sum.quantity ?? 0) > 0 || movements || sales || transfers) {
-      return res.status(409).json({ message: 'No se puede eliminar un depósito con stock o movimientos asociados.' });
+
+    const totalStock = stockAgg._sum.quantity ?? 0;
+    if (totalStock > 0) {
+      return res.status(409).json({ message: `No se puede eliminar el depósito: posee ${totalStock} unidad(es) en stock. Transferí o ajustá el stock a 0 primero.` });
     }
-    await prisma.stock.deleteMany({ where: { depositId: id } });
-    await prisma.deposit.delete({ where: { id } });
+    if (sales > 0 || transfers > 0 || saleItems > 0) {
+      return res.status(409).json({ message: 'No se puede eliminar un depósito con ventas o transferencias históricas asociadas.' });
+    }
+
+    await prisma.$transaction([
+      prisma.stockMovement.deleteMany({ where: { depositId: id } }),
+      prisma.stock.deleteMany({ where: { depositId: id } }),
+      prisma.deposit.delete({ where: { id } })
+    ]);
+
     res.json({ message: 'Depósito eliminado correctamente.' });
   } catch (e) {
     res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message });
@@ -383,21 +400,127 @@ export async function reports(req, res) {
   if (to) range.lte = new Date(`${to}T23:59:59`);
   const dateFilter = (from || to) ? { createdAt: range } : {};
 
-  const sales = await prisma.sale.findMany({ where: dateFilter, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'asc' } });
-  const stocks = await prisma.stock.findMany({ include: { product: true } });
-  const lowStock = stocks.filter(s => s.quantity <= s.product.lowStockThreshold).map(s => ({ id: s.product.id, name: s.product.name, stock: s.quantity, threshold: s.product.lowStockThreshold }));
+  const [sales, allProducts, deposits, transfers] = await Promise.all([
+    prisma.sale.findMany({ where: dateFilter, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'asc' } }),
+    prisma.product.findMany({ where: { active: true }, include: { stocks: true } }),
+    prisma.deposit.findMany({ select: { id: true, name: true } }),
+    prisma.transfer.count({ where: dateFilter })
+  ]);
 
+  const salesTotalCents = sales.reduce((n, s) => n + moneyToCents(s.total), 0);
+  const salesCount = sales.length;
+  const averageTicketCents = salesCount > 0 ? Math.round(salesTotalCents / salesCount) : 0;
+
+  // Stock bajo y plan de reposición urgente
+  const lowStock = [];
+  const replenishmentList = [];
+  for (const p of allProducts) {
+    const currentStock = (p.stocks || []).reduce((acc, s) => acc + s.quantity, 0);
+    if (currentStock <= p.lowStockThreshold) {
+      lowStock.push({ id: p.id, name: p.name, stock: currentStock, threshold: p.lowStockThreshold });
+      const unitsNeeded = Math.max(1, p.lowStockThreshold - currentStock);
+      const costCents = unitsNeeded * moneyToCents(p.price);
+      replenishmentList.push({
+        productId: p.id,
+        productName: p.name,
+        sku: p.code,
+        category: p.category || 'General',
+        currentStock,
+        threshold: p.lowStockThreshold,
+        unitsNeeded,
+        priceCents: moneyToCents(p.price),
+        costCents,
+        priority: currentStock === 0 ? 'CRÍTICA' : 'ALTA'
+      });
+    }
+  }
+  replenishmentList.sort((a, b) => (a.priority === b.priority ? b.unitsNeeded - a.unitsNeeded : a.priority === 'CRÍTICA' ? -1 : 1));
+  const replenishment = {
+    totalItems: replenishmentList.length,
+    totalUnitsNeeded: replenishmentList.reduce((acc, r) => acc + r.unitsNeeded, 0),
+    totalEstimatedCostCents: replenishmentList.reduce((acc, r) => acc + r.costCents, 0),
+    items: replenishmentList
+  };
+
+  // Ranking de más vendidos y top por facturación
   const map = new Map();
-  sales.forEach(s => s.items.forEach(i => map.set(i.product.name, (map.get(i.product.name) || 0) + i.quantity)));
+  const revenueMap = new Map();
+  sales.forEach(s => s.items.forEach(i => {
+    map.set(i.product.name, (map.get(i.product.name) || 0) + i.quantity);
+    const existing = revenueMap.get(i.productId) || { productName: i.product.name, sku: i.product.code, units: 0, revenueCents: 0 };
+    existing.units += i.quantity;
+    existing.revenueCents += i.quantity * moneyToCents(i.price);
+    revenueMap.set(i.productId, existing);
+  }));
   const bestSellers = [...map].map(([productName, units]) => ({ productName, units })).sort((a, b) => b.units - a.units).slice(0, 10);
+  const topRevenue = [...revenueMap.values()].sort((a, b) => b.revenueCents - a.revenueCents).slice(0, 10);
 
+  // Ventas diarias
   const dailyMap = new Map();
   sales.forEach(s => { const key = s.createdAt.toISOString().slice(0, 10); dailyMap.set(key, (dailyMap.get(key) || 0) + moneyToCents(s.total)); });
   const dailySales = [...dailyMap].sort(([a], [b]) => a.localeCompare(b)).map(([date, totalCents]) => ({ date, totalCents }));
 
-  const transfers = await prisma.transfer.count({ where: dateFilter });
+  // Desglose de ventas por depósito
+  const depositSalesMap = new Map();
+  sales.forEach(s => {
+    const cur = depositSalesMap.get(s.depositId) || { count: 0, totalCents: 0 };
+    cur.count += 1;
+    cur.totalCents += moneyToCents(s.total);
+    depositSalesMap.set(s.depositId, cur);
+  });
+  const warehouseBreakdown = deposits.map(d => {
+    const stat = depositSalesMap.get(d.id) || { count: 0, totalCents: 0 };
+    return {
+      id: d.id,
+      name: d.name,
+      count: stat.count,
+      totalCents: stat.totalCents,
+      percentage: salesTotalCents > 0 ? Math.round((stat.totalCents / salesTotalCents) * 100) : 0
+    };
+  }).sort((a, b) => b.totalCents - a.totalCents);
 
-  res.json({ lowStock, bestSellers, dailySales, sales: { totalCents: sales.reduce((n, s) => n + moneyToCents(s.total), 0), count: sales.length }, transfers });
+  // Mercadería sin rotación (stock inmovilizado en el período)
+  const soldProductIds = new Set();
+  sales.forEach(s => s.items.forEach(i => soldProductIds.add(i.productId)));
+  const stagnant = allProducts
+    .filter(p => {
+      const st = (p.stocks || []).reduce((acc, x) => acc + x.quantity, 0);
+      return st > 0 && !soldProductIds.has(p.id);
+    })
+    .map(p => {
+      const units = (p.stocks || []).reduce((acc, x) => acc + x.quantity, 0);
+      return {
+        id: p.id,
+        name: p.name,
+        sku: p.code,
+        category: p.category || 'General',
+        stock: units,
+        valueCents: units * moneyToCents(p.price)
+      };
+    })
+    .sort((a, b) => b.valueCents - a.valueCents);
+  const stagnantStock = {
+    count: stagnant.length,
+    totalUnits: stagnant.reduce((acc, x) => acc + x.stock, 0),
+    totalValueCents: stagnant.reduce((acc, x) => acc + x.valueCents, 0),
+    items: stagnant.slice(0, 10)
+  };
+
+  res.json({
+    lowStock,
+    bestSellers,
+    dailySales,
+    sales: {
+      totalCents: salesTotalCents,
+      count: salesCount,
+      averageTicketCents
+    },
+    transfers,
+    replenishment,
+    warehouseBreakdown,
+    stagnantStock,
+    topRevenue
+  });
 }
 export async function team(req,res){const users=await prisma.user.findMany({orderBy:{name:'asc'}});res.json({items:users.map(u=>({id:u.id,fullName:u.name,email:u.email,appRole:appRole(u)}))});}
 export async function updateRole(req,res){const next=String(req.body.appRole||'caja');if(!['administrador','caja','deposito'].includes(next))return res.status(400).json({message:'Rol inválido.'});await prisma.user.update({where:{id:Number(req.params.id)},data:{role:next==='administrador'?'ADMIN':'USER',appRole:next}});res.json({message:'Rol actualizado correctamente.'});}
