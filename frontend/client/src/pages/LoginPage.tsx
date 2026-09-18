@@ -14,7 +14,7 @@ export default function LoginPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = "Ingresá un email válido.";
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email.trim())) next.email = "Ingresá un correo electrónico válido (ej. usuario@gmail.com).";
     if (!form.password) next.password = "Ingresá tu contraseña.";
     setErrors(next);
     if (Object.keys(next).length) return;

@@ -24,7 +24,7 @@ export async function registerCompat(req, res) {
     if (!fullName?.trim() && !name?.trim() || !email?.trim() || !password) return res.status(400).json({ message: 'Nombre, email y contraseña son obligatorios.' });
     if (typeof legajo !== 'string' || !legajo.trim()) return res.status(400).json({ message: 'El legajo es obligatorio.' });
     if (!/^\d+$/.test(legajo.trim())) return res.status(400).json({ message: 'El legajo debe ser numérico.' });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return res.status(400).json({ message: 'El email ingresado no tiene un formato válido.' });
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim())) return res.status(400).json({ message: 'El correo electrónico no tiene un formato válido (ej. usuario@gmail.com).' });
     if (password.length < 6) return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
     const normalized = email.trim().toLowerCase();
     if (await prisma.user.findUnique({ where: { email: normalized } })) return res.status(409).json({ message: 'El email ya se encuentra registrado.' });
@@ -368,14 +368,41 @@ export async function listTransfers(req, res) {
 export async function getTransfer(req,res){const t=await prisma.transfer.findUnique({where:{id:Number(req.params.id)},include:{originWarehouse:true,destinationWarehouse:true,items:{include:{product:true}}}});if(!t)return res.status(404).json({message:'Transferencia no encontrada.'});res.json({transfer:{id:t.id,receiptNumber:transferReceipt(t.id),originWarehouseId:t.originWarehouseId,destinationWarehouseId:t.destinationWarehouseId,status:t.status,createdAt:t.createdAt,originName:t.originWarehouse.name,destinationName:t.destinationWarehouse.name,photoData:t.photoData,photoMimeType:t.photoMimeType},items:t.items.map(i=>({productId:i.productId,productName:i.product.name,sku:i.product.code,quantity:i.quantity}))});}
 
 export async function listCustomers(req,res){const search=String(req.query.search||'').trim();const items=await prisma.customer.findMany({where:search?{OR:[{name:{contains:search,mode:'insensitive'}},{contact:{contains:search,mode:'insensitive'}},{email:{contains:search,mode:'insensitive'}}]}:{},orderBy:{name:'asc'}});res.json({items});}
-export async function createCustomer(req,res){const {name,contact,email,phone}=req.body;if(!name?.trim()||!contact?.trim())return res.status(400).json({message:'Nombre y contacto son obligatorios.'});const c=await prisma.customer.create({data:{name:name.trim(),contact:contact.trim(),email:email?.trim()||null,phone:phone?.trim()||null}});res.status(201).json({id:c.id,message:'Cliente registrado correctamente.'});}
+export async function createCustomer(req,res){
+  const {name,contact,email,phone}=req.body||{};
+  if(!name?.trim()||!contact?.trim())return res.status(400).json({message:'Nombre y contacto son obligatorios.'});
+  const trimmedEmail = email ? String(email).trim() : null;
+  const trimmedPhone = phone ? String(phone).trim() : null;
+  if(trimmedEmail && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail)){
+    return res.status(400).json({message:'El correo electrónico no tiene un formato válido (ej. cliente@gmail.com).'});
+  }
+  if(trimmedPhone){
+    const digits = trimmedPhone.replace(/\D/g, '');
+    if(!/^\+?[0-9\s\-()]{7,25}$/.test(trimmedPhone) || digits.length < 7 || digits.length > 15){
+      return res.status(400).json({message:'El teléfono debe contener entre 7 y 15 dígitos válidos (ej. +54 9 11 1234-5678).'});
+    }
+  }
+  const c=await prisma.customer.create({data:{name:name.trim(),contact:contact.trim(),email:trimmedEmail||null,phone:trimmedPhone||null}});
+  res.status(201).json({id:c.id,message:'Cliente registrado correctamente.'});
+}
 export async function updateCustomer(req,res){
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({message:'El ID del cliente no es válido.'});
     const {name,contact,email,phone}=req.body||{};
     if(!name?.trim()||!contact?.trim())return res.status(400).json({message:'Nombre y contacto son obligatorios.'});
-    await prisma.customer.update({where:{id},data:{name:name.trim(),contact:contact.trim(),email:email?.trim()||null,phone:phone?.trim()||null}});
+    const trimmedEmail = email ? String(email).trim() : null;
+    const trimmedPhone = phone ? String(phone).trim() : null;
+    if(trimmedEmail && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail)){
+      return res.status(400).json({message:'El correo electrónico no tiene un formato válido (ej. cliente@gmail.com).'});
+    }
+    if(trimmedPhone){
+      const digits = trimmedPhone.replace(/\D/g, '');
+      if(!/^\+?[0-9\s\-()]{7,25}$/.test(trimmedPhone) || digits.length < 7 || digits.length > 15){
+        return res.status(400).json({message:'El teléfono debe contener entre 7 y 15 dígitos válidos (ej. +54 9 11 1234-5678).'});
+      }
+    }
+    await prisma.customer.update({where:{id},data:{name:name.trim(),contact:contact.trim(),email:trimmedEmail||null,phone:trimmedPhone||null}});
     res.json({message:'Cliente actualizado correctamente.'});
   } catch(e){ res.status(e.code==='P2025'?404:500).json({message:e.code==='P2025'?'Cliente no encontrado.':e.message}); }
 }
@@ -524,7 +551,43 @@ export async function reports(req, res) {
 }
 export async function team(req,res){const users=await prisma.user.findMany({orderBy:{name:'asc'}});res.json({items:users.map(u=>({id:u.id,fullName:u.name,email:u.email,appRole:appRole(u)}))});}
 export async function updateRole(req,res){const next=String(req.body.appRole||'caja');if(!['administrador','caja','deposito'].includes(next))return res.status(400).json({message:'Rol inválido.'});await prisma.user.update({where:{id:Number(req.params.id)},data:{role:next==='administrador'?'ADMIN':'USER',appRole:next}});res.json({message:'Rol actualizado correctamente.'});}
-export async function recognition(req,res){try{const q=String(req.body.query||'').trim();const photo=photoFields(req.body);const products=await prisma.product.findMany({where:q?{OR:[{name:{contains:q,mode:'insensitive'}},{code:{contains:q,mode:'insensitive'}}]}:{},take:8});res.json({simulated:true,photoData:photo.photoData,photoMimeType:photo.photoMimeType,items:products.map(p=>({id:p.id,name:p.name,sku:p.code,priceCents:moneyToCents(p.price),confidence:q?0.96:0.7}))});}catch(e){res.status(e.status||400).json({message:e.message});}}
+export async function recognition(req,res){
+  try{
+    const q=String(req.body.query||'').trim();
+    const photo=photoFields(req.body);
+    if(!q && !photo.photoData) {
+      return res.status(400).json({message:'Ingresá un término de búsqueda o capturá una foto para analizar.'});
+    }
+    const products=await prisma.product.findMany({
+      where:q?{OR:[{name:{contains:q,mode:'insensitive'}},{code:{contains:q,mode:'insensitive'}}]}:{},
+      include:{
+        stocks:{
+          include:{deposit:true}
+        }
+      },
+      take:8
+    });
+    res.json({
+      simulated:true,
+      photoData:photo.photoData,
+      photoMimeType:photo.photoMimeType,
+      items:products.map(p=>({
+        id:p.id,
+        name:p.name,
+        sku:p.code,
+        priceCents:moneyToCents(p.price),
+        confidence:q?0.96:0.7,
+        stocks:p.stocks.map(s=>({
+          warehouseId:s.depositId,
+          warehouseName:s.deposit.name,
+          quantity:s.quantity
+        }))
+      }))
+    });
+  }catch(e){
+    res.status(e.status||400).json({message:e.message});
+  }
+}
 export async function listTelegram(req,res){const items=await prisma.telegramOffer.findMany({orderBy:{createdAt:'desc'}});res.json({items});}
 export async function createTelegram(req,res){const {message,productIds=[],customerIds=[],status='Lista para enviar'}=req.body;if(!message?.trim())return res.status(400).json({message:'El mensaje no puede estar vacío.'});const x=await prisma.telegramOffer.create({data:{message:message.trim(),productIds,customerIds,status,userId:req.user.id}});res.status(201).json({id:x.id,message:'Campaña guardada correctamente.'});}
 export async function updateTelegram(req,res){await prisma.telegramOffer.update({where:{id:Number(req.params.id)},data:{status:String(req.body.status)}});res.json({message:'Estado actualizado.'});}

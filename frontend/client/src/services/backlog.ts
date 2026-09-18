@@ -5,7 +5,19 @@ export type Transfer = { id: number; receiptNumber: string; originWarehouseId: n
 export const priceRuleService = { list: (id: string | number) => get<{ items: PriceRule[] }>(`/price-rules/${id}`), save: (id: string | number, rules: Array<{ minQuantity: number; price: number }>) => put<{ message: string }>(`/price-rules/${id}`, { rules }) };
 export const recognitionService = {
   analyze: (query = "", photo?: { data: string; mimeType: string }) =>
-    post<{ simulated: boolean; items: Array<{ id: number; name: string; sku: string; priceCents: number; confidence: number }>; photoData?: string; photoMimeType?: string }>(
+    post<{
+      simulated: boolean;
+      items: Array<{
+        id: number;
+        name: string;
+        sku: string;
+        priceCents: number;
+        confidence: number;
+        stocks?: Array<{ warehouseId: number; warehouseName: string; quantity: number }>;
+      }>;
+      photoData?: string;
+      photoMimeType?: string;
+    }>(
       "/recognition/analyze",
       { query, ...(photo ? { photoData: photo.data, photoMimeType: photo.mimeType } : {}) },
     ),

@@ -17,7 +17,7 @@ export default function RegisterPage() {
     const next: Record<string, string> = {};
     if (!form.fullName.trim()) next.fullName = "Ingresá tu nombre completo.";
     if (!/^\d+$/.test(form.legajo.trim())) next.legajo = "Ingresá un legajo numérico.";
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = "Ingresá un email válido.";
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email.trim())) next.email = "Ingresá un correo electrónico válido (ej. usuario@gmail.com).";
     if (form.password.length < 8) next.password = "Usá al menos 8 caracteres.";
     if (form.password !== form.confirmPassword) next.confirmPassword = "Las contraseñas no coinciden.";
     setErrors(next);
