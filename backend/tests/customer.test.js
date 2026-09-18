@@ -105,3 +105,21 @@ test('el ticket y el historial muestran a quién se vendió', async () => {
   assert.equal(withCustomer.customerName, 'Ticket Cli');
   assert.ok(history.body.items.some((s) => s.customerName === null));
 });
+
+test('rechaza cliente con email o teléfono de formato inválido', async () => {
+  const badEmail = mockRes();
+  await createCustomer(adminReq({ name: 'Carlos', contact: 'tel', email: 'carlos-sin-dominio-valido' }), badEmail);
+  assert.equal(badEmail.statusCode, 400);
+
+  const badPhone = mockRes();
+  await createCustomer(adminReq({ name: 'Carlos', contact: 'tel', phone: 'telefono-invalido' }), badPhone);
+  assert.equal(badPhone.statusCode, 400);
+
+  const shortPhone = mockRes();
+  await createCustomer(adminReq({ name: 'Carlos', contact: 'tel', phone: '123' }), shortPhone);
+  assert.equal(shortPhone.statusCode, 400);
+
+  const good = mockRes();
+  await createCustomer(adminReq({ name: 'Carlos', contact: 'tel', email: 'carlos@gmail.com', phone: '+54 9 11 4444-5555' }), good);
+  assert.equal(good.statusCode, 201);
+});

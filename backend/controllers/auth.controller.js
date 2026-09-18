@@ -1,7 +1,7 @@
 import prisma from '../config/prisma.js';
 import bcrypt from 'bcryptjs';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // Valida que un valor sea un string no vacío (ignorando espacios). Se usa
 // para no depender de checks "falsy" (" " es truthy en JS y pasaría un

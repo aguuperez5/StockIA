@@ -29,6 +29,11 @@ async function main() {
     update: { appRole: 'administrador', role: 'ADMIN' },
     create: { name: 'Admin StockIA', email: 'admin@stockia.dev', password, role: 'ADMIN', appRole: 'administrador' }
   });
+  await prisma.user.upsert({
+    where: { email: 'josesitosereno@gmail.com' },
+    update: { appRole: 'administrador', role: 'ADMIN' },
+    create: { name: 'Facundo Sereno', legajo: '12345', email: 'josesitosereno@gmail.com', password, role: 'ADMIN', appRole: 'administrador' }
+  });
 
   const central = await findOrCreateDeposit(prisma, 'Depósito Central', 'Sede principal');
   const norte = await findOrCreateDeposit(prisma, 'Depósito Norte', 'Sucursal Norte');

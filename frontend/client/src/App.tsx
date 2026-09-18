@@ -31,7 +31,7 @@ function WorkspaceRoutes() {
     <Route path="/products" component={ProductsPage} />
     <Route path="/products/new"><RequireRole roles={["administrador"]}><ProductFormPage /></RequireRole></Route>
     <Route path="/products/:id/edit"><RequireRole roles={["administrador"]}><ProductFormPage /></RequireRole></Route>
-    <Route path="/warehouses"><RequireRole roles={["administrador", "deposito"]}><WarehousesPage /></RequireRole></Route>
+    <Route path="/warehouses"><Redirect to="/stock" /></Route>
     <Route path="/stock" component={StockPage} />
     <Route path="/sales/new"><RequireRole roles={["administrador", "caja"]}><NewSalePage /></RequireRole></Route>
     <Route path="/sales" component={SalesHistoryPage} />
@@ -43,7 +43,7 @@ function WorkspaceRoutes() {
     <Route path="/clients" component={ClientsPage} />
     <Route path="/telegram" component={TelegramOffersPage} />
     <Route path="/reports"><RequireRole roles={["administrador"]}><ReportsPage /></RequireRole></Route>
-    <Route path="/team"><RequireRole roles={["administrador"]}><TeamPage /></RequireRole></Route>
+    <Route path="/team"><Redirect to="/" /></Route>
     <Route component={Home} />
   </Switch></DashboardLayout>;
 }

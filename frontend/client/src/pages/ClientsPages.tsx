@@ -7,6 +7,27 @@ import { EmptyState, ErrorPanel, LoadingPanel, PageHeader } from "@/components/S
 import { customerService, type Customer } from "@/services/backlog";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const PHONE_REGEX = /^\+?[0-9\s\-()]{7,25}$/;
+
+function validateCustomer(form: { name: string; contact: string; email: string; phone: string }) {
+  const next: Record<string, string> = {};
+  if (!form.name.trim()) next.name = "Ingresá el nombre.";
+  if (!form.contact.trim()) next.contact = "Ingresá un medio de contacto.";
+  const email = form.email.trim();
+  if (email && !EMAIL_REGEX.test(email)) {
+    next.email = "Ingresá un correo electrónico válido (ej. cliente@gmail.com).";
+  }
+  const phone = form.phone.trim();
+  if (phone) {
+    const digits = phone.replace(/\D/g, "");
+    if (!PHONE_REGEX.test(phone) || digits.length < 7 || digits.length > 15) {
+      next.phone = "Ingresá un teléfono válido (entre 7 y 15 dígitos, ej. +54 9 11 1234-5678).";
+    }
+  }
+  return next;
+}
+
 export function ClientsPage() {
   const [, setLocation] = useLocation();
   const { user } = useStockAuth();
@@ -22,10 +43,7 @@ export function ClientsPage() {
   useEffect(() => { const timer = window.setTimeout(() => void load(search), 220); return () => window.clearTimeout(timer); }, [search]);
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
-    const next: Record<string, string> = {};
-    if (!form.name.trim()) next.name = "Ingresá el nombre.";
-    if (!form.contact.trim()) next.contact = "Ingresá un medio de contacto.";
-    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) next.email = "Ingresá un email válido.";
+    const next = validateCustomer(form);
     setFormErrors(next);
     if (Object.keys(next).length) return;
     setPending(true);
@@ -42,7 +60,7 @@ export function ClientsPage() {
     {error && <ErrorPanel message={error} />}
     {canManageClients && <form className="form-card form-card-pad" onSubmit={create}>
       <div className="form-grid two">
-        {(["name", "contact", "email", "phone"] as const).map(key => <label className="field" key={key}><span>{key === "name" ? "Nombre" : key === "contact" ? "Contacto" : key === "email" ? "Email" : "Teléfono"}</span><input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} placeholder={key === "name" ? "Ej. Ana Gómez" : key === "contact" ? "Ej. telegram:@ana" : "Opcional"} />{formErrors[key] && <small className="field-error">{formErrors[key]}</small>}</label>)}
+        {(["name", "contact", "email", "phone"] as const).map(key => <label className="field" key={key}><span>{key === "name" ? "Nombre" : key === "contact" ? "Contacto" : key === "email" ? "Email" : "Teléfono"}</span><input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} placeholder={key === "name" ? "Ej. Ana Gómez" : key === "contact" ? "Ej. telegram:@ana" : key === "email" ? "Ej. cliente@gmail.com" : "Ej. +54 9 11 1234-5678"} />{formErrors[key] && <small className="field-error">{formErrors[key]}</small>}</label>)}
       </div>
       <button className="button-primary" disabled={pending}>{pending ? "Agregando…" : "Agregar cliente"}</button>
     </form>}
@@ -68,10 +86,7 @@ export function ClientDetailPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!params?.id) return;
-    const next: Record<string, string> = {};
-    if (!form.name.trim()) next.name = "Ingresá el nombre.";
-    if (!form.contact.trim()) next.contact = "Ingresá un medio de contacto.";
-    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) next.email = "Ingresá un email válido.";
+    const next = validateCustomer(form);
     setFormErrors(next);
     if (Object.keys(next).length) return;
     setPending(true);
@@ -95,7 +110,7 @@ export function ClientDetailPage() {
         <label className="field"><span>Nombre</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />{formErrors.name && <small className="field-error">{formErrors.name}</small>}</label>
         <label className="field"><span>Contacto</span><input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} />{formErrors.contact && <small className="field-error">{formErrors.contact}</small>}</label>
         <label className="field"><span>Email</span><input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />{formErrors.email && <small className="field-error">{formErrors.email}</small>}</label>
-        <label className="field"><span>Teléfono</span><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></label>
+        <label className="field"><span>Teléfono</span><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />{formErrors.phone && <small className="field-error">{formErrors.phone}</small>}</label>
       </div>
       <button className="button-primary" disabled={pending}>{pending ? "Guardando…" : "Guardar cambios"}</button>
     </form>}

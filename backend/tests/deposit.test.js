@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import prisma from '../config/prisma.js';
 import { resetDb, createProduct, createDeposit } from './helpers.js';
 import { createDeposit as createDepositHandler, updateDeposit, getStockByDeposit } from '../controllers/deposit.controller.js';
-import { createWarehouse, updateWarehouse } from '../controllers/integration.controller.js';
+import { createWarehouse, updateWarehouse, deleteWarehouse } from '../controllers/integration.controller.js';
 
 function mockRes() {
   return {
@@ -136,4 +136,49 @@ test('editar al nombre de otro depósito devuelve 409 y uno inexistente 404', as
   const missing = mockRes();
   await updateWarehouse({ params: { id: '999999' }, body: { name: 'Z', address: 'X', manager: 'Y' } }, missing);
   assert.equal(missing.statusCode, 404);
+});
+
+test('eliminar un depósito vacío sin operaciones históricas tiene éxito', async () => {
+  const created = mockRes();
+  await createWarehouse({ body: { name: 'Para Borrar', address: 'Calle 10', manager: 'Admin' } }, created);
+  assert.equal(created.statusCode, 201);
+  const depId = created.body.id;
+
+  // Registrar un producto que genera stock 0
+  const product = await createProduct({ code: 'PROD-BORRAR' });
+  await prisma.stock.create({ data: { productId: product.id, depositId: depId, quantity: 0 } });
+
+  const del = mockRes();
+  await deleteWarehouse({ params: { id: String(depId) } }, del);
+  assert.equal(del.statusCode, 200);
+
+  const exists = await prisma.deposit.findUnique({ where: { id: depId } });
+  assert.equal(exists, null);
+});
+
+test('eliminar un depósito con stock existente devuelve 409', async () => {
+  const dep = await createDeposit({ name: 'Con Stock' });
+  const product = await createProduct({ code: 'PROD-CON-STOCK' });
+  await prisma.stock.create({ data: { productId: product.id, depositId: dep.id, quantity: 10 } });
+
+  const del = mockRes();
+  await deleteWarehouse({ params: { id: String(dep.id) } }, del);
+  assert.equal(del.statusCode, 409);
+  assert.match(del.body.message, /posee 10 unidad\(es\) en stock/);
+});
+
+test('eliminar un depósito con ventas asociadas devuelve 409', async () => {
+  const dep = await createDeposit({ name: 'Con Ventas' });
+  await prisma.sale.create({
+    data: {
+      depositId: dep.id,
+      total: 500,
+      items: { create: [] }
+    }
+  });
+
+  const del = mockRes();
+  await deleteWarehouse({ params: { id: String(dep.id) } }, del);
+  assert.equal(del.statusCode, 409);
+  assert.match(del.body.message, /ventas o transferencias históricas/);
 });
