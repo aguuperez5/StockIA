@@ -24,14 +24,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, logout } = useStockAuth();
   const { theme, toggleTheme } = useTheme();
   const visibleNavigation = navigation.filter(item => !item.roles || item.roles.includes(user?.appRole ?? "caja"));
-  const active = visibleNavigation.find(item => location === item.path || (item.path === "/products" && location.startsWith("/products/")));
-  const navigate = (path: string) => { setLocation(path); setMobileOpen(false); };
+  const isItemActive = (itemPath: string) => {
+    if (itemPath === "/products/new") return location === "/products/new";
+    if (itemPath === "/products") return location === "/products" || (location.startsWith("/products/") && location !== "/products/new");
+    return location === itemPath;
+  };
+  const active = visibleNavigation.find(item => isItemActive(item.path));
+  const navigate = (path: string) => { if (location !== path) setLocation(path); setMobileOpen(false); };
   const initials = user?.fullName.split(" ").map(part => part[0]).slice(0, 2).join("").toUpperCase() || "ST";
 
   return <div className={`app-shell ${desktopCollapsed ? "sidebar-collapsed" : ""}`}>
     <aside className={`side-rail ${mobileOpen ? "side-rail-open" : ""}`} aria-label="Navegación principal">
       <div className="brand-block" onClick={() => navigate("/")} role="button" tabIndex={0}><span className="brand-mark"><Store size={19} strokeWidth={2.4} /></span><span><b>Stock</b><em>IA</em><small>gestión comercial</small></span><button className="mobile-close" onClick={event => { event.stopPropagation(); setMobileOpen(false); }} aria-label="Cerrar navegación"><X size={19} /></button></div>
-      <nav className="nav-list"><p className="nav-caption">Operación</p>{visibleNavigation.map(item => { const isActive = item.path === "/products" ? location === "/products" || location.startsWith("/products/") : item.path === location; return <button key={item.path} className={`nav-entry ${isActive ? "nav-active" : ""}`} onClick={() => navigate(item.path)}><item.icon size={18} /><span>{item.label}</span></button>; })}</nav>
+      <nav className="nav-list"><p className="nav-caption">Operación</p>{visibleNavigation.map(item => { const isActive = isItemActive(item.path); return <button key={item.path} className={`nav-entry ${isActive ? "nav-active" : ""}`} onClick={() => navigate(item.path)}><item.icon size={18} /><span>{item.label}</span></button>; })}</nav>
       <div className="rail-bottom"><button className="profile-chip" onClick={() => void logout().then(() => navigate("/login"))}><span className="profile-avatar">{initials}</span><span><b>{user?.fullName || "Mi cuenta"}</b><small>{user?.email || "Sesión activa"}</small></span><LogOut size={15} /></button></div>
     </aside>
     {mobileOpen && <button className="mobile-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú" />}

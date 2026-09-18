@@ -48,14 +48,23 @@ function resizeImageToDataUrl(fileOrBlob: Blob, maxWidth = 800, maxHeight = 800,
   });
 }
 
+let cachedCategories: string[] = [];
+let cachedWarehouses: Warehouse[] = [];
+
 export default function ProductFormPage() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/products/:id/edit");
   const editId = params?.id;
   const [form, setForm] = useState<FormData>(blank);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [knownCategories, setKnownCategories] = useState<string[]>([]);
-  useEffect(() => { productService.list().then(result => setKnownCategories(Array.from(new Set(result.items.map(item => item.category).filter(Boolean))).sort())).catch(() => undefined); }, []);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(cachedWarehouses);
+  const [knownCategories, setKnownCategories] = useState<string[]>(cachedCategories);
+  useEffect(() => {
+    productService.list().then(result => {
+      const cats = Array.from(new Set(result.items.map(item => item.category).filter(Boolean))).sort();
+      cachedCategories = cats;
+      setKnownCategories(cats);
+    }).catch(() => undefined);
+  }, []);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pageError, setPageError] = useState("");
   const [loading, setLoading] = useState(Boolean(editId));
@@ -68,7 +77,12 @@ export default function ProductFormPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => { warehouseService.list().then(result => setWarehouses(result.items)).catch((reason: Error) => setPageError(reason.message)); }, []);
+  useEffect(() => {
+    warehouseService.list().then(result => {
+      cachedWarehouses = result.items;
+      setWarehouses(result.items);
+    }).catch((reason: Error) => setPageError(reason.message));
+  }, []);
   useEffect(() => {
     if (!editId) return;
     productService.get(editId).then(({ item }) => setForm({ name: item.name, sku: item.sku, category: item.category, price: String(item.price), lowStockThreshold: String(item.lowStockThreshold), initialStock: "0", warehouseId: "", imageUrl: item.imageUrl ?? "" })).catch((reason: Error) => setPageError(reason.message)).finally(() => setLoading(false));
