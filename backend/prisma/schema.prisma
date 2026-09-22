@@ -11,11 +11,7 @@ enum Role {
   USER
 }
 
-enum MovementType {
-  IN
-  OUT
-  ADJUST
-}
+
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -110,7 +106,7 @@ model StockMovement {
   saleId    Int?
   sale      Sale?        @relation(fields: [saleId], references: [id], onDelete: SetNull)
   quantity  Int
-  type      MovementType
+
   reason    String?
   createdAt DateTime     @default(now())
 

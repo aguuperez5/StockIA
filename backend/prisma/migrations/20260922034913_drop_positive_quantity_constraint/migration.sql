@@ -1,0 +1,1 @@
+ALTER TABLE "stock_movements" DROP CONSTRAINT "stock_movements_quantity_positive";
