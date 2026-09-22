@@ -11,11 +11,7 @@ enum Role {
   USER
 }
 
-enum MovementType {
-  IN
-  OUT
-  ADJUST
-}
+
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -80,7 +76,6 @@ model Deposit {
   stocks         Stock[]
   stockMovements StockMovement[]
   sales          Sale[]
-  saleItems      SaleItem[] @relation("SaleItemWarehouse")
   transfersOrigin Transfer[] @relation("TransferOrigin")
   transfersDestination Transfer[] @relation("TransferDestination")
 
@@ -110,7 +105,7 @@ model StockMovement {
   saleId    Int?
   sale      Sale?        @relation(fields: [saleId], references: [id], onDelete: SetNull)
   quantity  Int
-  type      MovementType
+
   reason    String?
   createdAt DateTime     @default(now())
 
@@ -161,11 +156,8 @@ model SaleItem {
   product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
-  warehouseId Int?
-  warehouse Deposit? @relation("SaleItemWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
 
   @@index([saleId])
-  @@index([warehouseId])
   @@map("sale_items")
 }
 

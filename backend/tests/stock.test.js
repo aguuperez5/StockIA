@@ -42,11 +42,11 @@ test('crea stock inicial con un movimiento IN', async () => {
   const deposit = await createDeposit();
   const res = mockRes();
 
-  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 50, type: 'IN' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 50 } }, res);
 
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.stock.quantity, 50);
-  assert.equal(res.body.movement.type, 'IN');
+
 });
 
 // Caso 3: Entrada de stock sobre stock existente
@@ -56,7 +56,7 @@ test('entrada de stock incrementa cantidad existente', async () => {
   await prisma.stock.create({ data: { productId: product.id, depositId: deposit.id, quantity: 10 } });
 
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 5, type: 'IN' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 5 } }, res);
 
   assert.equal(res.body.stock.quantity, 15);
 });
@@ -68,7 +68,7 @@ test('salida de stock válida decrementa cantidad', async () => {
   await prisma.stock.create({ data: { productId: product.id, depositId: deposit.id, quantity: 20 } });
 
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 8, type: 'OUT' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: -8 } }, res);
 
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.stock.quantity, 12);
@@ -81,7 +81,7 @@ test('rechaza salida mayor al stock disponible', async () => {
   await prisma.stock.create({ data: { productId: product.id, depositId: deposit.id, quantity: 5 } });
 
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 10, type: 'OUT' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: -10 } }, res);
 
   assert.equal(res.statusCode, 400);
   const stock = await prisma.stock.findUnique({
@@ -96,11 +96,11 @@ test('registra el movimiento de stock', async () => {
   const deposit = await createDeposit();
 
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 7, type: 'ADJUST', reason: 'Conteo físico' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 7, reason: 'Conteo físico' } }, res);
 
   const movements = await prisma.stockMovement.findMany({ where: { productId: product.id, depositId: deposit.id } });
   assert.equal(movements.length, 1);
-  assert.equal(movements[0].type, 'ADJUST');
+
   assert.equal(movements[0].reason, 'Conteo físico');
 });
 
@@ -113,7 +113,7 @@ test('modifica sólo el stock del depósito indicado', async () => {
   await prisma.stock.create({ data: { productId: product.id, depositId: depositB.id, quantity: 10 } });
 
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: depositA.id, quantity: 4, type: 'OUT' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: depositA.id, quantity: -4 } }, res);
 
   const stockA = await prisma.stock.findUnique({ where: { productId_depositId: { productId: product.id, depositId: depositA.id } } });
   const stockB = await prisma.stock.findUnique({ where: { productId_depositId: { productId: product.id, depositId: depositB.id } } });
@@ -128,7 +128,7 @@ test('atomicidad: un ajuste rechazado no deja movimiento huérfano', async () =>
   await prisma.stock.create({ data: { productId: product.id, depositId: deposit.id, quantity: 2 } });
 
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: 100, type: 'OUT' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: deposit.id, quantity: -100 } }, res);
 
   const movements = await prisma.stockMovement.findMany({ where: { productId: product.id, depositId: deposit.id } });
   assert.equal(movements.length, 0);
@@ -138,7 +138,7 @@ test('atomicidad: un ajuste rechazado no deja movimiento huérfano', async () =>
 test('rechaza ajuste con producto inexistente', async () => {
   const deposit = await createDeposit();
   const res = mockRes();
-  await adjustStock({ body: { productId: 999999, depositId: deposit.id, quantity: 1, type: 'IN' } }, res);
+  await adjustStock({ body: { productId: 999999, depositId: deposit.id, quantity: 1 } }, res);
   assert.equal(res.statusCode, 404);
 });
 
@@ -146,6 +146,6 @@ test('rechaza ajuste con producto inexistente', async () => {
 test('rechaza ajuste con depósito inexistente', async () => {
   const product = await createProduct();
   const res = mockRes();
-  await adjustStock({ body: { productId: product.id, depositId: 999999, quantity: 1, type: 'IN' } }, res);
+  await adjustStock({ body: { productId: product.id, depositId: 999999, quantity: 1 } }, res);
   assert.equal(res.statusCode, 404);
 });
