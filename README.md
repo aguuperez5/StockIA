@@ -35,7 +35,8 @@ Sistema inteligente de reconocimiento visual de productos para automatizar punto
 - 📄 [Sprint 0 — Visión, Alcance, DoD y Calidad QA](docs/sprint-0.md)
 - 📄 [Sprint 1 — Informe de Entrega, Pivot Tecnológico y Retrospectiva](docs/sprint-1-informe.md)
 - 📋 [Historias de Usuario (HU-01 a HU-11)](docs/historias-de-usuario.md)
-- 📝 [Sprint Backlog — Descomposición de Tareas (SB-001 a SB-055)](docs/sprint-backlog.md)
+- 🧪 [Plan de Pruebas — alcance, casos y auditoría de cobertura](docs/plan-de-pruebas.md)
+- 📝 [Sprint Backlog — Descomposición de Tareas (SB-001 a SB-055)](docs/sprint-1-backlog.md)
 
 ### Arquitectura Técnica y Reglas de Negocio
 - 🗄️ [Modelo de Datos y Diagrama Entidad-Relación (DER)](docs/data-model.md)

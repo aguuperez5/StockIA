@@ -145,11 +145,21 @@ Para corroborar que todos los servicios operan de forma articulada:
 
 ## 6. Ejecución de Pruebas Automatizadas (QA)
 
-Para validar la integridad de las APIs y lógica de negocio del backend:
+La suite backend usa Node.js `node:test`, Prisma y PostgreSQL:
 
 ```bash
 cd backend
 npm test
 ```
 
-> **Nota:** La suite de pruebas de integración se ejecuta con concurrencia controlada (`--test-concurrency=1`) y limpia las tablas en cada ciclo para garantizar aislamiento total y resultados deterministas.
+La suite frontend usa Vitest:
+
+```bash
+cd frontend
+npm test
+npm run check
+```
+
+`npm run check` comprueba tipos TypeScript; no es una prueba funcional.
+
+> **Importante:** las pruebas backend ejecutan `resetDb()` antes de cada caso y borran los datos de las tablas del sistema. Configurá `DATABASE_URL` para una base PostgreSQL de pruebas desechable. No ejecutes `npm test` contra una base de desarrollo con datos que quieras conservar ni contra producción. La concurrencia serial del runner no evita ese borrado.
