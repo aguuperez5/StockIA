@@ -17,5 +17,19 @@ services:
     volumes:
       - stockia-postgres-data:/var/lib/postgresql/data
 
+  ai:
+    profiles: ["ai"]
+    build:
+      context: ./ai
+      args:
+        INSTALL_OCR: ${STOCKIA_INSTALL_OCR:-false}
+    environment:
+      STOCKIA_AI_HOST: 0.0.0.0
+      STOCKIA_AI_PORT: "8010"
+      STOCKIA_AI_SHARED_TOKEN: ${AI_SERVICE_TOKEN:-}
+    ports:
+      - "127.0.0.1:8010:8010"
+    restart: unless-stopped
+
 volumes:
   stockia-postgres-data:

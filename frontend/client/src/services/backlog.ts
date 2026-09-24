@@ -7,16 +7,18 @@ export const recognitionService = {
   analyze: (query = "", photo?: { data: string; mimeType: string }) =>
     post<{
       simulated: boolean;
+      status?: string;
+      warnings?: string[];
       items: Array<{
         id: number;
         name: string;
         sku: string;
         priceCents: number;
-        confidence: number;
+        matchScore?: number;
+        matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
+        reviewRequired?: boolean;
         stocks?: Array<{ warehouseId: number; warehouseName: string; quantity: number }>;
       }>;
-      photoData?: string;
-      photoMimeType?: string;
     }>(
       "/recognition/analyze",
       { query, ...(photo ? { photoData: photo.data, photoMimeType: photo.mimeType } : {}) },

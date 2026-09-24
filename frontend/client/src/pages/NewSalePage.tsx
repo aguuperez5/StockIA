@@ -302,6 +302,12 @@ export default function NewSalePage() {
                         </div>
                         <div className="analysis-product-meta">
                           {prod.priceCents ? <span className="analysis-price">{money(prod.priceCents)}</span> : null}
+                          {prod.matchMethod && (
+                            <span className={`analysis-match-evidence ${prod.reviewRequired ? "needs-review" : ""}`}>
+                              {{ barcode_ocr: "Código + OCR", barcode: "Código de barras", ocr_code: "Código leído", ocr_name: "Nombre leído" }[prod.matchMethod]}
+                              {prod.reviewRequired ? " · verificá el producto" : " · corroborado por OCR"}
+                            </span>
+                          )}
                           <span className={`analysis-total-stock ${prod.totalQuantity > 0 ? "stock-ok" : "stock-zero"}`}>
                             {prod.totalQuantity > 0 ? `Total: ${prod.totalQuantity} u. en red` : "Sin stock disponible"}
                           </span>

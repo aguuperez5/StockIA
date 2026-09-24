@@ -7,7 +7,9 @@ export type DetectedProduct = {
   name: string;
   sku: string;
   priceCents?: number;
-  confidence: number;
+  matchScore?: number;
+  matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
+  reviewRequired?: boolean;
   stocks?: Array<{ warehouseId: number; warehouseName: string; quantity: number }>;
 };
 
@@ -70,7 +72,7 @@ export default function PhotoCapture({
     setPreview(data);
     onPhoto?.(data, "image/jpeg");
     closeCamera();
-    void analyze("captura de cámara", { data, mimeType: "image/jpeg" });
+    void analyze("", { data, mimeType: "image/jpeg" });
   };
 
   const analyze = async (value = query, photo?: { data: string; mimeType: string }) => {
@@ -107,7 +109,7 @@ export default function PhotoCapture({
     image.onload = () => {
       const data = toEvidencePhoto(image, image.naturalWidth, image.naturalHeight);
       onPhoto?.(data, "image/jpeg");
-      void analyze(selected.name.replace(/\.[^.]+$/, "").replaceAll(/[-_]/g, " "), { data, mimeType: "image/jpeg" });
+      void analyze("", { data, mimeType: "image/jpeg" });
     };
     image.onerror = () => setError("No se pudo leer la imagen elegida.");
     image.src = url;

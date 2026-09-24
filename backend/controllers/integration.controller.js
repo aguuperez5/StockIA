@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 import { appRole, clearSession, createSession, publicUser, setSession } from '../middleware.js';
+import { analyzeProductImage } from '../services/ai-recognition.client.js';
+import { findRecognitionCatalogCandidates, rankRecognitionProducts } from '../services/catalog-match.agent.js';
 
 const moneyToCents = n => Math.round(Number(n) * 100);
 const centsToMoney = c => Number(c) / 100;
@@ -590,8 +592,24 @@ export async function recognition(req,res){
     if(!q && !photo.photoData) {
       return res.status(400).json({message:'Ingresá un término de búsqueda o capturá una foto para analizar.'});
     }
+
+    if (photo.photoData) {
+      const analysis = await analyzeProductImage(photo);
+      const catalog = await findRecognitionCatalogCandidates(prisma, analysis);
+      return res.json({
+        simulated: false,
+        status: analysis.status,
+        requestId: analysis.request_id,
+        pipelineVersion: analysis.pipeline_version,
+        quality: analysis.quality,
+        consensus: analysis.consensus,
+        warnings: analysis.warnings,
+        items: rankRecognitionProducts(catalog),
+      });
+    }
+
     const products=await prisma.product.findMany({
-      where:q?{OR:[{name:{contains:q,mode:'insensitive'}},{code:{contains:q,mode:'insensitive'}}]}:{},
+      where:{active:true,OR:[{name:{contains:q,mode:'insensitive'}},{code:{contains:q,mode:'insensitive'}}]},
       include:{
         stocks:{
           include:{deposit:true}
@@ -600,15 +618,13 @@ export async function recognition(req,res){
       take:8
     });
     res.json({
-      simulated:true,
-      photoData:photo.photoData,
-      photoMimeType:photo.photoMimeType,
+      simulated:false,
+      status:'catalog_search',
       items:products.map(p=>({
         id:p.id,
         name:p.name,
         sku:p.code,
         priceCents:moneyToCents(p.price),
-        confidence:q?0.96:0.7,
         stocks:p.stocks.map(s=>({
           warehouseId:s.depositId,
           warehouseName:s.deposit.name,
@@ -617,7 +633,7 @@ export async function recognition(req,res){
       }))
     });
   }catch(e){
-    res.status(e.status||400).json({message:e.message});
+    res.status(e.statusCode||e.status||500).json({message:e.message||'No se pudo analizar la solicitud.'});
   }
 }
 export async function listTelegram(req,res){const items=await prisma.telegramOffer.findMany({orderBy:{createdAt:'desc'}});res.json({items});}

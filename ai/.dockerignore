@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.coverage
+.ipynb_checkpoints
+StockIA_PoC_Identificacion_Productos.ipynb
+tests
+evaluation
+models
+weights
+outputs
