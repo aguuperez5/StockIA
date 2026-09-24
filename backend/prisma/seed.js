@@ -29,6 +29,11 @@ async function main() {
     update: { appRole: 'administrador', role: 'ADMIN' },
     create: { name: 'Admin StockIA', email: 'admin@stockia.dev', password, role: 'ADMIN', appRole: 'administrador' }
   });
+  await prisma.user.upsert({
+    where: { email: 'josesitosereno@gmail.com' },
+    update: { appRole: 'administrador', role: 'ADMIN' },
+    create: { name: 'Facundo Sereno', legajo: '12345', email: 'josesitosereno@gmail.com', password, role: 'ADMIN', appRole: 'administrador' }
+  });
 
   const central = await findOrCreateDeposit(prisma, 'Depósito Central', 'Sede principal');
   const norte = await findOrCreateDeposit(prisma, 'Depósito Norte', 'Sucursal Norte');
@@ -109,9 +114,9 @@ async function main() {
       const stock = await tx.stock.findUnique({ where: { productId_depositId: { productId: demoSale.product.id, depositId: demoSale.deposit.id } } });
       if (!stock || stock.quantity < demoSale.quantity) return;
       const total = Number(demoSale.product.price) * demoSale.quantity;
-      const sale = await tx.sale.create({ data: { depositId: demoSale.deposit.id, customerId: demoSale.customer.id, userId: admin.id, total, createdAt, items: { create: [{ productId: demoSale.product.id, warehouseId: demoSale.deposit.id, quantity: demoSale.quantity, price: demoSale.product.price }] } } });
+      const sale = await tx.sale.create({ data: { depositId: demoSale.deposit.id, customerId: demoSale.customer.id, userId: admin.id, total, createdAt, items: { create: [{ productId: demoSale.product.id, quantity: demoSale.quantity, price: demoSale.product.price }] } } });
       await tx.stock.update({ where: { id: stock.id }, data: { quantity: { decrement: demoSale.quantity } } });
-      await tx.stockMovement.create({ data: { productId: demoSale.product.id, depositId: demoSale.deposit.id, saleId: sale.id, quantity: demoSale.quantity, type: 'OUT', reason: `Venta demo #${sale.id}`, createdAt } });
+      await tx.stockMovement.create({ data: { productId: demoSale.product.id, depositId: demoSale.deposit.id, saleId: sale.id, quantity: -demoSale.quantity, reason: `Venta demo #${sale.id}`, createdAt } });
     });
   }
 

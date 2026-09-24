@@ -134,8 +134,7 @@ export const createSale = async (req, res) => {
           data: {
             productId: it.productId,
             depositId: depositIdNum,
-            quantity: it.quantity,
-            type: 'OUT',
+            quantity: -it.quantity,
             saleId: sale.id,
             reason: `Venta #${sale.id}`,
           },

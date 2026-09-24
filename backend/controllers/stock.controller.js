@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 
-const VALID_TYPES = ['IN', 'OUT', 'ADJUST'];
+
 
 // SB-032: Consultar stock existente.
 // - ?productId=&depositId=  -> stock puntual de un producto en un depósito
@@ -42,7 +42,7 @@ export const getStock = async (req, res) => {
 // Entrada: productId, depositId, quantity (>0), type ('IN' | 'OUT' | 'ADJUST'), reason?
 export const adjustStock = async (req, res) => {
   try {
-    const { productId, depositId, quantity, type, reason } = req.body;
+    const { productId, depositId, quantity, reason } = req.body;
 
     const productIdNum = Number(productId);
     const depositIdNum = Number(depositId);
@@ -51,11 +51,8 @@ export const adjustStock = async (req, res) => {
     if (!Number.isInteger(productIdNum) || !Number.isInteger(depositIdNum)) {
       return res.status(400).json({ error: 'Se requiere productId y depositId válidos' });
     }
-    if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ error: `type debe ser uno de: ${VALID_TYPES.join(', ')}` });
-    }
-    if (!Number.isInteger(quantityNum) || quantityNum <= 0) {
-      return res.status(400).json({ error: 'quantity debe ser un entero mayor a 0' });
+    if (!Number.isInteger(quantityNum) || quantityNum === 0) {
+      return res.status(400).json({ error: 'quantity debe ser un entero distinto de 0' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -74,14 +71,14 @@ export const adjustStock = async (req, res) => {
       });
       const available = existingStock?.quantity ?? 0;
 
-      if (type === 'OUT' && available < quantityNum) {
+      if (quantityNum < 0 && available < Math.abs(quantityNum)) {
         throw Object.assign(
-          new Error(`Stock insuficiente: disponible ${available}, solicitado ${quantityNum}`),
+          new Error(`Stock insuficiente: disponible ${available}, solicitado ${Math.abs(quantityNum)}`),
           { status: 400 }
         );
       }
 
-      const delta = type === 'OUT' ? -quantityNum : quantityNum;
+      const delta = quantityNum;
 
       const stock = await tx.stock.upsert({
         where: { productId_depositId: { productId: productIdNum, depositId: depositIdNum } },
@@ -94,8 +91,7 @@ export const adjustStock = async (req, res) => {
           productId: productIdNum,
           depositId: depositIdNum,
           quantity: quantityNum,
-          type,
-          reason: reason || (type === 'ADJUST' ? 'Ajuste manual' : null),
+          reason: reason || 'Ajuste de stock',
         },
       });
 
@@ -164,8 +160,8 @@ export const transferStock = async (req, res) => {
       const motivo = reason?.trim() || `Transferencia ${fromId} → ${toId}`;
       await tx.stockMovement.createMany({
         data: [
-          { productId: productIdNum, depositId: fromId, quantity: quantityNum, type: 'OUT', reason: motivo },
-          { productId: productIdNum, depositId: toId, quantity: quantityNum, type: 'IN', reason: motivo },
+          { productId: productIdNum, depositId: fromId, quantity: -quantityNum, reason: motivo },
+          { productId: productIdNum, depositId: toId, quantity: quantityNum, reason: motivo },
         ],
       });
 
