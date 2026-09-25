@@ -147,7 +147,9 @@ export default function NewSalePage() {
       return;
     }
     add(invItem);
-    toast.success(`"${invItem.productName}" agregado desde ${invItem.warehouseName}.`);
+    if (activeWarehouseId === null || activeWarehouseId === warehouseId) {
+      toast.success(`"${invItem.productName}" agregado desde ${invItem.warehouseName}.`);
+    }
   };
 
   // Verificación de stock de los productos analizados
@@ -223,8 +225,10 @@ export default function NewSalePage() {
       toast.success("Venta confirmada exitosamente.");
       setLocation(`/sales/${result.sale.id}/ticket`);
     } catch (reason) {
-      setError((reason as Error).message);
+      const message = reason instanceof Error ? reason.message : String(reason);
       load();
+      setError(message);
+      window.setTimeout(() => document.querySelector(".error-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
     } finally {
       setPending(false);
     }
@@ -298,6 +302,12 @@ export default function NewSalePage() {
                         </div>
                         <div className="analysis-product-meta">
                           {prod.priceCents ? <span className="analysis-price">{money(prod.priceCents)}</span> : null}
+                          {prod.matchMethod && (
+                            <span className={`analysis-match-evidence ${prod.reviewRequired ? "needs-review" : ""}`}>
+                              {{ barcode_ocr: "Código + OCR", barcode: "Código de barras", ocr_code: "Código leído", ocr_name: "Nombre leído" }[prod.matchMethod]}
+                              {prod.reviewRequired ? " · verificá el producto" : " · corroborado por OCR"}
+                            </span>
+                          )}
                           <span className={`analysis-total-stock ${prod.totalQuantity > 0 ? "stock-ok" : "stock-zero"}`}>
                             {prod.totalQuantity > 0 ? `Total: ${prod.totalQuantity} u. en red` : "Sin stock disponible"}
                           </span>

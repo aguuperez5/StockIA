@@ -85,9 +85,11 @@ npm run seed
 
 El script de seed es reproducible e idempotente (emplea `upsert` / `findOrCreate`) y carga:
 - **Usuario Administrador:** `admin@stockia.dev` | Contraseña: `test1234`
-- **Depósitos iniciales:** Depósito Central y Sucursal 1.
+- **Depósitos iniciales:** Depósito Central, Depósito Norte y Depósito Sur.
 - **Productos de catálogo:** Artículos con códigos de barra de prueba y reglas de precios por volumen (`PriceRule`).
 - **Stock inicial:** Existencias asignadas por depósito con balance verificado.
+
+> **Nota:** Podés ejecutar `npm run seed` directamente desde la raíz del repositorio o dentro de la carpeta `backend/`.
 
 ### 3.5. Iniciar el Servidor Backend
 
@@ -143,11 +145,21 @@ Para corroborar que todos los servicios operan de forma articulada:
 
 ## 6. Ejecución de Pruebas Automatizadas (QA)
 
-Para validar la integridad de las APIs y lógica de negocio del backend:
+La suite backend usa Node.js `node:test`, Prisma y PostgreSQL:
 
 ```bash
 cd backend
 npm test
 ```
 
-> **Nota:** La suite de pruebas de integración se ejecuta con concurrencia controlada (`--test-concurrency=1`) y limpia las tablas en cada ciclo para garantizar aislamiento total y resultados deterministas.
+La suite frontend usa Vitest:
+
+```bash
+cd frontend
+npm test
+npm run check
+```
+
+`npm run check` comprueba tipos TypeScript; no es una prueba funcional.
+
+> **Importante:** las pruebas backend ejecutan `resetDb()` antes de cada caso y borran los datos de las tablas del sistema. Configurá `DATABASE_URL` para una base PostgreSQL de pruebas desechable. No ejecutes `npm test` contra una base de desarrollo con datos que quieras conservar ni contra producción. La concurrencia serial del runner no evita ese borrado.

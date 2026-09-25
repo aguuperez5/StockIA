@@ -7,7 +7,9 @@ export type DetectedProduct = {
   name: string;
   sku: string;
   priceCents?: number;
-  confidence: number;
+  matchScore?: number;
+  matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
+  reviewRequired?: boolean;
   stocks?: Array<{ warehouseId: number; warehouseName: string; quantity: number }>;
 };
 
@@ -25,8 +27,21 @@ export default function PhotoCapture({
   const [cameraOpen, setCameraOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const previewUrlRef = useRef("");
 
-  useEffect(() => () => streamRef.current?.getTracks().forEach(track => track.stop()), []);
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
+
+  const toEvidencePhoto = (source: CanvasImageSource, width: number, height: number) => {
+    const scale = Math.min(1, 1600 / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  };
 
   const openCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -53,15 +68,11 @@ export default function PhotoCapture({
   const capture = () => {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d")?.drawImage(video, 0, 0);
-    const data = canvas.toDataURL("image/jpeg", 0.85);
+    const data = toEvidencePhoto(video, video.videoWidth, video.videoHeight);
     setPreview(data);
     onPhoto?.(data, "image/jpeg");
     closeCamera();
-    void analyze("captura de cámara", { data, mimeType: "image/jpeg" });
+    void analyze("", { data, mimeType: "image/jpeg" });
   };
 
   const analyze = async (value = query, photo?: { data: string; mimeType: string }) => {
@@ -89,15 +100,19 @@ export default function PhotoCapture({
       setError("Elegí una imagen de hasta 3 MB.");
       return;
     }
-    setPreview(URL.createObjectURL(selected));
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        onPhoto?.(reader.result, selected.type);
-        void analyze(selected.name.replace(/\.[^.]+$/, "").replaceAll(/[-_]/g, " "), { data: reader.result, mimeType: selected.type });
-      }
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(selected);
+    previewUrlRef.current = url;
+    setPreview(url);
+    event.currentTarget.value = "";
+    const image = new Image();
+    image.onload = () => {
+      const data = toEvidencePhoto(image, image.naturalWidth, image.naturalHeight);
+      onPhoto?.(data, "image/jpeg");
+      void analyze("", { data, mimeType: "image/jpeg" });
     };
-    reader.readAsDataURL(selected);
+    image.onerror = () => setError("No se pudo leer la imagen elegida.");
+    image.src = url;
   };
 
   return (
@@ -123,7 +138,7 @@ export default function PhotoCapture({
       <div className="form-actions">
         <button type="button" className="button-secondary" onClick={() => void openCamera()}><Camera size={16} />Abrir cámara</button>
         <label className="button-secondary"><Upload size={16} />Elegir archivo<input hidden type="file" accept="image/*" onChange={file} /></label>
-        {preview && <button type="button" className="button-secondary" onClick={() => { setPreview(""); setQuery(""); }}><RotateCcw size={16} />Reintentar</button>}
+        {preview && <button type="button" className="button-secondary" onClick={() => { if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current); previewUrlRef.current = ""; setPreview(""); setQuery(""); onPhoto?.("", "image/jpeg"); }}><RotateCcw size={16} />Reintentar</button>}
       </div>
       <div className="form-grid two">
         <label className="field">

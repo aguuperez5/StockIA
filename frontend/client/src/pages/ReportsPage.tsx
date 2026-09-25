@@ -1,21 +1,25 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowUpRight, BarChart3, Boxes, CalendarDays, DollarSign, Download, PackageCheck, ShoppingBag, Store, TrendingUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Boxes, CalendarDays, DollarSign, Download, PackageCheck, ShoppingBag, Store } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartEmpty } from "@/components/DashboardCharts";
-import { ErrorPanel, LoadingPanel, PageHeader, StockBadge, day, money } from "@/components/StockUI";
+import { ErrorPanel, LoadingPanel, PageHeader, day, money } from "@/components/StockUI";
 import { reportService } from "@/services/backlog";
 
 type ReportData = Awaited<ReturnType<typeof reportService.get>>;
 
 function downloadCsv(rows: string[][], filename: string) {
-  const csv = rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const csvCell = (value: string) => {
+    const safeValue = /^[\t\r ]*[=+\-@]/.test(value) ? `'${value}` : value;
+    return `"${safeValue.replace(/"/g, '""')}"`;
+  };
+  const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export default function ReportsPage() {
@@ -23,12 +27,26 @@ export default function ReportsPage() {
   const [to, setTo] = useState("");
   const [data, setData] = useState<ReportData | null>(null);
   const [error, setError] = useState("");
+  const requestVersion = useRef(0);
 
   const load = () => {
+    const version = ++requestVersion.current;
     setError("");
-    reportService.get(from, to).then(setData).catch(e => setError(e.message));
+    setData(null);
+    reportService.get(from, to)
+      .then(result => {
+        if (version === requestVersion.current) setData(result);
+      })
+      .catch(reason => {
+        if (version === requestVersion.current) {
+          setError(reason instanceof Error ? reason.message : String(reason));
+        }
+      });
   };
-  useEffect(load, [from, to]);
+  useEffect(() => {
+    load();
+    return () => { requestVersion.current += 1; };
+  }, [from, to]);
 
   const exportCsv = () => {
     if (!data) return;
@@ -41,7 +59,7 @@ export default function ReportsPage() {
       ["Transferencias confirmadas", String(data.transfers)],
       [],
       ["--- PLAN DE REPOSICIÓN URGENTE (COMPRAS RECOMENDADAS) ---"],
-      ["Producto", "SKU", "Categoría", "Stock actual", "Mínimo sugerido", "Unidades a comprar", "Costo unitario ($)", "Inversión total ($)", "Prioridad"],
+      ["Producto", "SKU", "Categoría", "Stock actual", "Mínimo sugerido", "Unidades sugeridas", "Precio de lista unitario ($)", "Valor de referencia a precio de lista ($)", "Prioridad"],
       ...(data.replenishment?.items.map(item => [
         item.productName,
         item.sku,
@@ -50,7 +68,7 @@ export default function ReportsPage() {
         String(item.threshold),
         String(item.unitsNeeded),
         String(item.priceCents / 100),
-        String(item.costCents / 100),
+        String(item.referenceValueCents / 100),
         item.priority
       ]) ?? []),
       [],
@@ -72,13 +90,13 @@ export default function ReportsPage() {
       ]) ?? data.bestSellers.map(b => [b.productName, String(b.units), "-"])),
       [],
       ["--- MERCADERÍA SIN ROTACIÓN (STOCK ESTANCADO EN EL PERÍODO) ---"],
-      ["Producto", "SKU", "Categoría", "Stock parado", "Capital inmovilizado ($)"],
+      ["Producto", "SKU", "Categoría", "Stock sin ventas", "Valor a precio de lista ($)"],
       ...(data.stagnantStock?.items.map(s => [
         s.name,
         s.sku,
         s.category,
         String(s.stock),
-        String(s.valueCents / 100)
+        String(s.referenceValueCents / 100)
       ]) ?? [])
     ];
     downloadCsv(rows, `decision-report-${from || "inicio"}_${to || "hoy"}.csv`);
@@ -132,17 +150,17 @@ export default function ReportsPage() {
             <section className="metric-card">
               <span className="metric-icon-bubble alert-bubble"><AlertTriangle size={18} /></span>
               <div>
-                <p>Compras necesarias</p>
+                <p>Unidades sugeridas para reponer</p>
                 <h2>{data.replenishment?.totalUnitsNeeded ?? data.lowStock.length} <small>un.</small></h2>
-                <small>Inversión sugerida: {money(data.replenishment?.totalEstimatedCostCents ?? 0)}</small>
+                <small>Valor de referencia a precio de lista: {money(data.replenishment?.totalReferenceValueCents ?? 0)}</small>
               </div>
             </section>
 
             <section className="metric-card">
               <span className="metric-icon-bubble warn-bubble"><Boxes size={18} /></span>
               <div>
-                <p>Capital inmovilizado</p>
-                <h2>{money(data.stagnantStock?.totalValueCents ?? 0)}</h2>
+                <p>Stock sin ventas (valor de lista)</p>
+                <h2>{money(data.stagnantStock?.totalReferenceValueCents ?? 0)}</h2>
                 <small>{data.stagnantStock?.totalUnits ?? 0} unidades sin ventas</small>
               </div>
             </section>
@@ -196,7 +214,7 @@ export default function ReportsPage() {
                       <th>Producto</th>
                       <th>Stock / Mínimo</th>
                       <th>A comprar</th>
-                      <th>Inversión est.</th>
+                      <th>Valor est. a precio de lista</th>
                       <th>Prioridad</th>
                     </tr>
                   </thead>
@@ -214,7 +232,7 @@ export default function ReportsPage() {
                           <td className="highlight-number">
                             <b>+{item.unitsNeeded} un.</b>
                           </td>
-                          <td>{money(item.costCents)}</td>
+                          <td>{money(item.referenceValueCents)}</td>
                           <td>
                             <span className={`priority-pill ${item.priority === "CRÍTICA" ? "pill-critical" : "pill-high"}`}>
                               {item.priority}
@@ -309,7 +327,7 @@ export default function ReportsPage() {
                   <tbody>
                     {data.topRevenue && data.topRevenue.length > 0 ? (
                       data.topRevenue.map(p => (
-                        <tr key={p.productName}>
+                        <tr key={p.productId}>
                           <td><b>{p.productName}</b></td>
                           <td>{p.units} un.</td>
                           <td><b>{money(p.revenueCents)}</b></td>
@@ -317,7 +335,7 @@ export default function ReportsPage() {
                       ))
                     ) : (
                       data.bestSellers.map(b => (
-                        <tr key={b.productName}>
+                        <tr key={b.productId}>
                           <td><b>{b.productName}</b></td>
                           <td>{b.units} un.</td>
                           <td>-</td>
@@ -343,7 +361,7 @@ export default function ReportsPage() {
                     <tr>
                       <th>Producto</th>
                       <th>Stock parado</th>
-                      <th>Capital retenido</th>
+                  <th>Valor a precio de lista</th>
                       <th>Sugerencia</th>
                     </tr>
                   </thead>
@@ -356,7 +374,7 @@ export default function ReportsPage() {
                             <small>{st.sku} · {st.category}</small>
                           </td>
                           <td><b>{st.stock}</b> un.</td>
-                          <td>{money(st.valueCents)}</td>
+                          <td>{money(st.referenceValueCents)}</td>
                           <td>
                             <span className="suggestion-tag">Oferta / Combo</span>
                           </td>
@@ -365,7 +383,7 @@ export default function ReportsPage() {
                     ) : (
                       <tr>
                         <td colSpan={4} className="empty-table-cell">
-                          <span>No se detecta mercadería estancada con capital retenido.</span>
+                          <span>No hay productos con stock y sin ventas en este período.</span>
                         </td>
                       </tr>
                     )}
@@ -378,4 +396,4 @@ export default function ReportsPage() {
       )}
     </div>
   );
-}
+}

@@ -11,8 +11,9 @@ export class ApiError extends Error {
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   try {
-    response = await fetch(`${API_URL}/api${path}`, {
+    response = await fetch(`${API_URL}/api${normalizedPath}`, {
       ...init,
       credentials: "include",
       headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },

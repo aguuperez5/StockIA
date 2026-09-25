@@ -7,16 +7,18 @@ export const recognitionService = {
   analyze: (query = "", photo?: { data: string; mimeType: string }) =>
     post<{
       simulated: boolean;
+      status?: string;
+      warnings?: string[];
       items: Array<{
         id: number;
         name: string;
         sku: string;
         priceCents: number;
-        confidence: number;
+        matchScore?: number;
+        matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
+        reviewRequired?: boolean;
         stocks?: Array<{ warehouseId: number; warehouseName: string; quantity: number }>;
       }>;
-      photoData?: string;
-      photoMimeType?: string;
     }>(
       "/recognition/analyze",
       { query, ...(photo ? { photoData: photo.data, photoMimeType: photo.mimeType } : {}) },
@@ -29,14 +31,14 @@ export const reportService = {
   get: (from = "", to = "") =>
     get<{
       lowStock: Array<{ id: number; name: string; stock: number; threshold: number }>;
-      bestSellers: Array<{ productName: string; units: number }>;
+      bestSellers: Array<{ productId: number; productName: string; units: number }>;
       dailySales: Array<{ date: string; totalCents: number }>;
       sales: { totalCents: number; count: number; averageTicketCents?: number };
       transfers: number;
       replenishment?: {
         totalItems: number;
         totalUnitsNeeded: number;
-        totalEstimatedCostCents: number;
+        totalReferenceValueCents: number;
         items: Array<{
           productId: number;
           productName: string;
@@ -46,7 +48,7 @@ export const reportService = {
           threshold: number;
           unitsNeeded: number;
           priceCents: number;
-          costCents: number;
+          referenceValueCents: number;
           priority: string;
         }>;
       };
@@ -60,17 +62,18 @@ export const reportService = {
       stagnantStock?: {
         count: number;
         totalUnits: number;
-        totalValueCents: number;
+        totalReferenceValueCents: number;
         items: Array<{
           id: number;
           name: string;
           sku: string;
           category: string;
           stock: number;
-          valueCents: number;
+          referenceValueCents: number;
         }>;
       };
       topRevenue?: Array<{
+        productId: number;
         productName: string;
         sku?: string;
         units: number;

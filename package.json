@@ -1,0 +1,20 @@
+{
+  "name": "stockia-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StockIA: Sistema inteligente de gestión comercial, inventario y facturación.",
+  "scripts": {
+    "dev": "npm --prefix backend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "start": "npm --prefix backend start",
+    "seed": "npm --prefix backend run seed",
+    "migrate": "npm --prefix backend run migrate:deploy",
+    "generate": "npm --prefix backend run generate",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test",
+    "build:frontend": "npm --prefix frontend run build",
+    "check:frontend": "npm --prefix frontend run check"
+  }
+}
