@@ -143,11 +143,11 @@ Hay pruebas de venta/ticket en el controlador legado y dos pruebas acotadas del 
 ### CP-RF-06 — Reconocimiento de producto con código/OCR
 
 **Requisito:** PoC Barcode + OCR.  
-**Precondición:** imagen de una etiqueta de producto.  
+**Precondición:** imagen de una etiqueta de producto (JPEG/PNG/WebP).  
 **Pasos originales:** enviar imagen al pipeline Python, ejecutar zxing-cpp y buscar el código en el catálogo; usar OCR como alternativa cuando falle la lectura de código.  
-**Resultado esperado original:** extraer el código, seleccionar el producto y agrupar la cantidad.
+**Resultado esperado original:** extraer el código (o evidencia de texto OCR), resolver el producto en catálogo con existencias por depósito y marcar revisión si no hay corroboración dual.
 
-**Estado frente al código:** no es un caso de aceptación ejecutable para el producto integrado actual. El endpoint de reconocimiento devuelve resultados simulados y no lee la imagen; tampoco se encontró una conexión del endpoint con zxing-cpp, PaddleOCR o Codulia. Mantener este caso como pendiente de integración o como prueba aislada de la PoC, sin atribuirle cobertura del sistema.
+**Estado frente al código:** caso integrado y automatizado. El endpoint canónico `POST /api/recognition/analyze` se conecta con el microservicio Python (`stockia_ai`) que ejecuta `ImageQualityAgent`, `BarcodeAgent` (`zxing-cpp`), `OcrAgent` (`PaddleOCR` fallback) y `ConsensusAgent`. El backend resuelve el catálogo con `findRecognitionCatalogCandidates` y `rankRecognitionProducts`. Cuenta con suite de pruebas formal en [recognition.test.js](../backend/tests/recognition.test.js), [ai-recognition.client.test.js](../backend/tests/ai-recognition.client.test.js), [catalog-match.agent.test.js](../backend/tests/catalog-match.agent.test.js) y [test_agents.py](../ai/tests/test_agents.py).
 
 ## 6. Casos de prueba no funcionales (RNF)
 
@@ -293,6 +293,9 @@ El documento [Sprint 1 Backlog](sprint-1-backlog.md) marca estas tareas como com
 - [price-rules.test.js](../backend/tests/price-rules.test.js): persistencia y validaciones de tramos de precio.
 - [transfer.test.js](../backend/tests/transfer.test.js): transferencia de stock y rollback.
 - [customer.test.js](../backend/tests/customer.test.js): operaciones de cliente, validaciones y relación con venta/ticket.
+- [recognition.test.js](../backend/tests/recognition.test.js): caso CP-RF-06 completo (pasos 1, 2 y 3: validación de payload, envío multipart al pipeline, lectura zxing-cpp, fallback OCR numérico/léxico, consenso dual y búsqueda con stock en catálogo).
+- [ai-recognition.client.test.js](../backend/tests/ai-recognition.client.test.js): empaquetado multipart, headers de autorización, validación MIME y resiliencia ante caída del microservicio (503).
+- [catalog-match.agent.test.js](../backend/tests/catalog-match.agent.test.js): normalización de texto, scoring por solapamiento de tokens y marcado de revisión humana.
 - [helpers.js](../backend/tests/helpers.js): limpia las tablas y crea datos base para pruebas.
 
 Las pruebas de venta y stock más amplias importan controladores legados. El servidor conserva esos endpoints bajo rutas con sufijo legacy, mientras que el API integrado registra las rutas actuales desde [integration.routes.js](../backend/routes/integration.routes.js). No trasladar cobertura de un controlador/ruta a otro sin verificar que se comportan igual.
