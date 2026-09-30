@@ -633,17 +633,20 @@ export default function NewSalePage() {
 
             <label className="field">
               <span>Cliente (opcional)</span>
-              <select
+              <ModernSelect
                 value={customerId}
-                onChange={e => setCustomerId(e.target.value)}
-              >
-                <option value="">Venta mostrador</option>
-                {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setCustomerId}
+                options={[
+                  { value: "", label: "Venta mostrador" },
+                  ...customers.map(customer => ({
+                    value: customer.id,
+                    label: customer.name,
+                  })),
+                ]}
+                ariaLabel="Cliente"
+                minWidth="100%"
+                className="w-full"
+              />
               {!loading && !customers.length && (
                 <small className="field-hint">
                   Todavía no hay clientes: registralos en la sección Clientes

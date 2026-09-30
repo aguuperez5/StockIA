@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, ErrorPanel, PageHeader } from "@/components/StockUI";
+import { ModernSelect } from "@/components/ModernSelect";
 import { customerService, telegramService } from "@/services/backlog";
 
 const STATUSES = ["Lista para enviar", "Enviada", "Archivada"];
@@ -100,17 +101,20 @@ export default function TelegramOffersPage() {
         <div className="form-grid">
           <label className="field">
             <span>Cliente (opcional, para sugerir productos)</span>
-            <select
+            <ModernSelect
               value={customerId}
-              onChange={e => setCustomerId(e.target.value)}
-            >
-              <option value="">Sin cliente específico</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={setCustomerId}
+              options={[
+                { value: "", label: "Sin cliente específico" },
+                ...customers.map(c => ({
+                  value: c.id,
+                  label: c.name,
+                })),
+              ]}
+              ariaLabel="Cliente"
+              minWidth="100%"
+              className="w-full"
+            />
           </label>
           {customerId &&
             (frequent.length ? (
@@ -150,15 +154,12 @@ export default function TelegramOffersPage() {
           {items.map(item => (
             <div className="data-table-row" key={item.id}>
               <b>{item.message}</b>
-              <select
+              <ModernSelect
                 value={item.status}
-                onChange={e => void changeStatus(item.id, e.target.value)}
-                aria-label={`Estado de campaña ${item.id}`}
-              >
-                {STATUSES.map(option => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
+                onChange={val => void changeStatus(item.id, val)}
+                options={STATUSES}
+                ariaLabel={`Estado de campaña ${item.id}`}
+              />
             </div>
           ))}
         </div>

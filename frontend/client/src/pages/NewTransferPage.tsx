@@ -147,33 +147,39 @@ export default function NewTransferPage() {
           <div className="form-grid two">
             <label className="field">
               <span>Depósito de origen</span>
-              <select
+              <ModernSelect
                 value={origin}
-                onChange={e => changeOrigin(e.target.value)}
-              >
-                <option value="">Seleccioná</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </select>
+                onChange={changeOrigin}
+                options={[
+                  { value: "", label: "Seleccioná" },
+                  ...warehouses.map(w => ({
+                    value: String(w.id),
+                    label: w.name,
+                  })),
+                ]}
+                ariaLabel="Depósito de origen"
+                minWidth="100%"
+                className="w-full"
+              />
             </label>
             <label className="field">
               <span>Depósito de destino</span>
-              <select
+              <ModernSelect
                 value={destination}
-                onChange={e => setDestination(e.target.value)}
-              >
-                <option value="">Seleccioná</option>
-                {warehouses
-                  .filter(w => String(w.id) !== origin)
-                  .map(w => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-              </select>
+                onChange={setDestination}
+                options={[
+                  { value: "", label: "Seleccioná" },
+                  ...warehouses
+                    .filter(w => String(w.id) !== origin)
+                    .map(w => ({
+                      value: String(w.id),
+                      label: w.name,
+                    })),
+                ]}
+                ariaLabel="Depósito de destino"
+                minWidth="100%"
+                className="w-full"
+              />
             </label>
           </div>
         </div>

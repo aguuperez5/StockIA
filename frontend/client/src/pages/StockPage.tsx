@@ -577,19 +577,19 @@ export default function StockPage() {
             </label>
             <label className="field">
               <span>Tipo</span>
-              <select
+              <ModernSelect
                 value={warehouseForm.type}
-                onChange={event =>
+                onChange={val =>
                   setWarehouseForm({
                     ...warehouseForm,
-                    type: event.target.value as Warehouse["type"],
+                    type: val as Warehouse["type"],
                   })
                 }
-              >
-                <option>Principal</option>
-                <option>Sucursal</option>
-                <option>Depósito externo</option>
-              </select>
+                options={["Principal", "Sucursal", "Depósito externo"]}
+                ariaLabel="Tipo de depósito"
+                minWidth="100%"
+                className="w-full"
+              />
             </label>
             <label className="field">
               <span>Dirección</span>
@@ -1027,20 +1027,23 @@ export default function StockPage() {
             </p>
             <label className="field">
               <span>Depósito de destino</span>
-              <select
-                autoFocus
+              <ModernSelect
                 value={moveDest}
-                onChange={event => setMoveDest(event.target.value)}
-              >
-                <option value="">Seleccioná</option>
-                {warehouses
-                  .filter(warehouse => warehouse.id !== moving.warehouseId)
-                  .map(warehouse => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name}
-                    </option>
-                  ))}
-              </select>
+                onChange={setMoveDest}
+                placeholder="Seleccioná"
+                options={[
+                  { value: "", label: "Seleccioná" },
+                  ...warehouses
+                    .filter(warehouse => warehouse.id !== moving.warehouseId)
+                    .map(warehouse => ({
+                      value: String(warehouse.id),
+                      label: warehouse.name,
+                    })),
+                ]}
+                ariaLabel="Depósito de destino"
+                minWidth="100%"
+                className="w-full"
+              />
             </label>
             <label className="field">
               <span>Cantidad</span>
