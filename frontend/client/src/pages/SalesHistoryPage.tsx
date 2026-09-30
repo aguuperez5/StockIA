@@ -7,7 +7,7 @@ import {
   Store,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
   EmptyState,
@@ -42,26 +42,50 @@ export default function SalesHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError("");
-    saleService
+    return saleService
       .list(from, to, warehouseId, search, productId)
       .then(result => setItems(result.items))
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
-  };
+  }, [from, to, warehouseId, search, productId]);
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([warehouseService.list(), productService.list()])
       .then(([warehouseResult, productResult]) => {
-        setWarehouses(warehouseResult.items);
-        setProducts(productResult.items);
+        if (!cancelled) {
+          setWarehouses(warehouseResult.items);
+          setProducts(productResult.items);
+        }
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(load, [from, to, warehouseId, productId, search]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    saleService
+      .list(from, to, warehouseId, search, productId)
+      .then(result => {
+        if (!cancelled) setItems(result.items);
+      })
+      .catch((reason: Error) => {
+        if (!cancelled) setError(reason.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [from, to, warehouseId, productId, search]);
 
   const filteredItems = useMemo(
     () =>

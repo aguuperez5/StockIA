@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import {
@@ -202,11 +202,29 @@ export function ClientDetailPage() {
   const [pending, setPending] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const reload = () => {
-    if (params?.id)
+  const reload = useCallback(() => {
+    if (!params?.id) return;
+    customerService
+      .get(params.id)
+      .then(result => {
+        setData(result);
+        setForm({
+          name: result.customer.name,
+          contact: result.customer.contact,
+          email: result.customer.email ?? "",
+          phone: result.customer.phone ?? "",
+        });
+      })
+      .catch(e => setError(e.message));
+  }, [params?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (params?.id) {
       customerService
         .get(params.id)
         .then(result => {
+          if (cancelled) return;
           setData(result);
           setForm({
             name: result.customer.name,
@@ -215,9 +233,14 @@ export function ClientDetailPage() {
             phone: result.customer.phone ?? "",
           });
         })
-        .catch(e => setError(e.message));
-  };
-  useEffect(reload, [params?.id]);
+        .catch(e => {
+          if (!cancelled) setError(e.message);
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [params?.id]);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!params?.id) return;

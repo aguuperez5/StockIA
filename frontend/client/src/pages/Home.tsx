@@ -7,7 +7,7 @@ import {
   ShoppingCart,
   Warehouse,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import DashboardCharts from "@/components/DashboardCharts";
 import {
@@ -25,14 +25,29 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
-  const load = () => {
+  const load = useCallback(() => {
     setError("");
-    saleService
+    return saleService
       .dashboard()
       .then(setData)
       .catch((reason: Error) => setError(reason.message));
-  };
-  useEffect(load, []);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setError("");
+    saleService
+      .dashboard()
+      .then(res => {
+        if (!cancelled) setData(res);
+      })
+      .catch((reason: Error) => {
+        if (!cancelled) setError(reason.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>

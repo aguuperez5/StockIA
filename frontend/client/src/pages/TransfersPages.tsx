@@ -57,15 +57,46 @@ export function TransfersHistoryPage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([warehouseService.list(), productService.list()])
       .then(([w, p]) => {
-        setWarehouses(w.items);
-        setProducts(p.items);
+        if (!cancelled) {
+          setWarehouses(w.items);
+          setProducts(p.items);
+        }
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(load, [
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    transferService
+      .list({
+        from,
+        to,
+        warehouseId,
+        productId,
+        originWarehouseId,
+        destinationWarehouseId,
+        status,
+      })
+      .then(r => {
+        if (!cancelled) setItems(r.items);
+      })
+      .catch(e => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
     from,
     to,
     warehouseId,
