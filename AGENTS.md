@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 
 - `backend/` is the Express API; routes/controllers and Prisma schema/migrations/seeds stay in their existing folders. `backend/tests/` has serial `node:test` integration tests.
-- `frontend/client/src/` is the active React/TypeScript UI; `frontend/src/` is legacy JavaScript.
+- `frontend/client/src/` is the active React/TypeScript UI (legacy JavaScript frontend has been removed).
 - `ai/` contains the Python perception service, agents, evaluation protocol, and PoC notebook. `docs/` holds project/architecture guides; root Compose starts PostgreSQL.
 
 ## Build, Test, and Development Commands
