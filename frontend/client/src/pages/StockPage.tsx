@@ -425,12 +425,12 @@ export default function StockPage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Producto</th>
-                        <th>SKU</th>
-                        <th>Categoría</th>
-                        <th>Unidades</th>
-                        <th>Precio venta</th>
-                        <th>Estado</th>
+                        <th scope="col">Producto</th>
+                        <th scope="col">SKU</th>
+                        <th scope="col">Categoría</th>
+                        <th scope="col">Unidades</th>
+                        <th scope="col">Precio venta</th>
+                        <th scope="col">Estado</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -488,10 +488,10 @@ export default function StockPage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Fecha</th>
-                        <th>Cliente</th>
-                        <th>Unidades despachadas</th>
-                        <th>Total de la venta</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">Unidades despachadas</th>
+                        <th scope="col">Total de la venta</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -656,6 +656,7 @@ export default function StockPage() {
               className="modal-close"
               type="button"
               onClick={() => setToDeleteWarehouse(null)}
+              aria-label="Cerrar modal"
             >
               <X size={18} />
             </button>
@@ -865,12 +866,12 @@ export default function StockPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Producto</th>
-                    <th>Depósito</th>
-                    <th>Stock actual</th>
-                    <th>Precio venta</th>
-                    <th>Estado</th>
-                    <th />
+                    <th scope="col">Producto</th>
+                    <th scope="col">Depósito</th>
+                    <th scope="col">Stock actual</th>
+                    <th scope="col">Precio venta</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col" aria-label="Acciones" />
                   </tr>
                 </thead>
                 <tbody>
@@ -956,6 +957,7 @@ export default function StockPage() {
               className="modal-close"
               type="button"
               onClick={() => setSelected(null)}
+              aria-label="Cerrar modal"
             >
               <X size={18} />
             </button>
@@ -1013,6 +1015,7 @@ export default function StockPage() {
               className="modal-close"
               type="button"
               onClick={() => setMoving(null)}
+              aria-label="Cerrar modal"
             >
               <X size={18} />
             </button>

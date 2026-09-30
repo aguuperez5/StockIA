@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -105,8 +105,15 @@ export default function DashboardLayout({
         <div
           className="brand-block"
           onClick={() => navigate("/")}
+          onKeyDown={event => {
+            if (event.key === "Enter" || event.key === " ") {
+              if (event.key === " ") event.preventDefault();
+              navigate("/");
+            }
+          }}
           role="button"
           tabIndex={0}
+          aria-label="Ir a inicio"
         >
           <span className="brand-mark">
             <Store size={19} strokeWidth={2.4} />
@@ -132,14 +139,16 @@ export default function DashboardLayout({
           {visibleNavigation.map(item => {
             const isActive = isItemActive(item.path);
             return (
-              <button
+              <Link
                 key={item.path}
+                href={item.path}
                 className={`nav-entry ${isActive ? "nav-active" : ""}`}
-                onClick={() => navigate(item.path)}
+                onClick={() => setMobileOpen(false)}
+                aria-current={isActive ? "page" : undefined}
               >
                 <item.icon size={18} />
                 <span>{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>

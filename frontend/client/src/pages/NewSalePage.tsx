@@ -677,6 +677,7 @@ export default function NewSalePage() {
                       <div className="quantity-stepper">
                         <button
                           type="button"
+                          aria-label="Disminuir cantidad"
                           onClick={() =>
                             change(line.inventoryId, line.cartQuantity - 1)
                           }
@@ -686,6 +687,7 @@ export default function NewSalePage() {
                         <span>{line.cartQuantity}</span>
                         <button
                           type="button"
+                          aria-label="Aumentar cantidad"
                           disabled={line.cartQuantity >= line.quantity}
                           onClick={() =>
                             change(line.inventoryId, line.cartQuantity + 1)

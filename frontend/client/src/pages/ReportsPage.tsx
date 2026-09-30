@@ -353,13 +353,13 @@ export default function ReportsPage() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Producto</th>
-                      <th>Stock / Mín.</th>
-                      <th>A comprar</th>
-                      <th title="Valor estimado a precio de lista">
+                      <th scope="col">Producto</th>
+                      <th scope="col">Stock / Mín.</th>
+                      <th scope="col">A comprar</th>
+                      <th scope="col" title="Valor estimado a precio de lista">
                         Valor est. lista
                       </th>
-                      <th>Prioridad</th>
+                      <th scope="col">Prioridad</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -423,10 +423,10 @@ export default function ReportsPage() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Depósito / Sucursal</th>
-                      <th>Comprobantes</th>
-                      <th>Facturado</th>
-                      <th>% Total</th>
+                      <th scope="col">Depósito / Sucursal</th>
+                      <th scope="col">Comprobantes</th>
+                      <th scope="col">Facturado</th>
+                      <th scope="col">% Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -487,9 +487,9 @@ export default function ReportsPage() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Producto</th>
-                      <th>Vendidos</th>
-                      <th>Facturación</th>
+                      <th scope="col">Producto</th>
+                      <th scope="col">Vendidos</th>
+                      <th scope="col">Facturación</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -533,10 +533,10 @@ export default function ReportsPage() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Producto</th>
-                      <th>Stock parado</th>
-                      <th title="Valor a precio de lista">Valor lista</th>
-                      <th>Sugerencia</th>
+                      <th scope="col">Producto</th>
+                      <th scope="col">Stock parado</th>
+                      <th scope="col" title="Valor a precio de lista">Valor lista</th>
+                      <th scope="col">Sugerencia</th>
                     </tr>
                   </thead>
                   <tbody>

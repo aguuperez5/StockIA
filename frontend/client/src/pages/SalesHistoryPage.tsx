@@ -286,13 +286,13 @@ export default function SalesHistoryPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Comprobante</th>
-                    <th>Fecha y hora</th>
-                    <th>Artículos</th>
-                    <th>Cliente</th>
-                    <th>Estado</th>
-                    <th>Total</th>
-                    <th />
+                    <th scope="col">Comprobante</th>
+                    <th scope="col">Fecha y hora</th>
+                    <th scope="col">Artículos</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Total</th>
+                    <th scope="col" aria-label="Acciones" />
                   </tr>
                 </thead>
                 <tbody>

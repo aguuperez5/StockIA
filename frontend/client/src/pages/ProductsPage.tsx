@@ -219,12 +219,12 @@ export default function ProductsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th>Precio</th>
-                    <th>Stock total</th>
-                    <th>Estado</th>
-                    <th aria-label="Acciones" />
+                    <th scope="col">Producto</th>
+                    <th scope="col">Categoría</th>
+                    <th scope="col">Precio</th>
+                    <th scope="col">Stock total</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col" aria-label="Acciones" />
                   </tr>
                 </thead>
                 <tbody>
@@ -235,7 +235,7 @@ export default function ProductsPage() {
                           {item.imageUrl ? (
                             <img
                               src={item.imageUrl}
-                              alt=""
+                              alt={item.name}
                               className="product-thumb"
                               loading="lazy"
                               onError={e => {
