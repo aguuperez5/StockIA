@@ -1,30 +1,330 @@
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useMemo, useState } from "react";
 import { formatAxisMoney, money } from "@/components/StockUI";
 
 type DashboardChartData = {
-  salesByDay: Array<{ date: string; label: string; totalCents: number; count: number }>;
-  inventoryByCategory: Array<{ category: string; units: number; valueCents: number }>;
+  salesByDay: Array<{
+    date: string;
+    label: string;
+    totalCents: number;
+    count: number;
+  }>;
+  inventoryByCategory: Array<{
+    category: string;
+    units: number;
+    valueCents: number;
+  }>;
   inventoryStatus: Array<{ label: string; value: number; color: string }>;
 };
 
 const tooltipMoney = (value: number) => money(value);
 
-export default function DashboardCharts({ data }: { data: DashboardChartData }) {
-  const [salesMode, setSalesMode] = useState<"totalCents" | "count">("totalCents");
-  const [inventoryMode, setInventoryMode] = useState<"valueCents" | "units">("valueCents");
-  const sortedCategories = useMemo(() => data.inventoryByCategory.slice(0, 6), [data.inventoryByCategory]);
-  const statusData: DashboardChartData["inventoryStatus"] = data.inventoryStatus;
-  const hasSales = data.salesByDay.some(day => day.totalCents > 0 || day.count > 0);
+export default function DashboardCharts({
+  data,
+}: {
+  data: DashboardChartData;
+}) {
+  const [salesMode, setSalesMode] = useState<"totalCents" | "count">(
+    "totalCents"
+  );
+  const [inventoryMode, setInventoryMode] = useState<"valueCents" | "units">(
+    "valueCents"
+  );
+  const sortedCategories = useMemo(
+    () => data.inventoryByCategory.slice(0, 6),
+    [data.inventoryByCategory]
+  );
+  const statusData: DashboardChartData["inventoryStatus"] =
+    data.inventoryStatus;
+  const hasSales = data.salesByDay.some(
+    day => day.totalCents > 0 || day.count > 0
+  );
   const hasInventory = statusData.some(item => item.value > 0);
 
-  return <section className="chart-grid">
-    <article className="chart-card chart-card-sales"><div className="chart-card-header"><div><p className="eyebrow">Rendimiento</p><h2>Ventas de los últimos 7 días</h2><p className="chart-subtitle">Una lectura rápida de la actividad comercial reciente.</p></div><div className="chart-switcher"><button className={salesMode === "totalCents" ? "active" : ""} onClick={() => setSalesMode("totalCents")}>Importe</button><button className={salesMode === "count" ? "active" : ""} onClick={() => setSalesMode("count")}>Comprobantes</button></div></div><div className="chart-area">{hasSales ? <ResponsiveContainer width="100%" height="100%"><BarChart data={data.salesByDay} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="#e7efec" strokeDasharray="4 4" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#849490", fontSize: 11 }} tickMargin={10} /><YAxis axisLine={false} tickLine={false} tick={{ fill: "#849490", fontSize: 10 }} tickFormatter={(value: number) => salesMode === "totalCents" ? formatAxisMoney(value) : String(value)} allowDecimals={false} /><Tooltip cursor={{ fill: "#edf8f3" }} content={<SalesTooltip mode={salesMode} />} /><Bar dataKey={salesMode} fill="#159666" radius={[6, 6, 2, 2]} maxBarSize={30} /></BarChart></ResponsiveContainer> : <ChartEmpty text="Todavía no hay ventas registradas en este período." />}</div></article>
-    <article className="chart-card chart-card-inventory"><div className="chart-card-header"><div><p className="eyebrow">Inventario actual</p><h2>Distribución por categoría</h2><p className="chart-subtitle">Dónde está concentrado el valor de tu mercadería.</p></div><div className="chart-switcher"><button className={inventoryMode === "valueCents" ? "active" : ""} onClick={() => setInventoryMode("valueCents")}>Valor</button><button className={inventoryMode === "units" ? "active" : ""} onClick={() => setInventoryMode("units")}>Unidades</button></div></div><div className="chart-area chart-area-category">{sortedCategories.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={sortedCategories} layout="vertical" margin={{ top: 4, right: 12, left: 5, bottom: 4 }}><CartesianGrid horizontal={false} stroke="#e7efec" strokeDasharray="4 4" /><XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "#849490", fontSize: 10 }} tickFormatter={(value: number) => inventoryMode === "valueCents" ? formatAxisMoney(value) : String(value)} allowDecimals={false} /><YAxis type="category" dataKey="category" width={76} axisLine={false} tickLine={false} tick={{ fill: "#58706c", fontSize: 10 }} /><Tooltip cursor={{ fill: "#f4faf7" }} content={<InventoryTooltip mode={inventoryMode} />} /><Bar dataKey={inventoryMode} fill="#6aa8a0" radius={[0, 5, 5, 0]} maxBarSize={20} /></BarChart></ResponsiveContainer> : <ChartEmpty text="Cargá productos para ver la distribución." />}</div></article>
-    <article className="chart-card chart-card-status"><div className="chart-card-header"><div><p className="eyebrow">Estado actual</p><h2>Salud del inventario</h2></div></div><div className="status-chart-body">{hasInventory ? <><div className="donut-wrap"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={statusData} dataKey="value" nameKey="label" innerRadius="63%" outerRadius="86%" paddingAngle={3} stroke="none">{statusData.map((item: DashboardChartData["inventoryStatus"][number]) => <Cell key={item.label} fill={item.color} />)}</Pie><Tooltip formatter={(value: number | string, name: string | number) => [`${value} productos`, name]} /></PieChart></ResponsiveContainer><div className="donut-center"><strong>{statusData.reduce((sum: number, item: DashboardChartData["inventoryStatus"][number]) => sum + item.value, 0)}</strong><span>productos</span></div></div><div className="status-legend">{statusData.map((item: DashboardChartData["inventoryStatus"][number]) => <div key={item.label}><span className="legend-dot" style={{ background: item.color }} /><span>{item.label}</span><b>{item.value}</b></div>)}</div></> : <ChartEmpty text="El estado aparecerá cuando haya inventario cargado." />}</div></article>
-  </section>;
+  return (
+    <section className="chart-grid">
+      <article className="chart-card chart-card-sales">
+        <div className="chart-card-header">
+          <div>
+            <p className="eyebrow">Rendimiento</p>
+            <h2>Ventas de los últimos 7 días</h2>
+            <p className="chart-subtitle">
+              Una lectura rápida de la actividad comercial reciente.
+            </p>
+          </div>
+          <div className="chart-switcher">
+            <button
+              className={salesMode === "totalCents" ? "active" : ""}
+              onClick={() => setSalesMode("totalCents")}
+            >
+              Importe
+            </button>
+            <button
+              className={salesMode === "count" ? "active" : ""}
+              onClick={() => setSalesMode("count")}
+            >
+              Comprobantes
+            </button>
+          </div>
+        </div>
+        <div className="chart-area">
+          {hasSales ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={data.salesByDay}
+                margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+              >
+                <CartesianGrid
+                  vertical={false}
+                  stroke="#e7efec"
+                  strokeDasharray="4 4"
+                />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#849490", fontSize: 11 }}
+                  tickMargin={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#849490", fontSize: 10 }}
+                  tickFormatter={(value: number) =>
+                    salesMode === "totalCents"
+                      ? formatAxisMoney(value)
+                      : String(value)
+                  }
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: "#edf8f3" }}
+                  content={<SalesTooltip mode={salesMode} />}
+                />
+                <Bar
+                  dataKey={salesMode}
+                  fill="#159666"
+                  radius={[6, 6, 2, 2]}
+                  maxBarSize={30}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty text="Todavía no hay ventas registradas en este período." />
+          )}
+        </div>
+      </article>
+      <article className="chart-card chart-card-inventory">
+        <div className="chart-card-header">
+          <div>
+            <p className="eyebrow">Inventario actual</p>
+            <h2>Distribución por categoría</h2>
+            <p className="chart-subtitle">
+              Dónde está concentrado el valor de tu mercadería.
+            </p>
+          </div>
+          <div className="chart-switcher">
+            <button
+              className={inventoryMode === "valueCents" ? "active" : ""}
+              onClick={() => setInventoryMode("valueCents")}
+            >
+              Valor
+            </button>
+            <button
+              className={inventoryMode === "units" ? "active" : ""}
+              onClick={() => setInventoryMode("units")}
+            >
+              Unidades
+            </button>
+          </div>
+        </div>
+        <div className="chart-area chart-area-category">
+          {sortedCategories.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={sortedCategories}
+                layout="vertical"
+                margin={{ top: 4, right: 12, left: 5, bottom: 4 }}
+              >
+                <CartesianGrid
+                  horizontal={false}
+                  stroke="#e7efec"
+                  strokeDasharray="4 4"
+                />
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#849490", fontSize: 10 }}
+                  tickFormatter={(value: number) =>
+                    inventoryMode === "valueCents"
+                      ? formatAxisMoney(value)
+                      : String(value)
+                  }
+                  allowDecimals={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="category"
+                  width={76}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#58706c", fontSize: 10 }}
+                />
+                <Tooltip
+                  cursor={{ fill: "#f4faf7" }}
+                  content={<InventoryTooltip mode={inventoryMode} />}
+                />
+                <Bar
+                  dataKey={inventoryMode}
+                  fill="#6aa8a0"
+                  radius={[0, 5, 5, 0]}
+                  maxBarSize={20}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty text="Cargá productos para ver la distribución." />
+          )}
+        </div>
+      </article>
+      <article className="chart-card chart-card-status">
+        <div className="chart-card-header">
+          <div>
+            <p className="eyebrow">Estado actual</p>
+            <h2>Salud del inventario</h2>
+          </div>
+        </div>
+        <div className="status-chart-body">
+          {hasInventory ? (
+            <>
+              <div className="donut-wrap">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="label"
+                      innerRadius="63%"
+                      outerRadius="86%"
+                      paddingAngle={3}
+                      stroke="none"
+                    >
+                      {statusData.map(
+                        (
+                          item: DashboardChartData["inventoryStatus"][number]
+                        ) => (
+                          <Cell key={item.label} fill={item.color} />
+                        )
+                      )}
+                    </Pie>
+                    <Tooltip
+                      formatter={(
+                        value: number | string,
+                        name: string | number
+                      ) => [`${value} productos`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="donut-center">
+                  <strong>
+                    {statusData.reduce(
+                      (
+                        sum: number,
+                        item: DashboardChartData["inventoryStatus"][number]
+                      ) => sum + item.value,
+                      0
+                    )}
+                  </strong>
+                  <span>productos</span>
+                </div>
+              </div>
+              <div className="status-legend">
+                {statusData.map(
+                  (item: DashboardChartData["inventoryStatus"][number]) => (
+                    <div key={item.label}>
+                      <span
+                        className="legend-dot"
+                        style={{ background: item.color }}
+                      />
+                      <span>{item.label}</span>
+                      <b>{item.value}</b>
+                    </div>
+                  )
+                )}
+              </div>
+            </>
+          ) : (
+            <ChartEmpty text="El estado aparecerá cuando haya inventario cargado." />
+          )}
+        </div>
+      </article>
+    </section>
+  );
 }
 
-function SalesTooltip({ active, payload, label, mode }: { active?: boolean; payload?: Array<{ value: number }>; label?: string; mode: "totalCents" | "count" }) { if (!active || !payload?.length) return null; const value = payload[0].value; return <div className="chart-tooltip"><b>{label}</b><span>{mode === "totalCents" ? tooltipMoney(value) : `${value} comprobante${value === 1 ? "" : "s"}`}</span></div>; }
-function InventoryTooltip({ active, payload, label, mode }: { active?: boolean; payload?: Array<{ value: number }>; label?: string; mode: "valueCents" | "units" }) { if (!active || !payload?.length) return null; const value = payload[0].value; return <div className="chart-tooltip"><b>{label}</b><span>{mode === "valueCents" ? tooltipMoney(value) : `${value} unidades`}</span></div>; }
-export function ChartEmpty({ text }: { text: string }) { return <div className="chart-empty"><span>—</span><p>{text}</p></div>; }
+function SalesTooltip({
+  active,
+  payload,
+  label,
+  mode,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+  mode: "totalCents" | "count";
+}) {
+  if (!active || !payload?.length) return null;
+  const value = payload[0].value;
+  return (
+    <div className="chart-tooltip">
+      <b>{label}</b>
+      <span>
+        {mode === "totalCents"
+          ? tooltipMoney(value)
+          : `${value} comprobante${value === 1 ? "" : "s"}`}
+      </span>
+    </div>
+  );
+}
+function InventoryTooltip({
+  active,
+  payload,
+  label,
+  mode,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+  mode: "valueCents" | "units";
+}) {
+  if (!active || !payload?.length) return null;
+  const value = payload[0].value;
+  return (
+    <div className="chart-tooltip">
+      <b>{label}</b>
+      <span>
+        {mode === "valueCents" ? tooltipMoney(value) : `${value} unidades`}
+      </span>
+    </div>
+  );
+}
+export function ChartEmpty({ text }: { text: string }) {
+  return (
+    <div className="chart-empty">
+      <span>—</span>
+      <p>{text}</p>
+    </div>
+  );
+}

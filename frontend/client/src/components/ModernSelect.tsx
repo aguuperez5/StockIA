@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export interface ModernSelectOption {
   value: string | number;
@@ -36,7 +40,9 @@ export function ModernSelect({
     typeof opt === "string" ? { value: opt, label: opt } : opt
   );
 
-  const selectedOption = normalizedOptions.find(opt => String(opt.value) === String(value));
+  const selectedOption = normalizedOptions.find(
+    opt => String(opt.value) === String(value)
+  );
   const displayLabel = selectedOption ? selectedOption.label : placeholder;
 
   return (
@@ -50,19 +56,29 @@ export function ModernSelect({
         >
           <div className="modern-select-left">
             {icon && <span className="modern-select-icon">{icon}</span>}
-            {labelPrefix && <span className="filter-pill-label">{labelPrefix}</span>}
+            {labelPrefix && (
+              <span className="filter-pill-label">{labelPrefix}</span>
+            )}
             <span className="modern-select-value" title={displayLabel}>
               {displayLabel}
             </span>
           </div>
-          <ChevronDown size={14} className={`modern-select-chevron ${open ? "open" : ""}`} />
+          <ChevronDown
+            size={14}
+            className={`modern-select-chevron ${open ? "open" : ""}`}
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
         sideOffset={6}
         className="modern-select-popover p-1.5"
-        style={{ minWidth: minWidth && minWidth !== "100%" ? minWidth : "var(--radix-popover-trigger-width, 170px)" }}
+        style={{
+          minWidth:
+            minWidth && minWidth !== "100%"
+              ? minWidth
+              : "var(--radix-popover-trigger-width, 170px)",
+        }}
       >
         <div className="modern-select-options">
           {normalizedOptions.length === 0 ? (
@@ -81,7 +97,9 @@ export function ModernSelect({
                   }}
                 >
                   <span className="modern-select-item-text">{opt.label}</span>
-                  {isSelected && <Check size={14} className="modern-select-item-check" />}
+                  {isSelected && (
+                    <Check size={14} className="modern-select-item-check" />
+                  )}
                 </button>
               );
             })

@@ -1,8 +1,24 @@
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, CalendarDays, Plus, SlidersHorizontal, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ErrorPanel, EmptyState, LoadingPanel, PageHeader, datetime } from "@/components/StockUI";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Plus,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  ErrorPanel,
+  EmptyState,
+  LoadingPanel,
+  PageHeader,
+  datetime,
+} from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
 import { transferService, type Transfer } from "@/services/backlog";
 import { warehouseService, type Warehouse } from "@/services/inventory";
@@ -26,7 +42,15 @@ export function TransfersHistoryPage() {
   const load = () => {
     setLoading(true);
     transferService
-      .list({ from, to, warehouseId, productId, originWarehouseId, destinationWarehouseId, status })
+      .list({
+        from,
+        to,
+        warehouseId,
+        productId,
+        originWarehouseId,
+        destinationWarehouseId,
+        status,
+      })
       .then(r => setItems(r.items))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -41,7 +65,15 @@ export function TransfersHistoryPage() {
       .catch(() => undefined);
   }, []);
 
-  useEffect(load, [from, to, warehouseId, productId, originWarehouseId, destinationWarehouseId, status]);
+  useEffect(load, [
+    from,
+    to,
+    warehouseId,
+    productId,
+    originWarehouseId,
+    destinationWarehouseId,
+    status,
+  ]);
 
   const clearFilters = () => {
     setFrom("");
@@ -54,8 +86,15 @@ export function TransfersHistoryPage() {
   };
 
   const hasAdvancedFilters = Boolean(productId || status || warehouseId);
-  const advancedCount = (productId ? 1 : 0) + (status ? 1 : 0) + (warehouseId ? 1 : 0);
-  const hasFilters = Boolean(from || to || originWarehouseId || destinationWarehouseId || hasAdvancedFilters);
+  const advancedCount =
+    (productId ? 1 : 0) + (status ? 1 : 0) + (warehouseId ? 1 : 0);
+  const hasFilters = Boolean(
+    from ||
+    to ||
+    originWarehouseId ||
+    destinationWarehouseId ||
+    hasAdvancedFilters
+  );
 
   const clearAdvancedFilters = () => {
     setProductId("");
@@ -70,8 +109,12 @@ export function TransfersHistoryPage() {
         title="Transferencias"
         description="Consultá los remitos emitidos entre depósitos."
         action={
-          <button className="button-primary" onClick={() => setLocation("/transfers/new")}>
-            <Plus size={16} />Nueva transferencia
+          <button
+            className="button-primary"
+            onClick={() => setLocation("/transfers/new")}
+          >
+            <Plus size={16} />
+            Nueva transferencia
           </button>
         }
       />
@@ -124,14 +167,19 @@ export function TransfersHistoryPage() {
             >
               <SlidersHorizontal size={14} />
               Más filtros
-              {advancedCount > 0 && <span className="filter-count-badge">{advancedCount}</span>}
+              {advancedCount > 0 && (
+                <span className="filter-count-badge">{advancedCount}</span>
+              )}
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" className="filter-popover-content">
             <div className="filter-popover-panel">
               <div className="filter-popover-header">
                 <div className="filter-popover-heading">
-                  <SlidersHorizontal size={14} className="filter-heading-icon" />
+                  <SlidersHorizontal
+                    size={14}
+                    className="filter-heading-icon"
+                  />
                   <span>Filtros avanzados</span>
                 </div>
                 {hasAdvancedFilters && (
@@ -191,7 +239,11 @@ export function TransfersHistoryPage() {
         </Popover>
 
         {hasFilters && (
-          <button className="button-secondary filter-clear" onClick={clearFilters} type="button">
+          <button
+            className="button-secondary filter-clear"
+            onClick={clearFilters}
+            type="button"
+          >
             <X size={14} />
             Limpiar
           </button>
@@ -209,9 +261,15 @@ export function TransfersHistoryPage() {
             <span>Fecha</span>
           </div>
           {items.map(item => (
-            <button className="data-table-row" key={item.id} onClick={() => setLocation(`/transfers/${item.id}/receipt`)}>
+            <button
+              className="data-table-row"
+              key={item.id}
+              onClick={() => setLocation(`/transfers/${item.id}/receipt`)}
+            >
               <b>{item.receiptNumber}</b>
-              <span>{item.originName ?? `Depósito ${item.originWarehouseId}`}</span>
+              <span>
+                {item.originName ?? `Depósito ${item.originWarehouseId}`}
+              </span>
               <span>{item.status}</span>
               <span>{datetime(item.createdAt)}</span>
             </button>
@@ -226,4 +284,69 @@ export function TransfersHistoryPage() {
     </>
   );
 }
-export function TransferReceiptPage() { const [, params] = useRoute("/transfers/:id/receipt"); const [, setLocation] = useLocation(); const [data, setData] = useState<Awaited<ReturnType<typeof transferService.get>> | null>(null); const [error, setError] = useState(""); useEffect(() => { if (params?.id) transferService.get(params.id).then(setData).catch(e => setError(e.message)); }, [params?.id]); if (error) return <ErrorPanel message={error} />; if (!data) return <LoadingPanel />; return <><PageHeader eyebrow="Remito" title={data.transfer.receiptNumber} description="Comprobante de transferencia entre depósitos." action={<button className="button-secondary" onClick={() => setLocation("/transfers")}><ArrowLeft size={16} />Volver</button>} /><section className="receipt-card"><p><b>Estado:</b> {data.transfer.status}</p><p><b>Origen:</b> {data.transfer.originName} · <b>Destino:</b> {data.transfer.destinationName}</p>{data.transfer.photoData && <img src={data.transfer.photoData} alt="Foto asociada a la transferencia" style={{ maxWidth: "100%", maxHeight: "180px", objectFit: "contain" }} />}{data.items.map(item => <div className="receipt-line" key={item.productId}><span>{item.productName} · {item.sku}</span><b>{item.quantity} u.</b></div>)}<button className="button-primary" onClick={() => window.print()}>Imprimir remito</button></section></>; }
+export function TransferReceiptPage() {
+  const [, params] = useRoute("/transfers/:id/receipt");
+  const [, setLocation] = useLocation();
+  const [data, setData] = useState<Awaited<
+    ReturnType<typeof transferService.get>
+  > | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (params?.id)
+      transferService
+        .get(params.id)
+        .then(setData)
+        .catch(e => setError(e.message));
+  }, [params?.id]);
+  if (error) return <ErrorPanel message={error} />;
+  if (!data) return <LoadingPanel />;
+  return (
+    <>
+      <PageHeader
+        eyebrow="Remito"
+        title={data.transfer.receiptNumber}
+        description="Comprobante de transferencia entre depósitos."
+        action={
+          <button
+            className="button-secondary"
+            onClick={() => setLocation("/transfers")}
+          >
+            <ArrowLeft size={16} />
+            Volver
+          </button>
+        }
+      />
+      <section className="receipt-card">
+        <p>
+          <b>Estado:</b> {data.transfer.status}
+        </p>
+        <p>
+          <b>Origen:</b> {data.transfer.originName} · <b>Destino:</b>{" "}
+          {data.transfer.destinationName}
+        </p>
+        {data.transfer.photoData && (
+          <img
+            src={data.transfer.photoData}
+            alt="Foto asociada a la transferencia"
+            style={{
+              maxWidth: "100%",
+              maxHeight: "180px",
+              objectFit: "contain",
+            }}
+          />
+        )}
+        {data.items.map(item => (
+          <div className="receipt-line" key={item.productId}>
+            <span>
+              {item.productName} · {item.sku}
+            </span>
+            <b>{item.quantity} u.</b>
+          </div>
+        ))}
+        <button className="button-primary" onClick={() => window.print()}>
+          Imprimir remito
+        </button>
+      </section>
+    </>
+  );
+}

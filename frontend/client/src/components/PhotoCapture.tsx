@@ -10,12 +10,16 @@ export type DetectedProduct = {
   matchScore?: number;
   matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
   reviewRequired?: boolean;
-  stocks?: Array<{ warehouseId: number; warehouseName: string; quantity: number }>;
+  stocks?: Array<{
+    warehouseId: number;
+    warehouseName: string;
+    quantity: number;
+  }>;
 };
 
 export default function PhotoCapture({
   onDetected,
-  onPhoto
+  onPhoto,
 }: {
   onDetected: (items: DetectedProduct[]) => void;
   onPhoto?: (data: string, mimeType: string) => void;
@@ -29,17 +33,26 @@ export default function PhotoCapture({
   const streamRef = useRef<MediaStream | null>(null);
   const previewUrlRef = useRef("");
 
-  useEffect(() => () => {
-    streamRef.current?.getTracks().forEach(track => track.stop());
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    },
+    []
+  );
 
-  const toEvidencePhoto = (source: CanvasImageSource, width: number, height: number) => {
+  const toEvidencePhoto = (
+    source: CanvasImageSource,
+    width: number,
+    height: number
+  ) => {
     const scale = Math.min(1, 1600 / Math.max(width, height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(width * scale));
     canvas.height = Math.max(1, Math.round(height * scale));
-    canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height);
+    canvas
+      .getContext("2d")
+      ?.drawImage(source, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/jpeg", 0.82);
   };
 
@@ -49,13 +62,18 @@ export default function PhotoCapture({
       return;
     }
     try {
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      streamRef.current = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
       setCameraOpen(true);
       requestAnimationFrame(() => {
         if (videoRef.current) videoRef.current.srcObject = streamRef.current;
       });
     } catch {
-      setError("No se pudo abrir la cámara. Revisá los permisos del navegador.");
+      setError(
+        "No se pudo abrir la cámara. Revisá los permisos del navegador."
+      );
     }
   };
 
@@ -75,10 +93,15 @@ export default function PhotoCapture({
     void analyze("", { data, mimeType: "image/jpeg" });
   };
 
-  const analyze = async (value = query, photo?: { data: string; mimeType: string }) => {
+  const analyze = async (
+    value = query,
+    photo?: { data: string; mimeType: string }
+  ) => {
     const trimmed = value.trim();
     if (!trimmed && !photo) {
-      setError("Para analizar, tomá una foto, subí una imagen o ingresá un nombre o SKU en el campo de búsqueda.");
+      setError(
+        "Para analizar, tomá una foto, subí una imagen o ingresá un nombre o SKU en el campo de búsqueda."
+      );
       return;
     }
     setPending(true);
@@ -107,7 +130,11 @@ export default function PhotoCapture({
     event.currentTarget.value = "";
     const image = new Image();
     image.onload = () => {
-      const data = toEvidencePhoto(image, image.naturalWidth, image.naturalHeight);
+      const data = toEvidencePhoto(
+        image,
+        image.naturalWidth,
+        image.naturalHeight
+      );
       onPhoto?.(data, "image/jpeg");
       void analyze("", { data, mimeType: "image/jpeg" });
     };
@@ -118,10 +145,15 @@ export default function PhotoCapture({
   return (
     <section className="form-section">
       <div className="form-section-title">
-        <span><Camera size={18} /></span>
+        <span>
+          <Camera size={18} />
+        </span>
         <div>
           <h2>Cargar por foto o analizar catálogo</h2>
-          <p>Elegí una imagen, abrí la cámara o buscá un artículo para identificar productos y verificar existencias.</p>
+          <p>
+            Elegí una imagen, abrí la cámara o buscá un artículo para
+            identificar productos y verificar existencias.
+          </p>
         </div>
       </div>
       {error && <ErrorPanel message={error} />}
@@ -129,26 +161,88 @@ export default function PhotoCapture({
         <div className="camera-panel">
           <video ref={videoRef} autoPlay playsInline muted />
           <div className="form-actions">
-            <button type="button" className="button-primary" onClick={capture}><Camera size={16} />Capturar foto</button>
-            <button type="button" className="button-secondary" onClick={closeCamera}>Cancelar</button>
+            <button type="button" className="button-primary" onClick={capture}>
+              <Camera size={16} />
+              Capturar foto
+            </button>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={closeCamera}
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
-      {preview && <img src={preview} alt="Vista previa del producto" style={{ maxWidth: "220px", maxHeight: "160px", borderRadius: "12px", border: "1px solid var(--line)" }} />}
+      {preview && (
+        <img
+          src={preview}
+          alt="Vista previa del producto"
+          style={{
+            maxWidth: "220px",
+            maxHeight: "160px",
+            borderRadius: "12px",
+            border: "1px solid var(--line)",
+          }}
+        />
+      )}
       <div className="form-actions">
-        <button type="button" className="button-secondary" onClick={() => void openCamera()}><Camera size={16} />Abrir cámara</button>
-        <label className="button-secondary"><Upload size={16} />Elegir archivo<input hidden type="file" accept="image/*" onChange={file} /></label>
-        {preview && <button type="button" className="button-secondary" onClick={() => { if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current); previewUrlRef.current = ""; setPreview(""); setQuery(""); onPhoto?.("", "image/jpeg"); }}><RotateCcw size={16} />Reintentar</button>}
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => void openCamera()}
+        >
+          <Camera size={16} />
+          Abrir cámara
+        </button>
+        <label className="button-secondary">
+          <Upload size={16} />
+          Elegir archivo
+          <input hidden type="file" accept="image/*" onChange={file} />
+        </label>
+        {preview && (
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => {
+              if (previewUrlRef.current)
+                URL.revokeObjectURL(previewUrlRef.current);
+              previewUrlRef.current = "";
+              setPreview("");
+              setQuery("");
+              onPhoto?.("", "image/jpeg");
+            }}
+          >
+            <RotateCcw size={16} />
+            Reintentar
+          </button>
+        )}
       </div>
       <div className="form-grid two">
         <label className="field">
           <span>Buscar en catálogo para revisar</span>
           <div className="input-prefix">
             <Search size={16} />
-            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void analyze(); } }} placeholder="Nombre o SKU para analizar" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void analyze();
+                }
+              }}
+              placeholder="Nombre o SKU para analizar"
+            />
           </div>
         </label>
-        <button type="button" className="button-primary" onClick={() => void analyze()} disabled={pending}>
+        <button
+          type="button"
+          className="button-primary"
+          onClick={() => void analyze()}
+          disabled={pending}
+        >
           {pending ? "Analizando…" : "Analizar producto"}
         </button>
       </div>

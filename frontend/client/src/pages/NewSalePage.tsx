@@ -13,7 +13,7 @@ import {
   Store,
   Trash2,
   Warehouse as WarehouseIcon,
-  X
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
@@ -27,11 +27,22 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EmptyState, ErrorPanel, LoadingPanel, PageHeader, money } from "@/components/StockUI";
+import {
+  EmptyState,
+  ErrorPanel,
+  LoadingPanel,
+  PageHeader,
+  money,
+} from "@/components/StockUI";
 import PhotoCapture, { type DetectedProduct } from "@/components/PhotoCapture";
-import { inventoryService, warehouseService, type InventoryItem, type Warehouse } from "@/services/inventory";
+import {
+  inventoryService,
+  warehouseService,
+  type InventoryItem,
+  type Warehouse,
+} from "@/services/inventory";
 import { saleService } from "@/services/sales";
 import { customerService, type Customer } from "@/services/backlog";
 
@@ -46,7 +57,8 @@ export default function NewSalePage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [query, setQuery] = useState("");
-  const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState<string>("");
+  const [selectedWarehouseFilter, setSelectedWarehouseFilter] =
+    useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("Todas");
   const [photo, setPhoto] = useState<{ data: string; mimeType: string }>();
   const [loading, setLoading] = useState(true);
@@ -54,13 +66,22 @@ export default function NewSalePage() {
   const [error, setError] = useState("");
 
   // Estado para el panel de análisis y verificación de stock
-  const [analyzedProducts, setAnalyzedProducts] = useState<DetectedProduct[] | null>(null);
-  const [switchWarehouseConfirm, setSwitchWarehouseConfirm] = useState<{ item: InventoryItem; targetWarehouseName: string } | null>(null);
+  const [analyzedProducts, setAnalyzedProducts] = useState<
+    DetectedProduct[] | null
+  >(null);
+  const [switchWarehouseConfirm, setSwitchWarehouseConfirm] = useState<{
+    item: InventoryItem;
+    targetWarehouseName: string;
+  } | null>(null);
 
   const load = () => {
     setLoading(true);
     setError("");
-    Promise.all([inventoryService.list(), customerService.list(), warehouseService.list()])
+    Promise.all([
+      inventoryService.list(),
+      customerService.list(),
+      warehouseService.list(),
+    ])
       .then(([inventoryResult, customerResult, warehouseResult]) => {
         setAllInventory(inventoryResult.items);
         setAvailable(inventoryResult.items.filter(item => item.quantity > 0));
@@ -76,16 +97,19 @@ export default function NewSalePage() {
   }, []);
 
   // Categorías disponibles sin blancos ni duplicados
-  const categories = useMemo(() => [
-    "Todas",
-    ...Array.from(
-      new Set(
-        available
-          .map(item => item.category?.trim())
-          .filter((c): c is string => Boolean(c && c.length > 0))
-      )
-    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
-  ], [available]);
+  const categories = useMemo(
+    () => [
+      "Todas",
+      ...Array.from(
+        new Set(
+          available
+            .map(item => item.category?.trim())
+            .filter((c): c is string => Boolean(c && c.length > 0))
+        )
+      ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })),
+    ],
+    [available]
+  );
 
   // Depósito activo en la venta (si el carrito ya tiene artículos)
   const activeWarehouseId = cart.length > 0 ? cart[0].warehouseId : null;
@@ -94,9 +118,15 @@ export default function NewSalePage() {
   // Filtrado del catálogo según búsqueda, depósito y categoría
   const shown = useMemo(() => {
     return available.filter(item => {
-      const matchesText = `${item.productName} ${item.sku} ${item.warehouseName}`.toLowerCase().includes(query.toLowerCase());
-      const matchesWarehouse = !selectedWarehouseFilter || String(item.warehouseId) === selectedWarehouseFilter;
-      const matchesCategory = categoryFilter === "Todas" || item.category === categoryFilter;
+      const matchesText =
+        `${item.productName} ${item.sku} ${item.warehouseName}`
+          .toLowerCase()
+          .includes(query.toLowerCase());
+      const matchesWarehouse =
+        !selectedWarehouseFilter ||
+        String(item.warehouseId) === selectedWarehouseFilter;
+      const matchesCategory =
+        categoryFilter === "Todas" || item.category === categoryFilter;
       return matchesText && matchesWarehouse && matchesCategory;
     });
   }, [available, query, selectedWarehouseFilter, categoryFilter]);
@@ -104,16 +134,24 @@ export default function NewSalePage() {
   // Agregar un artículo del catálogo al carrito
   const add = (item: InventoryItem) => {
     if (activeWarehouseId && activeWarehouseId !== item.warehouseId) {
-      setSwitchWarehouseConfirm({ item, targetWarehouseName: item.warehouseName });
+      setSwitchWarehouseConfirm({
+        item,
+        targetWarehouseName: item.warehouseName,
+      });
       return;
     }
     setError("");
     setCart(current => {
-      const present = current.find(line => line.inventoryId === item.inventoryId);
+      const present = current.find(
+        line => line.inventoryId === item.inventoryId
+      );
       if (present) {
         return current.map(line =>
           line.inventoryId === item.inventoryId
-            ? { ...line, cartQuantity: Math.min(line.quantity, line.cartQuantity + 1) }
+            ? {
+                ...line,
+                cartQuantity: Math.min(line.quantity, line.cartQuantity + 1),
+              }
             : line
         );
       }
@@ -127,7 +165,9 @@ export default function NewSalePage() {
     const { item } = switchWarehouseConfirm;
     setCart([{ ...item, cartQuantity: 1 }]);
     setSwitchWarehouseConfirm(null);
-    toast.info(`Se cambió el depósito a "${item.warehouseName}" y se reinició la venta.`);
+    toast.info(
+      `Se cambió el depósito a "${item.warehouseName}" y se reinició la venta.`
+    );
   };
 
   // Modificar cantidad o quitar línea
@@ -142,7 +182,10 @@ export default function NewSalePage() {
       )
     );
 
-  const computedTotal = cart.reduce((sum, line) => sum + line.priceCents * line.cartQuantity, 0);
+  const computedTotal = cart.reduce(
+    (sum, line) => sum + line.priceCents * line.cartQuantity,
+    0
+  );
 
   // Manejo de productos detectados por el análisis
   const handleDetected = (items: DetectedProduct[]) => {
@@ -156,14 +199,20 @@ export default function NewSalePage() {
 
   // Agregar un producto analizado seleccionando un depósito específico
   const addProductFromWarehouse = (productId: number, warehouseId: number) => {
-    const invItem = available.find(inv => inv.productId === productId && inv.warehouseId === warehouseId);
+    const invItem = available.find(
+      inv => inv.productId === productId && inv.warehouseId === warehouseId
+    );
     if (!invItem || invItem.quantity <= 0) {
-      toast.error("No hay stock disponible de este producto en el depósito seleccionado.");
+      toast.error(
+        "No hay stock disponible de este producto en el depósito seleccionado."
+      );
       return;
     }
     add(invItem);
     if (activeWarehouseId === null || activeWarehouseId === warehouseId) {
-      toast.success(`"${invItem.productName}" agregado desde ${invItem.warehouseName}.`);
+      toast.success(
+        `"${invItem.productName}" agregado desde ${invItem.warehouseName}.`
+      );
     }
   };
 
@@ -175,23 +224,28 @@ export default function NewSalePage() {
     const itemsWithStocks = analyzedProducts.map(prod => {
       const stocksByWarehouse = warehouses.map(w => {
         // Buscar en el inventario cargado
-        const inv = allInventory.find(i => i.productId === prod.id && i.warehouseId === w.id);
+        const inv = allInventory.find(
+          i => i.productId === prod.id && i.warehouseId === w.id
+        );
         return {
           warehouseId: w.id,
           warehouseName: w.name,
           quantity: inv ? inv.quantity : 0,
-          inventoryItem: inv && inv.quantity > 0 ? inv : null
+          inventoryItem: inv && inv.quantity > 0 ? inv : null,
         };
       });
 
-      const totalQuantity = stocksByWarehouse.reduce((acc, s) => acc + s.quantity, 0);
+      const totalQuantity = stocksByWarehouse.reduce(
+        (acc, s) => acc + s.quantity,
+        0
+      );
       const warehousesWithStock = stocksByWarehouse.filter(s => s.quantity > 0);
 
       return {
         ...prod,
         stocksByWarehouse,
         totalQuantity,
-        warehousesWithStock
+        warehousesWithStock,
       };
     });
 
@@ -201,13 +255,19 @@ export default function NewSalePage() {
     // 3. O hay un depósito activo en el carrito y los productos analizados no tienen stock en ese depósito activo
     const allWarehousesWithAnyStock = new Set<number>();
     itemsWithStocks.forEach(item => {
-      item.warehousesWithStock.forEach(s => allWarehousesWithAnyStock.add(s.warehouseId));
+      item.warehousesWithStock.forEach(s =>
+        allWarehousesWithAnyStock.add(s.warehouseId)
+      );
     });
 
     const hasDifferentWarehouses = allWarehousesWithAnyStock.size > 1;
-    const hasCartConflict = activeWarehouseId !== null && itemsWithStocks.some(
-      item => item.stocksByWarehouse.find(s => s.warehouseId === activeWarehouseId)?.quantity === 0 && item.totalQuantity > 0
-    );
+    const hasCartConflict =
+      activeWarehouseId !== null &&
+      itemsWithStocks.some(
+        item =>
+          item.stocksByWarehouse.find(s => s.warehouseId === activeWarehouseId)
+            ?.quantity === 0 && item.totalQuantity > 0
+      );
 
     const showAlert = hasDifferentWarehouses || hasCartConflict;
 
@@ -216,7 +276,7 @@ export default function NewSalePage() {
       showAlert,
       hasDifferentWarehouses,
       hasCartConflict,
-      allWarehousesWithAnyStock: Array.from(allWarehousesWithAnyStock)
+      allWarehousesWithAnyStock: Array.from(allWarehousesWithAnyStock),
     };
   }, [analyzedProducts, warehouses, allInventory, activeWarehouseId]);
 
@@ -232,7 +292,7 @@ export default function NewSalePage() {
         cart.map(line => ({
           productId: line.productId,
           warehouseId: line.warehouseId,
-          quantity: line.cartQuantity
+          quantity: line.cartQuantity,
         })),
         customerId ? Number(customerId) : undefined,
         photo
@@ -243,7 +303,13 @@ export default function NewSalePage() {
       const message = reason instanceof Error ? reason.message : String(reason);
       load();
       setError(message);
-      window.setTimeout(() => document.querySelector(".error-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+      window.setTimeout(
+        () =>
+          document
+            .querySelector(".error-panel")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        80
+      );
     } finally {
       setPending(false);
     }
@@ -277,7 +343,10 @@ export default function NewSalePage() {
                     <Sparkles size={18} className="analysis-icon" />
                     <div>
                       <h3>Resultado del análisis y verificación de stock</h3>
-                      <p>Revisá las existencias en cada depósito antes de despachar.</p>
+                      <p>
+                        Revisá las existencias en cada depósito antes de
+                        despachar.
+                      </p>
                     </div>
                   </div>
                   <button
@@ -295,13 +364,18 @@ export default function NewSalePage() {
                   <div className="analysis-alert-banner">
                     <AlertTriangle size={22} className="alert-icon-warning" />
                     <div>
-                      <strong>¡Atención! Productos detectados en diferentes depósitos</strong>
+                      <strong>
+                        ¡Atención! Productos detectados en diferentes depósitos
+                      </strong>
                       <p>
                         {analysisDetails.hasCartConflict
                           ? `La venta actual está asociada a "${activeWarehouseName}", pero algunos de los productos analizados solo disponen de stock en otros depósitos.`
                           : "Los productos analizados tienen existencias distribuidas en diferentes depósitos. Recordá que por regla del sistema cada venta debe despacharse desde un único depósito."}
                       </p>
-                      <small>Seleccioná abajo desde qué depósito querés despachar cada ítem.</small>
+                      <small>
+                        Seleccioná abajo desde qué depósito querés despachar
+                        cada ítem.
+                      </small>
                     </div>
                   </div>
                 )}
@@ -313,18 +387,39 @@ export default function NewSalePage() {
                       <div className="analysis-product-info">
                         <div className="analysis-product-title">
                           <b>{prod.name}</b>
-                          <span className="analysis-product-sku">SKU: {prod.sku}</span>
+                          <span className="analysis-product-sku">
+                            SKU: {prod.sku}
+                          </span>
                         </div>
                         <div className="analysis-product-meta">
-                          {prod.priceCents ? <span className="analysis-price">{money(prod.priceCents)}</span> : null}
+                          {prod.priceCents ? (
+                            <span className="analysis-price">
+                              {money(prod.priceCents)}
+                            </span>
+                          ) : null}
                           {prod.matchMethod && (
-                            <span className={`analysis-match-evidence ${prod.reviewRequired ? "needs-review" : ""}`}>
-                              {{ barcode_ocr: "Código + OCR", barcode: "Código de barras", ocr_code: "Código leído", ocr_name: "Nombre leído" }[prod.matchMethod]}
-                              {prod.reviewRequired ? " · verificá el producto" : " · corroborado por OCR"}
+                            <span
+                              className={`analysis-match-evidence ${prod.reviewRequired ? "needs-review" : ""}`}
+                            >
+                              {
+                                {
+                                  barcode_ocr: "Código + OCR",
+                                  barcode: "Código de barras",
+                                  ocr_code: "Código leído",
+                                  ocr_name: "Nombre leído",
+                                }[prod.matchMethod]
+                              }
+                              {prod.reviewRequired
+                                ? " · verificá el producto"
+                                : " · corroborado por OCR"}
                             </span>
                           )}
-                          <span className={`analysis-total-stock ${prod.totalQuantity > 0 ? "stock-ok" : "stock-zero"}`}>
-                            {prod.totalQuantity > 0 ? `Total: ${prod.totalQuantity} u. en red` : "Sin stock disponible"}
+                          <span
+                            className={`analysis-total-stock ${prod.totalQuantity > 0 ? "stock-ok" : "stock-zero"}`}
+                          >
+                            {prod.totalQuantity > 0
+                              ? `Total: ${prod.totalQuantity} u. en red`
+                              : "Sin stock disponible"}
                           </span>
                         </div>
                       </div>
@@ -332,9 +427,11 @@ export default function NewSalePage() {
                       {/* Desglose de stock en cada depósito */}
                       <div className="analysis-warehouses-grid">
                         {prod.stocksByWarehouse.map(stockInfo => {
-                          const isCurrentActive = activeWarehouseId === stockInfo.warehouseId;
+                          const isCurrentActive =
+                            activeWarehouseId === stockInfo.warehouseId;
                           const hasStock = stockInfo.quantity > 0;
-                          const isMismatch = activeWarehouseId !== null && !isCurrentActive;
+                          const isMismatch =
+                            activeWarehouseId !== null && !isCurrentActive;
 
                           return (
                             <div
@@ -344,9 +441,13 @@ export default function NewSalePage() {
                               <div className="warehouse-pill-data">
                                 <Building2 size={14} />
                                 <div>
-                                  <span className="warehouse-name">{stockInfo.warehouseName}</span>
+                                  <span className="warehouse-name">
+                                    {stockInfo.warehouseName}
+                                  </span>
                                   <span className="warehouse-qty">
-                                    {hasStock ? `${stockInfo.quantity} u. disponibles` : "0 u. (Agotado)"}
+                                    {hasStock
+                                      ? `${stockInfo.quantity} u. disponibles`
+                                      : "0 u. (Agotado)"}
                                   </span>
                                 </div>
                               </div>
@@ -357,7 +458,10 @@ export default function NewSalePage() {
                                     type="button"
                                     className="button-secondary button-xs"
                                     disabled={!hasStock}
-                                    onClick={() => stockInfo.inventoryItem && add(stockInfo.inventoryItem)}
+                                    onClick={() =>
+                                      stockInfo.inventoryItem &&
+                                      add(stockInfo.inventoryItem)
+                                    }
                                     title={`Cambiar venta a ${stockInfo.warehouseName}`}
                                   >
                                     Vender desde aquí
@@ -367,9 +471,17 @@ export default function NewSalePage() {
                                     type="button"
                                     className="button-primary button-xs"
                                     disabled={!hasStock}
-                                    onClick={() => addProductFromWarehouse(prod.id, stockInfo.warehouseId)}
+                                    onClick={() =>
+                                      addProductFromWarehouse(
+                                        prod.id,
+                                        stockInfo.warehouseId
+                                      )
+                                    }
                                   >
-                                    <Plus size={12} /> {isCurrentActive ? "Agregar" : "Seleccionar"}
+                                    <Plus size={12} />{" "}
+                                    {isCurrentActive
+                                      ? "Agregar"
+                                      : "Seleccionar"}
                                   </button>
                                 )}
                               </div>
@@ -424,12 +536,24 @@ export default function NewSalePage() {
                   />
                 </label>
 
-                {(query || selectedWarehouseFilter || categoryFilter !== "Todas") && (
+                {(query ||
+                  selectedWarehouseFilter ||
+                  categoryFilter !== "Todas") && (
                   <button
                     type="button"
                     className="button-secondary"
-                    style={{ minHeight: "38px", height: "38px", padding: "0 10px", fontSize: "11px", gap: "4px" }}
-                    onClick={() => { setQuery(""); setSelectedWarehouseFilter(""); setCategoryFilter("Todas"); }}
+                    style={{
+                      minHeight: "38px",
+                      height: "38px",
+                      padding: "0 10px",
+                      fontSize: "11px",
+                      gap: "4px",
+                    }}
+                    onClick={() => {
+                      setQuery("");
+                      setSelectedWarehouseFilter("");
+                      setCategoryFilter("Todas");
+                    }}
                   >
                     <X size={13} /> Limpiar
                   </button>
@@ -442,7 +566,8 @@ export default function NewSalePage() {
               <div className="active-warehouse-indicator-bar">
                 <WarehouseIcon size={15} />
                 <span>
-                  Depósito fijado: <b>{activeWarehouseName}</b>. Todos los artículos del comprobante deben ser de este depósito.
+                  Depósito fijado: <b>{activeWarehouseName}</b>. Todos los
+                  artículos del comprobante deben ser de este depósito.
                 </span>
               </div>
             )}
@@ -456,11 +581,16 @@ export default function NewSalePage() {
                     onClick={() => add(item)}
                     type="button"
                   >
-                    <span className="product-glyph">{item.productName.slice(0, 1)}</span>
+                    <span className="product-glyph">
+                      {item.productName.slice(0, 1)}
+                    </span>
                     <div>
                       <b>{item.productName}</b>
                       <small>
-                        {item.sku} · <span className="item-depot-tag">{item.warehouseName}</span>
+                        {item.sku} ·{" "}
+                        <span className="item-depot-tag">
+                          {item.warehouseName}
+                        </span>
                       </small>
                     </div>
                     <strong>{item.quantity} u.</strong>
@@ -483,7 +613,9 @@ export default function NewSalePage() {
           {/* ASIDE DEL DETALLE DE VENTA / CARRITO */}
           <aside className="sale-summary">
             <div className="summary-head">
-              <span><ShoppingCart size={19} /></span>
+              <span>
+                <ShoppingCart size={19} />
+              </span>
               <div>
                 <p className="eyebrow">Comprobante</p>
                 <h2>Detalle de venta</h2>
@@ -493,13 +625,18 @@ export default function NewSalePage() {
             {activeWarehouseName && (
               <div className="cart-warehouse-badge">
                 <Store size={14} />
-                <span>Despacho: <b>{activeWarehouseName}</b></span>
+                <span>
+                  Despacho: <b>{activeWarehouseName}</b>
+                </span>
               </div>
             )}
 
             <label className="field">
               <span>Cliente (opcional)</span>
-              <select value={customerId} onChange={e => setCustomerId(e.target.value)}>
+              <select
+                value={customerId}
+                onChange={e => setCustomerId(e.target.value)}
+              >
                 <option value="">Venta mostrador</option>
                 {customers.map(customer => (
                   <option key={customer.id} value={customer.id}>
@@ -509,7 +646,8 @@ export default function NewSalePage() {
               </select>
               {!loading && !customers.length && (
                 <small className="field-hint">
-                  Todavía no hay clientes: registralos en la sección Clientes para asociarlos.
+                  Todavía no hay clientes: registralos en la sección Clientes
+                  para asociarlos.
                 </small>
               )}
             </label>
@@ -520,7 +658,9 @@ export default function NewSalePage() {
                   <div className="cart-line" key={line.inventoryId}>
                     <div>
                       <b>{line.productName}</b>
-                      <small>{line.warehouseName} · {money(line.priceCents)} c/u</small>
+                      <small>
+                        {line.warehouseName} · {money(line.priceCents)} c/u
+                      </small>
                     </div>
                     <button
                       type="button"
@@ -532,19 +672,28 @@ export default function NewSalePage() {
                     </button>
                     <div className="line-bottom">
                       <div className="quantity-stepper">
-                        <button type="button" onClick={() => change(line.inventoryId, line.cartQuantity - 1)}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            change(line.inventoryId, line.cartQuantity - 1)
+                          }
+                        >
                           <Minus size={13} />
                         </button>
                         <span>{line.cartQuantity}</span>
                         <button
                           type="button"
                           disabled={line.cartQuantity >= line.quantity}
-                          onClick={() => change(line.inventoryId, line.cartQuantity + 1)}
+                          onClick={() =>
+                            change(line.inventoryId, line.cartQuantity + 1)
+                          }
                         >
                           <Plus size={13} />
                         </button>
                       </div>
-                      <strong>{money(line.priceCents * line.cartQuantity)}</strong>
+                      <strong>
+                        {money(line.priceCents * line.cartQuantity)}
+                      </strong>
                     </div>
                   </div>
                 ))}
@@ -553,7 +702,10 @@ export default function NewSalePage() {
               <div className="cart-empty">
                 <PackagePlus size={25} />
                 <p>La venta todavía está vacía.</p>
-                <small>Elegí productos del catálogo o del panel de análisis para armar el comprobante.</small>
+                <small>
+                  Elegí productos del catálogo o del panel de análisis para
+                  armar el comprobante.
+                </small>
               </div>
             )}
 
@@ -580,7 +732,8 @@ export default function NewSalePage() {
 
             <p className="sale-note">
               <ReceiptText size={14} />
-              El backend aplica el tramo de precio correspondiente y descuenta el stock en el depósito asignado.
+              El backend aplica el tramo de precio correspondiente y descuenta
+              el stock en el depósito asignado.
             </p>
           </aside>
         </section>
@@ -597,9 +750,16 @@ export default function NewSalePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cambiar de depósito?</AlertDialogTitle>
             <AlertDialogDescription>
-              La venta actual contiene artículos despachados desde <strong>"{activeWarehouseName}"</strong>.
-              <br /><br />
-              Para agregar <strong>"{switchWarehouseConfirm?.item.productName}"</strong> desde <strong>"{switchWarehouseConfirm?.targetWarehouseName}"</strong>, se vaciará el comprobante actual ya que cada venta debe procesarse desde un único depósito.
+              La venta actual contiene artículos despachados desde{" "}
+              <strong>"{activeWarehouseName}"</strong>.
+              <br />
+              <br />
+              Para agregar{" "}
+              <strong>"{switchWarehouseConfirm?.item.productName}"</strong>{" "}
+              desde{" "}
+              <strong>"{switchWarehouseConfirm?.targetWarehouseName}"</strong>,
+              se vaciará el comprobante actual ya que cada venta debe procesarse
+              desde un único depósito.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

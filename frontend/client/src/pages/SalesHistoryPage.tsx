@@ -1,9 +1,28 @@
-import { CalendarDays, ReceiptText, Search, ShoppingCart, SlidersHorizontal, Store, X } from "lucide-react";
+import {
+  CalendarDays,
+  ReceiptText,
+  Search,
+  ShoppingCart,
+  SlidersHorizontal,
+  Store,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { EmptyState, ErrorPanel, LoadingPanel, PageHeader, datetime, money } from "@/components/StockUI";
+import {
+  EmptyState,
+  ErrorPanel,
+  LoadingPanel,
+  PageHeader,
+  datetime,
+  money,
+} from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { saleService, type Sale } from "@/services/sales";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService, type Product } from "@/services/products";
@@ -70,9 +89,14 @@ export default function SalesHistoryPage() {
     setMaxTotal("");
   };
 
-  const hasAdvancedFilters = Boolean(productId || minTotal !== "" || maxTotal !== "");
-  const advancedCount = (productId ? 1 : 0) + (minTotal !== "" || maxTotal !== "" ? 1 : 0);
-  const hasAnyFilter = Boolean(search || from || to || warehouseId || hasAdvancedFilters);
+  const hasAdvancedFilters = Boolean(
+    productId || minTotal !== "" || maxTotal !== ""
+  );
+  const advancedCount =
+    (productId ? 1 : 0) + (minTotal !== "" || maxTotal !== "" ? 1 : 0);
+  const hasAnyFilter = Boolean(
+    search || from || to || warehouseId || hasAdvancedFilters
+  );
 
   return (
     <>
@@ -81,8 +105,12 @@ export default function SalesHistoryPage() {
         title="Historial de ventas"
         description="Revisá comprobantes emitidos y el total registrado por cada operación."
         action={
-          <button className="button-primary" onClick={() => setLocation("/sales/new")}>
-            <ShoppingCart size={17} />Nueva venta
+          <button
+            className="button-primary"
+            onClick={() => setLocation("/sales/new")}
+          >
+            <ShoppingCart size={17} />
+            Nueva venta
           </button>
         }
       />
@@ -103,7 +131,10 @@ export default function SalesHistoryPage() {
           onChange={setWarehouseId}
           options={[
             { value: "", label: "Todos los depósitos" },
-            ...warehouses.map(warehouse => ({ value: warehouse.id, label: warehouse.name })),
+            ...warehouses.map(warehouse => ({
+              value: warehouse.id,
+              label: warehouse.name,
+            })),
           ]}
           icon={<Store size={15} />}
           ariaLabel="Filtrar por depósito"
@@ -135,14 +166,19 @@ export default function SalesHistoryPage() {
             >
               <SlidersHorizontal size={14} />
               Más filtros
-              {advancedCount > 0 && <span className="filter-count-badge">{advancedCount}</span>}
+              {advancedCount > 0 && (
+                <span className="filter-count-badge">{advancedCount}</span>
+              )}
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" className="filter-popover-content">
             <div className="filter-popover-panel">
               <div className="filter-popover-header">
                 <div className="filter-popover-heading">
-                  <SlidersHorizontal size={14} className="filter-heading-icon" />
+                  <SlidersHorizontal
+                    size={14}
+                    className="filter-heading-icon"
+                  />
                   <span>Filtros avanzados</span>
                 </div>
                 {hasAdvancedFilters && (
@@ -163,7 +199,10 @@ export default function SalesHistoryPage() {
                   onChange={setProductId}
                   options={[
                     { value: "", label: "Todos los productos" },
-                    ...products.map(product => ({ value: product.id, label: product.name })),
+                    ...products.map(product => ({
+                      value: product.id,
+                      label: product.name,
+                    })),
                   ]}
                   ariaLabel="Filtrar por producto"
                   minWidth="100%"
@@ -202,7 +241,11 @@ export default function SalesHistoryPage() {
         </Popover>
 
         {hasAnyFilter && (
-          <button className="button-secondary filter-clear" onClick={clearFilters} type="button">
+          <button
+            className="button-secondary filter-clear"
+            onClick={clearFilters}
+            type="button"
+          >
             <X size={14} />
             Limpiar
           </button>
@@ -211,8 +254,9 @@ export default function SalesHistoryPage() {
 
       {loading && <LoadingPanel rows={5} />}
       {error && <ErrorPanel message={error} retry={load} />}
-      {!loading && !error && (
-        filteredItems.length ? (
+      {!loading &&
+        !error &&
+        (filteredItems.length ? (
           <section className="table-card">
             <div className="table-scroll">
               <table>
@@ -238,7 +282,8 @@ export default function SalesHistoryPage() {
                       </td>
                       <td>{datetime(item.createdAt)}</td>
                       <td>
-                        {item.itemCount} producto{item.itemCount === 1 ? "" : "s"}
+                        {item.itemCount} producto
+                        {item.itemCount === 1 ? "" : "s"}
                       </td>
                       <td>{item.customerName ?? <small>Mostrador</small>}</td>
                       <td>
@@ -248,7 +293,9 @@ export default function SalesHistoryPage() {
                       <td>
                         <button
                           className="icon-button"
-                          onClick={() => setLocation(`/sales/${item.id}/ticket`)}
+                          onClick={() =>
+                            setLocation(`/sales/${item.id}/ticket`)
+                          }
                           aria-label={`Ver comprobante ${item.receiptNumber}`}
                         >
                           <Search size={16} />
@@ -264,10 +311,13 @@ export default function SalesHistoryPage() {
           <EmptyState
             title="No hay ventas con estos filtros"
             detail="Probá ampliar el período, cambiar el depósito o ajustar el importe."
-            action={<button className="button-secondary" onClick={clearFilters}>Limpiar filtros</button>}
+            action={
+              <button className="button-secondary" onClick={clearFilters}>
+                Limpiar filtros
+              </button>
+            }
           />
-        )
-      )}
+        ))}
     </>
   );
 }
