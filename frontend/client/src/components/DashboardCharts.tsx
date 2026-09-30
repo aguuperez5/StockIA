@@ -87,20 +87,20 @@ export default function DashboardCharts({
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke="#e7efec"
+                  stroke="var(--line)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
                   dataKey="label"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#849490", fontSize: 11 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 11 }}
                   tickMargin={10}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#849490", fontSize: 10 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
                   tickFormatter={(value: number) =>
                     salesMode === "totalCents"
                       ? formatAxisMoney(value)
@@ -109,12 +109,12 @@ export default function DashboardCharts({
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "#edf8f3" }}
+                  cursor={{ fill: "var(--surface-hover)" }}
                   content={<SalesTooltip mode={salesMode} />}
                 />
                 <Bar
                   dataKey={salesMode}
-                  fill="#159666"
+                  fill="var(--brand)"
                   radius={[6, 6, 2, 2]}
                   maxBarSize={30}
                 />
@@ -159,14 +159,14 @@ export default function DashboardCharts({
               >
                 <CartesianGrid
                   horizontal={false}
-                  stroke="#e7efec"
+                  stroke="var(--line)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
                   type="number"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#849490", fontSize: 10 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
                   tickFormatter={(value: number) =>
                     inventoryMode === "valueCents"
                       ? formatAxisMoney(value)
@@ -180,10 +180,10 @@ export default function DashboardCharts({
                   width={76}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#58706c", fontSize: 10 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
                 />
                 <Tooltip
-                  cursor={{ fill: "#f4faf7" }}
+                  cursor={{ fill: "var(--surface-hover)" }}
                   content={<InventoryTooltip mode={inventoryMode} />}
                 />
                 <Bar
@@ -234,6 +234,12 @@ export default function DashboardCharts({
                         value: number | string,
                         name: string | number
                       ) => [`${value} productos`, name]}
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--line)",
+                        borderRadius: "8px",
+                        color: "var(--ink)",
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>

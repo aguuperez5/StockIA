@@ -285,7 +285,7 @@ export default function ReportsPage() {
                   >
                     <CartesianGrid
                       vertical={false}
-                      stroke="#e7efec"
+                      stroke="var(--line)"
                       strokeDasharray="4 4"
                     />
                     <XAxis
@@ -293,13 +293,13 @@ export default function ReportsPage() {
                       tickFormatter={value => day(value)}
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#849490", fontSize: 11 }}
+                      tick={{ fill: "var(--muted-ink)", fontSize: 11 }}
                       tickMargin={10}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#849490", fontSize: 10 }}
+                      tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
                       tickFormatter={value =>
                         value === 0 ? "$0" : `$${Math.round(value / 1000)}k`
                       }
@@ -308,11 +308,17 @@ export default function ReportsPage() {
                     <Tooltip
                       formatter={(value: number) => money(value)}
                       labelFormatter={value => day(value)}
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--line)",
+                        borderRadius: "8px",
+                        color: "var(--ink)",
+                      }}
                     />
                     <Line
                       type="monotone"
                       dataKey="totalCents"
-                      stroke="#159666"
+                      stroke="var(--brand)"
                       strokeWidth={2.4}
                       dot={{ r: 3 }}
                     />
