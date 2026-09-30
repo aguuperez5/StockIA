@@ -13,6 +13,7 @@ import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import {
   ErrorPanel,
+  Field,
   LoadingPanel,
   PageHeader,
   SubmitButton,
@@ -656,22 +657,3 @@ export default function ProductFormPage() {
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-  className = "",
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={`field ${className}`}>
-      <span>{label}</span>
-      {children}
-      {error ? <small className="field-error">{error}</small> : null}
-    </label>
-  );
-}

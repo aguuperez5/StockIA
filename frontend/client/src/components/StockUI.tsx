@@ -139,3 +139,29 @@ export function StockBadge({
     </span>
   );
 }
+
+export function Field({
+  label,
+  error,
+  hint,
+  children,
+  className = "",
+  htmlFor,
+}: {
+  label: string;
+  error?: string;
+  hint?: string;
+  children: ReactNode;
+  className?: string;
+  htmlFor?: string;
+}) {
+  return (
+    <label className={`field ${className}`.trim()} htmlFor={htmlFor}>
+      <span>{label}</span>
+      {children}
+      {hint && <small className="field-hint">{hint}</small>}
+      {error && <small className="field-error">{error}</small>}
+    </label>
+  );
+}
+

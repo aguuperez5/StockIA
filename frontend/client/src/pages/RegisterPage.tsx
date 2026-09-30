@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { Field } from "@/components/StockUI";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
@@ -94,24 +95,27 @@ export default function RegisterPage() {
           </p>
           {errors.form && <div className="auth-error">{errors.form}</div>}{" "}
           <form onSubmit={submit} noValidate>
-            <Field label="Nombre completo" error={errors.fullName}>
+            <Field label="Nombre completo" error={errors.fullName} htmlFor="register-fullname">
               <input
+                id="register-fullname"
                 value={form.fullName}
                 onChange={e => setForm({ ...form, fullName: e.target.value })}
                 autoComplete="name"
                 placeholder="Tu nombre y apellido"
               />
             </Field>
-            <Field label="Legajo" error={errors.legajo}>
+            <Field label="Legajo" error={errors.legajo} htmlFor="register-legajo">
               <input
+                id="register-legajo"
                 value={form.legajo}
                 onChange={e => setForm({ ...form, legajo: e.target.value })}
                 inputMode="numeric"
                 placeholder="Ej. 12345"
               />
             </Field>
-            <Field label="Email" error={errors.email}>
+            <Field label="Email" error={errors.email} htmlFor="register-email">
               <input
+                id="register-email"
                 type="email"
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
@@ -119,9 +123,10 @@ export default function RegisterPage() {
                 placeholder="vos@comercio.com"
               />
             </Field>
-            <Field label="Contraseña" error={errors.password}>
+            <Field label="Contraseña" error={errors.password} htmlFor="register-password">
               <div className="password-input">
                 <input
+                  id="register-password"
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
@@ -139,8 +144,9 @@ export default function RegisterPage() {
                 </button>
               </div>
             </Field>
-            <Field label="Repetir contraseña" error={errors.confirmPassword}>
+            <Field label="Repetir contraseña" error={errors.confirmPassword} htmlFor="register-confirm-password">
               <input
+                id="register-confirm-password"
                 type="password"
                 value={form.confirmPassword}
                 onChange={e =>
@@ -165,20 +171,3 @@ export default function RegisterPage() {
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-      {error && <small className="field-error">{error}</small>}
-    </label>
-  );
-}

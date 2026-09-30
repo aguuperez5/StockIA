@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { Field } from "@/components/StockUI";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -72,8 +73,9 @@ export default function LoginPage() {
           </p>
           {errors.form && <div className="auth-error">{errors.form}</div>}
           <form onSubmit={submit} noValidate>
-            <Field label="Email" error={errors.email}>
+            <Field label="Email" error={errors.email} htmlFor="login-email">
               <input
+                id="login-email"
                 type="email"
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
@@ -81,9 +83,10 @@ export default function LoginPage() {
                 placeholder="vos@comercio.com"
               />
             </Field>
-            <Field label="Contraseña" error={errors.password}>
+            <Field label="Contraseña" error={errors.password} htmlFor="login-password">
               <div className="password-input">
                 <input
+                  id="login-password"
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
@@ -125,20 +128,3 @@ export default function LoginPage() {
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-      {error && <small className="field-error">{error}</small>}
-    </label>
-  );
-}
