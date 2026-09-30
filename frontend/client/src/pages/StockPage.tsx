@@ -2,6 +2,7 @@ import { ArrowLeftRight, Check, Edit3, Filter, MapPin, PackageSearch, Plus, Sear
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, ErrorPanel, LoadingPanel, PageHeader, StockBadge } from "@/components/StockUI";
+import { ModernSelect } from "@/components/ModernSelect";
 import { inventoryService, type InventoryItem, type Warehouse, warehouseService } from "@/services/inventory";
 import { transferService } from "@/services/backlog";
 import { useStockAuth } from "@/contexts/StockAuthContext";
@@ -174,7 +175,16 @@ export default function StockPage() {
   };
 
   const selectedWarehouse = warehouses.find(warehouse => String(warehouse.id) === warehouseId);
-  const categories = useMemo(() => ["Todas", ...Array.from(new Set(items.map(item => item.category))).filter(Boolean).sort()], [items]);
+  const categories = useMemo(() => [
+    "Todas",
+    ...Array.from(
+      new Set(
+        items
+          .map(item => item.category?.trim())
+          .filter((c): c is string => Boolean(c && c.length > 0))
+      )
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+  ], [items]);
   const filteredItems = useMemo(() => items.filter(item => {
     const text = `${item.productName} ${item.sku} ${item.category} ${item.warehouseName}`.toLowerCase();
     const matchesText = text.includes(productSearch.trim().toLowerCase());
@@ -387,13 +397,66 @@ export default function StockPage() {
 
       {/* Filtros de la tabla de stock */}
       <div className="stock-toolbar">
-        <label className="select-control"><Filter size={16} /><select value={warehouseId} onChange={event => setWarehouseId(event.target.value)}><option value="">Todos los depósitos</option>{warehouses.map(warehouse => <option value={warehouse.id} key={warehouse.id}>{warehouse.name}</option>)}</select></label>
-        <label className="search-control"><Search size={16} /><input value={productSearch} onChange={event => setProductSearch(event.target.value)} placeholder="Buscar producto, SKU o depósito" /></label>
-        <label className="select-control"><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} aria-label="Filtrar por categoría">{categories.map(category => <option key={category}>{category}</option>)}</select></label>
-        <label className="select-control"><select value={stockFilter} onChange={event => setStockFilter(event.target.value)} aria-label="Filtrar por estado"><option value="all">Todo el stock</option><option value="available">Disponible</option><option value="low">Stock bajo</option><option value="out">Sin stock</option></select></label>
-        <label className="filter-number"><span>Unidades mín.</span><input type="number" min="0" value={minQuantity} onChange={event => setMinQuantity(event.target.value)} /></label>
-        <label className="filter-number"><span>Unidades máx.</span><input type="number" min="0" value={maxQuantity} onChange={event => setMaxQuantity(event.target.value)} /></label>
-        <button className="button-secondary filter-clear" type="button" onClick={clearStockFilters}>Limpiar</button>
+        <ModernSelect
+          value={warehouseId}
+          onChange={setWarehouseId}
+          options={[
+            { value: "", label: "Todos los depósitos" },
+            ...warehouses.map(warehouse => ({ value: warehouse.id, label: warehouse.name })),
+          ]}
+          icon={<Filter size={15} />}
+          ariaLabel="Filtrar por depósito"
+        />
+        <label className="search-control">
+          <Search size={15} />
+          <input
+            value={productSearch}
+            onChange={event => setProductSearch(event.target.value)}
+            placeholder="Buscar producto, SKU o depósito"
+          />
+        </label>
+        <ModernSelect
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+          options={categories}
+          ariaLabel="Filtrar por categoría"
+        />
+        <ModernSelect
+          value={stockFilter}
+          onChange={setStockFilter}
+          options={[
+            { value: "all", label: "Todo el stock" },
+            { value: "available", label: "Disponible" },
+            { value: "low", label: "Stock bajo" },
+            { value: "out", label: "Sin stock" },
+          ]}
+          ariaLabel="Filtrar por estado"
+        />
+        <label className="filter-number">
+          <span>Mín:</span>
+          <input
+            type="number"
+            min="0"
+            value={minQuantity}
+            onChange={event => setMinQuantity(event.target.value)}
+            placeholder="0"
+            aria-label="Unidades mínimas"
+          />
+        </label>
+        <label className="filter-number">
+          <span>Máx:</span>
+          <input
+            type="number"
+            min="0"
+            value={maxQuantity}
+            onChange={event => setMaxQuantity(event.target.value)}
+            placeholder="∞"
+            aria-label="Unidades máximas"
+          />
+        </label>
+        <button className="button-secondary filter-clear" type="button" onClick={clearStockFilters}>
+          Limpiar
+        </button>
         <span>{filteredItems.length} producto{filteredItems.length === 1 ? "" : "s"}</span>
       </div>
 

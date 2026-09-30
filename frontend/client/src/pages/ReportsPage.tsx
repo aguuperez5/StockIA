@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Boxes, CalendarDays, DollarSign, Download, PackageCheck, ShoppingBag, Store } from "lucide-react";
+import { AlertTriangle, Boxes, CalendarDays, DollarSign, Download, PackageCheck, ShoppingBag, Store, X } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartEmpty } from "@/components/DashboardCharts";
 import { ErrorPanel, LoadingPanel, PageHeader, day, money } from "@/components/StockUI";
@@ -115,12 +115,37 @@ export default function ReportsPage() {
         )}
       />
 
-      <div className="date-filter">
-        <span><CalendarDays size={17} /> Período analizado</span>
-        <label>Desde<input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>
-        <label>Hasta<input type="date" value={to} onChange={e => setTo(e.target.value)} /></label>
-        <button className="button-secondary" onClick={() => { setFrom(""); setTo(""); }}>Limpiar fechas</button>
-      </div>
+      <section className="filter-bar">
+        <div className="filter-date-group" title="Período analizado">
+          <CalendarDays size={15} />
+          <input
+            type="date"
+            value={from}
+            onChange={e => setFrom(e.target.value)}
+            aria-label="Fecha desde"
+          />
+          <span className="date-sep">a</span>
+          <input
+            type="date"
+            value={to}
+            onChange={e => setTo(e.target.value)}
+            aria-label="Fecha hasta"
+          />
+        </div>
+        {(from || to) && (
+          <button
+            className="button-secondary filter-clear"
+            onClick={() => {
+              setFrom("");
+              setTo("");
+            }}
+            type="button"
+          >
+            <X size={14} />
+            Limpiar fechas
+          </button>
+        )}
+      </section>
 
       {error && <ErrorPanel message={error} retry={load} />}
       {!data && !error && <LoadingPanel rows={6} />}
@@ -212,9 +237,9 @@ export default function ReportsPage() {
                   <thead>
                     <tr>
                       <th>Producto</th>
-                      <th>Stock / Mínimo</th>
+                      <th>Stock / Mín.</th>
                       <th>A comprar</th>
-                      <th>Valor est. a precio de lista</th>
+                      <th title="Valor estimado a precio de lista">Valor est. lista</th>
                       <th>Prioridad</th>
                     </tr>
                   </thead>
@@ -227,7 +252,7 @@ export default function ReportsPage() {
                             <small>{item.sku} · {item.category}</small>
                           </td>
                           <td>
-                            <b>{item.currentStock}</b> / <small>{item.threshold} un.</small>
+                            <b>{item.currentStock}</b> <small style={{ display: "inline" }}>/ {item.threshold} u.</small>
                           </td>
                           <td className="highlight-number">
                             <b>+{item.unitsNeeded} un.</b>
@@ -268,7 +293,7 @@ export default function ReportsPage() {
                       <th>Depósito / Sucursal</th>
                       <th>Comprobantes</th>
                       <th>Facturado</th>
-                      <th>% del total</th>
+                      <th>% Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -320,8 +345,8 @@ export default function ReportsPage() {
                   <thead>
                     <tr>
                       <th>Producto</th>
-                      <th>Unidades vendidas</th>
-                      <th>Facturación generada</th>
+                      <th>Vendidos</th>
+                      <th>Facturación</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -361,7 +386,7 @@ export default function ReportsPage() {
                     <tr>
                       <th>Producto</th>
                       <th>Stock parado</th>
-                  <th>Valor a precio de lista</th>
+                      <th title="Valor a precio de lista">Valor lista</th>
                       <th>Sugerencia</th>
                     </tr>
                   </thead>

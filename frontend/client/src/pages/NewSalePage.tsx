@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { ModernSelect } from "@/components/ModernSelect";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ export default function NewSalePage() {
   const [customerId, setCustomerId] = useState("");
   const [query, setQuery] = useState("");
   const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("Todas");
   const [photo, setPhoto] = useState<{ data: string; mimeType: string }>();
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
@@ -73,18 +75,31 @@ export default function NewSalePage() {
     load();
   }, []);
 
+  // Categorías disponibles sin blancos ni duplicados
+  const categories = useMemo(() => [
+    "Todas",
+    ...Array.from(
+      new Set(
+        available
+          .map(item => item.category?.trim())
+          .filter((c): c is string => Boolean(c && c.length > 0))
+      )
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+  ], [available]);
+
   // Depósito activo en la venta (si el carrito ya tiene artículos)
   const activeWarehouseId = cart.length > 0 ? cart[0].warehouseId : null;
   const activeWarehouseName = cart.length > 0 ? cart[0].warehouseName : null;
 
-  // Filtrado del catálogo según búsqueda y depósito
+  // Filtrado del catálogo según búsqueda, depósito y categoría
   const shown = useMemo(() => {
     return available.filter(item => {
       const matchesText = `${item.productName} ${item.sku} ${item.warehouseName}`.toLowerCase().includes(query.toLowerCase());
       const matchesWarehouse = !selectedWarehouseFilter || String(item.warehouseId) === selectedWarehouseFilter;
-      return matchesText && matchesWarehouse;
+      const matchesCategory = categoryFilter === "Todas" || item.category === categoryFilter;
+      return matchesText && matchesWarehouse && matchesCategory;
     });
-  }, [available, query, selectedWarehouseFilter]);
+  }, [available, query, selectedWarehouseFilter, categoryFilter]);
 
   // Agregar un artículo del catálogo al carrito
   const add = (item: InventoryItem) => {
@@ -380,30 +395,45 @@ export default function NewSalePage() {
               </div>
 
               <div className="catalog-filters-row">
-                <div className="warehouse-filter-select">
-                  <Filter size={14} />
-                  <select
-                    value={selectedWarehouseFilter}
-                    onChange={e => setSelectedWarehouseFilter(e.target.value)}
-                    aria-label="Filtrar por depósito"
-                  >
-                    <option value="">Todos los depósitos</option>
-                    {warehouses.map(w => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <ModernSelect
+                  value={selectedWarehouseFilter}
+                  onChange={setSelectedWarehouseFilter}
+                  options={[
+                    { value: "", label: "Todos los depósitos" },
+                    ...warehouses.map(w => ({ value: w.id, label: w.name })),
+                  ]}
+                  icon={<WarehouseIcon size={14} />}
+                  ariaLabel="Filtrar por depósito"
+                />
+
+                <ModernSelect
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  options={categories}
+                  icon={<Filter size={14} />}
+                  ariaLabel="Filtrar por categoría"
+                />
 
                 <label className="sale-search">
-                  <span><Search size={14} /></span>
+                  <Search size={14} />
                   <input
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="Buscar artículo o SKU"
+                    aria-label="Buscar producto"
                   />
                 </label>
+
+                {(query || selectedWarehouseFilter || categoryFilter !== "Todas") && (
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    style={{ minHeight: "38px", height: "38px", padding: "0 10px", fontSize: "11px", gap: "4px" }}
+                    onClick={() => { setQuery(""); setSelectedWarehouseFilter(""); setCategoryFilter("Todas"); }}
+                  >
+                    <X size={13} /> Limpiar
+                  </button>
+                )}
               </div>
             </div>
 

@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmptyState, ErrorPanel, LoadingPanel, PageHeader, money, StockBadge } from "@/components/StockUI";
+import { ModernSelect } from "@/components/ModernSelect";
 import { productService, type Product } from "@/services/products";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
@@ -34,7 +35,16 @@ export default function ProductsPage() {
     } catch (reason) { setError((reason as Error).message); setToDelete(null); }
     finally { setDeleting(false); }
   };
-  const categories = useMemo(() => ["Todas", ...Array.from(new Set(items.map(item => item.category))).sort()], [items]);
+  const categories = useMemo(() => [
+    "Todas",
+    ...Array.from(
+      new Set(
+        items
+          .map(item => item.category?.trim())
+          .filter((c): c is string => Boolean(c && c.length > 0))
+      )
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+  ], [items]);
   const filteredItems = useMemo(() => items.filter(item => {
     const price = item.priceCents / 100;
     const matchesStock = stockFilter === "all" || (stockFilter === "out" && item.stock === 0) || (stockFilter === "low" && item.stock > 0 && item.stock <= item.lowStockThreshold) || (stockFilter === "available" && item.stock > item.lowStockThreshold);
@@ -47,7 +57,48 @@ export default function ProductsPage() {
   useEffect(() => { const timer = window.setTimeout(load, 220); return () => window.clearTimeout(timer); }, [search, category, showInactive]);
   return <>
     <PageHeader eyebrow="Catálogo" title="Productos" description="Consultá precios, SKU y disponibilidad. Cada movimiento queda registrado en el inventario." action={canManage ? <button className="button-primary" onClick={() => setLocation("/products/new")}><PackagePlus size={17} />Nuevo producto</button> : undefined} />
-    <section className="filter-bar"><label className="search-control"><Search size={17} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar por nombre o SKU" aria-label="Buscar productos" /></label><label className="select-control"><SlidersHorizontal size={16} /><select value={category} onChange={event => setCategory(event.target.value)} aria-label="Filtrar por categoría">{categories.map(option => <option key={option}>{option}</option>)}</select></label><label className="select-control"><select value={stockFilter} onChange={event => setStockFilter(event.target.value)} aria-label="Filtrar por stock"><option value="all">Todo el stock</option><option value="available">Stock disponible</option><option value="low">Stock bajo</option><option value="out">Sin stock</option></select></label><label className="filter-number"><span>Precio desde</span><input type="number" min="0" value={minPrice} onChange={event => setMinPrice(event.target.value)} placeholder="$ mínimo" /></label><label className="filter-number"><span>Precio hasta</span><input type="number" min="0" value={maxPrice} onChange={event => setMaxPrice(event.target.value)} placeholder="$ máximo" /></label>{canManage && <label className="check-control"><input type="checkbox" checked={showInactive} onChange={event => setShowInactive(event.target.checked)} />Ver dados de baja</label>}<button className="button-secondary filter-clear" onClick={clearFilters} type="button"><X size={15} />Limpiar</button></section>
+    <section className="filter-bar">
+      <label className="search-control">
+        <Search size={16} />
+        <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar por nombre o SKU" aria-label="Buscar productos" />
+      </label>
+      <ModernSelect
+        value={category}
+        onChange={setCategory}
+        options={categories}
+        icon={<SlidersHorizontal size={15} />}
+        ariaLabel="Filtrar por categoría"
+      />
+      <ModernSelect
+        value={stockFilter}
+        onChange={setStockFilter}
+        options={[
+          { value: "all", label: "Todo el stock" },
+          { value: "available", label: "Stock disponible" },
+          { value: "low", label: "Stock bajo" },
+          { value: "out", label: "Sin stock" },
+        ]}
+        ariaLabel="Filtrar por estado de stock"
+      />
+      <label className="filter-number">
+        <span>Desde:</span>
+        <input type="number" min="0" value={minPrice} onChange={event => setMinPrice(event.target.value)} placeholder="$ mín" aria-label="Precio mínimo" />
+      </label>
+      <label className="filter-number">
+        <span>Hasta:</span>
+        <input type="number" min="0" value={maxPrice} onChange={event => setMaxPrice(event.target.value)} placeholder="$ máx" aria-label="Precio máximo" />
+      </label>
+      {canManage && (
+        <label className="check-control">
+          <input type="checkbox" checked={showInactive} onChange={event => setShowInactive(event.target.checked)} />
+          Ver dados de baja
+        </label>
+      )}
+      <button className="button-secondary filter-clear" onClick={clearFilters} type="button">
+        <X size={15} />
+        Limpiar
+      </button>
+    </section>
     {loading && <LoadingPanel rows={6} />}{error && <ErrorPanel message={error} retry={load} />}
     {!loading && !error && (filteredItems.length ? <section className="table-card"><div className="table-scroll"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock total</th><th>Estado</th><th aria-label="Acciones" /></tr></thead><tbody>{filteredItems.map(item => <tr key={item.id}><td><div className="product-cell">{item.imageUrl ? <img src={item.imageUrl} alt="" className="product-thumb" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} /> : <span className="product-glyph">{item.name.slice(0, 1).toUpperCase()}</span>}<div><b>{item.name}</b><small>{item.sku}</small></div></div></td><td><span className="category-tag">{item.category}</span></td><td className="mono">{money(item.priceCents)}</td><td><b>{item.stock} u.</b><small>Mínimo: {item.lowStockThreshold}</small></td><td>{item.active ? <StockBadge quantity={item.stock} threshold={item.lowStockThreshold} /> : <span className="status-pill inactive">Dado de baja</span>}</td><td>{canManage && (item.active ? <span className="row-actions"><button className="icon-button" onClick={() => setLocation(`/products/${item.id}/edit`)} aria-label={`Editar ${item.name}`}><Edit3 size={16} /></button><button className="icon-button danger" onClick={() => setToDelete(item)} aria-label={`Dar de baja ${item.name}`}><Trash2 size={16} /></button></span> : <button className="icon-button" onClick={() => void reactivate(item)} aria-label={`Reactivar ${item.name}`} title="Reactivar"><RotateCcw size={16} /></button>)}</td></tr>)}</tbody></table></div><footer className="table-footer">{filteredItems.length} producto{filteredItems.length === 1 ? "" : "s"} encontrado{filteredItems.length === 1 ? "" : "s"}</footer></section> : <EmptyState title="No hay productos con estos filtros" detail="Probá cambiar la categoría, el estado de stock o el rango de precio." action={<button className="button-secondary" onClick={clearFilters}>Limpiar filtros</button>} />)}
     <AlertDialog open={!!toDelete} onOpenChange={open => { if (!open) setToDelete(null); }}>
