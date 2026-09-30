@@ -81,4 +81,3 @@ export const reportService = {
       }>;
     }>(`/reports?from=${from}&to=${to}`)
 };
-export const teamService = { list: () => get<{ items: Array<{ id: number; fullName: string; email: string; appRole: string }> }>("/team"), updateRole: (id: number, appRole: string) => patch<{ message: string }>(`/team/${id}`, { appRole }) };

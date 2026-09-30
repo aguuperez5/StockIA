@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { customerService, priceRuleService, recognitionService, reportService, teamService, telegramService, transferService } from "./backlog";
+import { customerService, priceRuleService, recognitionService, reportService, telegramService, transferService } from "./backlog";
 
 describe("StockIA backlog services", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -20,12 +20,5 @@ describe("StockIA backlog services", () => {
     expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/telegram/4"), expect.objectContaining({ method: "PATCH" }));
     await reportService.get("2026-01-01", "2026-01-31");
     expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/reports?from=2026-01-01&to=2026-01-31"), expect.any(Object));
-    await teamService.updateRole(5, "deposito");
-    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/team/5"), expect.objectContaining({ method: "PATCH" }));
-  });
-
-  it("surfaces API errors from service calls", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "No autorizado." }), { status: 403 })));
-    await expect(teamService.list()).rejects.toMatchObject({ name: "ApiError", status: 403, message: "No autorizado." });
   });
 });
