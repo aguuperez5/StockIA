@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  LockKeyhole,
   Store,
   UserRoundPlus,
 } from "lucide-react";

@@ -280,7 +280,7 @@ export function TransfersHistoryPage() {
           </button>
         )}
       </section>
-      {error && <ErrorPanel message={error} />}
+      {error && <ErrorPanel message={error} retry={load} />}
       {loading ? (
         <LoadingPanel />
       ) : items.length ? (

@@ -3,7 +3,6 @@ import {
   Check,
   Edit3,
   Filter,
-  MapPin,
   PackageSearch,
   Plus,
   Search,

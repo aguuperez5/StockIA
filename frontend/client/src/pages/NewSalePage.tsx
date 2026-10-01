@@ -3,7 +3,6 @@ import {
   Building2,
   CheckCircle2,
   Filter,
-  Minus,
   PackagePlus,
   Plus,
   ReceiptText,
@@ -11,7 +10,6 @@ import {
   ShoppingCart,
   Sparkles,
   Store,
-  Trash2,
   Warehouse as WarehouseIcon,
   X,
 } from "lucide-react";
