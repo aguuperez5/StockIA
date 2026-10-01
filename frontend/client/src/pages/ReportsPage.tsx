@@ -221,7 +221,7 @@ export default function ReportsPage() {
                   >
                     <CartesianGrid
                       vertical={false}
-                      stroke="var(--line)"
+                      stroke="var(--line-soft)"
                       strokeDasharray="4 4"
                     />
                     <XAxis
@@ -229,13 +229,13 @@ export default function ReportsPage() {
                       tickFormatter={value => day(value)}
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "var(--muted-ink)", fontSize: 11 }}
+                      tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
                       tickMargin={10}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
+                      tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
                       tickFormatter={value =>
                         value === 0 ? "$0" : `$${Math.round(value / 1000)}k`
                       }
@@ -254,7 +254,7 @@ export default function ReportsPage() {
                     <Line
                       type="monotone"
                       dataKey="totalCents"
-                      stroke="var(--brand)"
+                      stroke="var(--chart-1)"
                       strokeWidth={2.4}
                       dot={{ r: 3 }}
                     />

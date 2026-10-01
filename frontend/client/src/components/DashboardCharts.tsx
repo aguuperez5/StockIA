@@ -87,20 +87,20 @@ export default function DashboardCharts({
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke="var(--line)"
+                  stroke="var(--line-soft)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
                   dataKey="label"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "var(--muted-ink)", fontSize: 11 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
                   tickMargin={10}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
                   tickFormatter={(value: number) =>
                     salesMode === "totalCents"
                       ? formatAxisMoney(value)
@@ -114,7 +114,7 @@ export default function DashboardCharts({
                 />
                 <Bar
                   dataKey={salesMode}
-                  fill="var(--brand)"
+                  fill="var(--chart-1)"
                   radius={[6, 6, 2, 2]}
                   maxBarSize={30}
                 />
@@ -159,14 +159,14 @@ export default function DashboardCharts({
               >
                 <CartesianGrid
                   horizontal={false}
-                  stroke="var(--line)"
+                  stroke="var(--line-soft)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
                   type="number"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
                   tickFormatter={(value: number) =>
                     inventoryMode === "valueCents"
                       ? formatAxisMoney(value)
@@ -180,7 +180,7 @@ export default function DashboardCharts({
                   width={76}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "var(--muted-ink)", fontSize: 10 }}
+                  tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
                 />
                 <Tooltip
                   cursor={{ fill: "var(--surface-hover)" }}
@@ -188,7 +188,7 @@ export default function DashboardCharts({
                 />
                 <Bar
                   dataKey={inventoryMode}
-                  fill="#6aa8a0"
+                  fill="var(--chart-2)"
                   radius={[0, 5, 5, 0]}
                   maxBarSize={20}
                 />
