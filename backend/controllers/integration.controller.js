@@ -604,6 +604,26 @@ export async function recognition(req,res){
 
     if (photo.photoData) {
       const analysis = await analyzeProductImage(photo);
+      console.info(
+        "[OCR]",
+        JSON.stringify({
+          requestId: analysis.request_id,
+          state:
+            analysis.timings_ms?.ocr === undefined
+              ? "skipped"
+              : analysis.agents?.ocr?.state,
+          texts: analysis.text_evidence.map(({ text, score }) => ({ text, score })),
+          codes: analysis.identifiers
+            .filter(item => item.source === "ocr")
+            .map(({ value, checksum_valid }) => ({
+              value,
+              checksumValid: checksum_valid,
+            })),
+          warnings: (analysis.warnings || []).filter(warning =>
+            warning.startsWith("ocr_"),
+          ),
+        }),
+      );
       const [catalog, detections] = await Promise.all([
         findRecognitionCatalogCandidates(prisma, analysis),
         buildRecognitionDetections(analysis),

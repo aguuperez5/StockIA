@@ -30,6 +30,10 @@ containing provider, status, name/brand and an attribution link. Missing names
 remain null. Provider errors and timeouts preserve the original
 readings and do not create products, prices, or stock.
 
+Each photo analysis prints `[OCR]` in the backend console with request ID,
+recognized text and scores, extracted codes/checksums, OCR state and warnings.
+Empty reads are logged as empty arrays; skipped OCR is identified explicitly.
+
 Configure `AI_SERVICE_URL`, optional `OPENFOODFACTS_BASE_URL`,
 `OPENFOODFACTS_USER_AGENT` and `OPENFOODFACTS_TIMEOUT_MS` in `backend/.env`.
 Public reads need no API key. The client uses API v3.6, requests only product
