@@ -3492,16 +3492,16 @@ button.data-table-row:hover {
 
 .register-card {
   align-self: center;
-  width: min(100% - 40px, 440px);
+  width: min(100% - 40px, 410px);
   margin: 50px auto;
-  padding: 35px;
+  padding: 32px 36px 30px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 .register-card h2 {
-  font: 650 26px/1.2 var(--font-sans);
+  font: 650 24px/1.2 var(--font-sans);
   letter-spacing: -0.02em;
   color: var(--ink-strong);
 }
@@ -3540,36 +3540,40 @@ button.data-table-row:hover {
 }
 .auth-submit {
   width: 100%;
-  min-height: 47px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 24px;
-  border: 1px solid var(--brand-strong);
-  border-radius: 11px;
-  background: linear-gradient(135deg, var(--brand-strong), var(--brand));
-  color: var(--brand-contrast);
-  font-size: 13px;
-  font-weight: 750;
-  box-shadow: var(--shadow-brand);
+  margin-top: 20px;
+  border: 1px solid color-mix(in srgb, var(--brand) 85%, black);
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: #ffffff;
+  font: 600 13.5px/1 var(--font-sans);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
   transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    filter 0.16s ease;
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .auth-submit:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 14px 28px oklch(0.565 0.145 155 / 0.3);
+  background: color-mix(in srgb, var(--brand) 90%, black);
+  box-shadow: var(--shadow-sm);
 }
 .auth-submit:active {
-  transform: scale(0.98);
+  box-shadow: none;
+}
+.auth-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .auth-divider {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 25px;
+  margin-top: 22px;
   color: var(--faint-ink);
   font-size: 11px;
 }
@@ -3582,21 +3586,27 @@ button.data-table-row:hover {
 }
 .auth-secondary {
   width: 100%;
-  min-height: 43px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   margin-top: 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--brand-soft);
-  color: var(--brand-ink);
-  font-size: 12px;
-  font-weight: 750;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 13px/1 var(--font-sans);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .auth-secondary:hover {
   background: var(--surface-hover);
+  color: var(--ink-strong);
 }
 .auth-error {
   margin-top: 17px;
@@ -3647,20 +3657,19 @@ button.data-table-row:hover {
 .auth-login-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 50% 0%, var(--brand-soft), transparent 34%),
-    var(--paper);
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--brand) 6%, transparent), transparent 45%),
+    var(--surface-sunken);
   color: var(--ink);
 }
 .auth-login-header {
-  height: 76px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 clamp(20px, 6vw, 92px);
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in oklab, var(--paper) 88%, transparent);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: blur(10px);
 }
 .auth-login-brand {
   display: inline-flex;
@@ -3671,17 +3680,17 @@ button.data-table-row:hover {
   background: transparent;
 }
 .auth-login-mark {
-  width: 35px;
-  height: 35px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--brand-soft);
   color: var(--brand-ink);
 }
 .auth-login-brand > span:last-child {
   color: var(--ink-strong);
-  font: 700 24px/1 var(--font-sans);
+  font: 700 20px/1 var(--font-sans);
   letter-spacing: -0.02em;
 }
 .auth-login-brand em {
@@ -3691,43 +3700,46 @@ button.data-table-row:hover {
 .auth-login-header-caption {
   color: var(--muted-ink);
   font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .auth-login-main {
-  min-height: calc(100vh - 76px);
+  min-height: calc(100vh - 58px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 52px 20px 70px;
+  padding: 40px 20px 60px;
 }
 .auth-login-card {
-  width: min(100%, 430px);
-  padding: 36px 40px 34px;
+  width: min(100%, 410px);
+  padding: 32px 36px 30px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 .auth-login-icon {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
-  margin-bottom: 20px;
-  border-radius: 12px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
   background: var(--brand-soft);
   color: var(--brand-ink);
 }
 .auth-login-card .eyebrow {
-  margin-bottom: 9px;
-  color: var(--brand-ink);
+  margin-bottom: 8px;
+  color: var(--muted-ink);
+  font: 600 11px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .auth-login-card h1 {
   color: var(--ink-strong);
-  font: 650 26px/1.15 var(--font-sans);
+  font: 650 24px/1.2 var(--font-sans);
   letter-spacing: -0.02em;
 }
 .auth-login-lead {
