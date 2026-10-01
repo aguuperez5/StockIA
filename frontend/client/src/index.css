@@ -1000,21 +1000,20 @@ button.warehouse-card:hover,
   display: inline-flex;
   align-items: center;
   width: max-content;
-  border-radius: 99px;
-  padding: 3px 7px;
-  font-size: 10px;
-  font-weight: 750;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font: 600 11.5px/1 var(--font-sans);
 }
 .stock-good {
-  background: var(--brand-soft);
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
   color: var(--brand-ink);
 }
 .stock-low {
-  background: var(--warning-soft);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   color: var(--warning-ink);
 }
 .stock-critical {
-  background: var(--danger-soft);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
   color: var(--danger-ink);
 }
 
@@ -1684,7 +1683,11 @@ button.modern-select-trigger:focus-visible,
    ========================================================================== */
 
 .table-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 .table-scroll {
   overflow-x: auto;
@@ -1695,23 +1698,24 @@ table {
   border-collapse: collapse;
 }
 th {
-  height: 43px;
-  padding: 0 17px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface-sunken);
-  color: var(--muted-ink);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-align: left;
+  font: 600 11px/1.2 var(--font-sans);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-ink);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 14px;
+  text-align: left;
   font-variant-numeric: tabular-nums;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 td {
-  padding: 13px 17px;
+  padding: 12px 14px;
+  font-size: 13.5px;
   border-bottom: 1px solid var(--line-soft);
   color: var(--muted-ink);
-  font-size: 12px;
   vertical-align: middle;
   font-variant-numeric: tabular-nums;
 }
@@ -1719,9 +1723,9 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 tbody tr {
-  transition: background 0.15s ease;
+  transition: background-color 0.15s ease;
 }
-tbody tr:hover {
+tbody tr:hover td {
   background: var(--surface-hover);
 }
 td b {
@@ -1787,9 +1791,8 @@ td small {
 .status-pill {
   display: inline-block;
   border-radius: 999px;
-  padding: 4px 11px;
-  font-size: 11px;
-  font-weight: 800;
+  padding: 4px 8px;
+  font: 600 11.5px/1 var(--font-sans);
 }
 .status-pill.inactive {
   background: var(--surface-sunken);
@@ -1798,9 +1801,9 @@ td small {
 
 .data-table {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
 .data-table-head {
