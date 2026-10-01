@@ -195,6 +195,9 @@ textarea {
   font: inherit;
   color: inherit;
 }
+::placeholder {
+  color: color-mix(in srgb, var(--muted-ink) 70%, transparent);
+}
 button {
   cursor: pointer;
 }
@@ -2065,12 +2068,12 @@ button.data-table-row:hover {
 .field {
   display: block;
 }
-.field > span {
+.field > span,
+.field label {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
+  font: 500 13px var(--font-sans);
 }
 .field > span i {
   color: var(--faint-ink);
@@ -2081,33 +2084,45 @@ button.data-table-row:hover {
 .field textarea {
   width: 100%;
   box-sizing: border-box;
+  min-height: 38px;
+  padding: 8px 12px;
+  font: 400 14px var(--font-sans);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 0 11px;
-  background: var(--surface);
+  box-shadow: var(--shadow-xs);
   color: var(--ink);
-  font-size: 13px;
   transition:
-    border 0.15s ease,
+    border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
-.field input,
-.field select {
-  height: 42px;
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+  border-color: color-mix(in srgb, var(--ink) 25%, var(--line));
 }
 .field textarea {
-  width: 100%;
   min-height: 96px;
-  padding: 10px 11px;
+  padding: 10px 12px;
   font-family: inherit;
   resize: vertical;
 }
 .field input:focus,
 .field select:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px var(--brand-soft);
+  box-shadow: var(--ring);
   outline: none;
+}
+.field [aria-invalid="true"],
+.field-error input,
+.field-error select,
+.field-error textarea {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent) !important;
 }
 .field select:disabled {
   background: var(--surface-sunken);
@@ -3512,8 +3527,8 @@ button.data-table-row:hover {
   position: absolute;
   top: 0;
   right: 0;
-  width: 43px;
-  height: 46px;
+  width: 40px;
+  height: 38px;
   display: grid;
   place-items: center;
   border: 0;
@@ -3729,8 +3744,9 @@ button.data-table-row:hover {
   color: var(--ink);
 }
 .auth-login-card .field input {
-  height: 46px;
-  border-radius: 10px;
+  height: 38px;
+  min-height: 38px;
+  border-radius: var(--radius-md);
 }
 .auth-login-card .auth-submit {
   margin-top: 24px;
