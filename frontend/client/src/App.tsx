@@ -40,7 +40,7 @@ function WorkspaceRoutes() {
         <Route path="/products" component={ProductsPage} />
         <Route path="/products/new">
           <RequireRole roles={["administrador"]}>
-            <ProductFormPage />
+            <Redirect to="/products?new=1" />
           </RequireRole>
         </Route>
         <Route path="/products/:id/edit">

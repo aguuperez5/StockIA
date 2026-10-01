@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  ArrowUpDown,
   Check,
   Edit3,
   Filter,
@@ -29,6 +30,15 @@ import {
 } from "@/services/inventory";
 import { transferService } from "@/services/backlog";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+
+const DEFAULT_CATEGORIES = [
+  "Almacén",
+  "Bebidas",
+  "Ferretería",
+  "Hogar",
+  "Limpieza",
+  "Válvulas",
+];
 
 const initialWarehouse = {
   name: "",
@@ -61,6 +71,10 @@ export default function StockPage() {
     ReturnType<typeof warehouseService.summary>
   > | null>(null);
   const [detailTab, setDetailTab] = useState<"products" | "sales">("products");
+  const [modalSearch, setModalSearch] = useState("");
+  const [modalCategory, setModalCategory] = useState("Todas");
+  const [modalStockFilter, setModalStockFilter] = useState("all");
+  const [modalSort, setModalSort] = useState("name_asc");
   const [productSearch, setProductSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todas");
   const [stockFilter, setStockFilter] = useState("all");
@@ -159,10 +173,13 @@ export default function StockPage() {
   };
 
   const openWarehouse = async (warehouse: Warehouse) => {
-    setWarehouseId(String(warehouse.id));
     try {
       setDetail(await warehouseService.summary(warehouse.id));
       setDetailTab("products");
+      setModalSearch("");
+      setModalCategory("Todas");
+      setModalStockFilter("all");
+      setModalSort("name_asc");
     } catch (reason) {
       toast.error((reason as Error).message);
     }
@@ -170,6 +187,11 @@ export default function StockPage() {
 
   const closeWarehouse = () => {
     setDetail(null);
+    setModalSearch("");
+    setModalCategory("Todas");
+    setModalStockFilter("all");
+    setModalSort("name_asc");
+    setWarehouseId("");
   };
 
   const startCreate = () => {
@@ -244,19 +266,20 @@ export default function StockPage() {
   const selectedWarehouse = warehouses.find(
     warehouse => String(warehouse.id) === warehouseId
   );
-  const categories = useMemo(
-    () => [
+  const categories = useMemo(() => {
+    const set = new Set<string>(DEFAULT_CATEGORIES);
+    items.forEach(item => {
+      const c = item.category?.trim();
+      if (c) set.add(c);
+    });
+    return [
       "Todas",
-      ...Array.from(
-        new Set(
-          items
-            .map(item => item.category?.trim())
-            .filter((c): c is string => Boolean(c && c.length > 0))
-        )
-      ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })),
-    ],
-    [items]
-  );
+      ...Array.from(set).sort((a, b) =>
+        a.localeCompare(b, "es", { sensitivity: "base" })
+      ),
+    ];
+  }, [items]);
+
   const filteredItems = useMemo(
     () =>
       items.filter(item => {
@@ -294,6 +317,103 @@ export default function StockPage() {
       maxQuantity,
     ]
   );
+
+  const modalCategories = useMemo(() => {
+    const set = new Set<string>(DEFAULT_CATEGORIES);
+    categories.forEach(c => {
+      if (c && c !== "Todas") set.add(c);
+    });
+    if (detail?.stock) {
+      detail.stock.forEach(item => {
+        const cat = item.category?.trim();
+        if (cat) set.add(cat);
+      });
+    }
+    const sorted = Array.from(set).sort((a, b) =>
+      a.localeCompare(b, "es", { sensitivity: "base" })
+    );
+    return [
+      { value: "Todas", label: "Todas las categorías" },
+      ...sorted.map(cat => ({ value: cat, label: cat })),
+    ];
+  }, [detail?.stock, categories]);
+
+  const stockStatusOptions = [
+    { value: "all", label: "Todo el stock" },
+    { value: "available", label: "Disponible (> mín.)" },
+    { value: "low", label: "Stock bajo / Crítico" },
+    { value: "out", label: "Sin existencias (0 u.)" },
+  ];
+
+  const sortOptions = [
+    { value: "name_asc", label: "Nombre (A - Z)" },
+    { value: "name_desc", label: "Nombre (Z - A)" },
+    { value: "stock_desc", label: "Mayor cantidad" },
+    { value: "stock_asc", label: "Menor cantidad" },
+    { value: "price_desc", label: "Mayor precio" },
+    { value: "price_asc", label: "Menor precio" },
+  ];
+
+  const filteredModalStock = useMemo(() => {
+    if (!detail?.stock) return [];
+    const list = detail.stock.filter(item => {
+      if (modalSearch.trim()) {
+        const query = modalSearch.trim().toLowerCase();
+        const matchesName = item.productName.toLowerCase().includes(query);
+        const matchesSku = item.sku.toLowerCase().includes(query);
+        const matchesCat = (item.category || "").toLowerCase().includes(query);
+        if (!matchesName && !matchesSku && !matchesCat) return false;
+      }
+      if (modalCategory !== "Todas") {
+        const cat = item.category?.trim() || "General";
+        if (cat.toLowerCase() !== modalCategory.toLowerCase()) return false;
+      }
+      const threshold = item.threshold ?? 5;
+      if (modalStockFilter === "available" && item.quantity <= threshold) {
+        return false;
+      }
+      if (
+        modalStockFilter === "low" &&
+        !(item.quantity > 0 && item.quantity <= threshold)
+      ) {
+        return false;
+      }
+      if (modalStockFilter === "out" && item.quantity > 0) {
+        return false;
+      }
+      return true;
+    });
+
+    list.sort((a, b) => {
+      switch (modalSort) {
+        case "name_desc":
+          return b.productName.localeCompare(a.productName, "es", {
+            sensitivity: "base",
+          });
+        case "stock_desc":
+          return b.quantity - a.quantity;
+        case "stock_asc":
+          return a.quantity - b.quantity;
+        case "price_desc":
+          return b.priceCents - a.priceCents;
+        case "price_asc":
+          return a.priceCents - b.priceCents;
+        case "name_asc":
+        default:
+          return a.productName.localeCompare(b.productName, "es", {
+            sensitivity: "base",
+          });
+      }
+    });
+
+    return list;
+  }, [
+    detail?.stock,
+    modalSearch,
+    modalCategory,
+    modalStockFilter,
+    modalSort,
+  ]);
   const clearStockFilters = () => {
     setProductSearch("");
     setCategoryFilter("Todas");
@@ -416,9 +536,73 @@ export default function StockPage() {
             {detailTab === "products" ? (
               <section className="table-card warehouse-full-table">
                 <div className="table-card-heading">
-                  <h3>Productos en {detail.deposit.name}</h3>
-                  <span>{detail.stock.length} artículos en lista</span>
+                  <div>
+                    <h3>Productos en {detail.deposit.name}</h3>
+                    <span>
+                      {filteredModalStock.length} de {detail.stock.length} artículo
+                      {detail.stock.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
                 </div>
+
+                <div className="warehouse-detail-filter-bar">
+                  <label className="search-control">
+                    <Search size={14} />
+                    <input
+                      value={modalSearch}
+                      onChange={e => setModalSearch(e.target.value)}
+                      placeholder="Buscar producto o SKU..."
+                      aria-label="Buscar producto en depósito"
+                    />
+                  </label>
+
+                  <ModernSelect
+                    value={modalCategory}
+                    onChange={setModalCategory}
+                    options={modalCategories}
+                    labelPrefix="Categoría:"
+                    icon={<Filter size={14} />}
+                    ariaLabel="Filtrar por categoría"
+                  />
+
+                  <ModernSelect
+                    value={modalStockFilter}
+                    onChange={setModalStockFilter}
+                    options={stockStatusOptions}
+                    labelPrefix="Estado:"
+                    icon={<PackageSearch size={14} />}
+                    ariaLabel="Filtrar por estado de stock"
+                  />
+
+                  <ModernSelect
+                    value={modalSort}
+                    onChange={setModalSort}
+                    options={sortOptions}
+                    labelPrefix="Ordenar:"
+                    icon={<ArrowUpDown size={14} />}
+                    ariaLabel="Ordenar productos"
+                  />
+
+                  {(modalSearch ||
+                    modalCategory !== "Todas" ||
+                    modalStockFilter !== "all" ||
+                    modalSort !== "name_asc") && (
+                    <button
+                      type="button"
+                      className="button-secondary filter-clear"
+                      onClick={() => {
+                        setModalSearch("");
+                        setModalCategory("Todas");
+                        setModalStockFilter("all");
+                        setModalSort("name_asc");
+                      }}
+                      title="Limpiar filtros"
+                    >
+                      <X size={14} /> Limpiar
+                    </button>
+                  )}
+                </div>
+
                 <div className="table-scroll">
                   <table>
                     <thead>
@@ -432,8 +616,8 @@ export default function StockPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detail.stock.length ? (
-                        detail.stock.map(item => (
+                      {filteredModalStock.length ? (
+                        filteredModalStock.map(item => (
                           <tr key={item.productId}>
                             <td>
                               <b>{item.productName}</b>
@@ -468,7 +652,9 @@ export default function StockPage() {
                               color: "var(--muted-ink)",
                             }}
                           >
-                            No hay productos en este depósito.
+                            {detail.stock.length
+                              ? "No se encontraron productos que coincidan con la búsqueda o filtros."
+                              : "No hay productos en este depósito."}
                           </td>
                         </tr>
                       )}
@@ -695,7 +881,10 @@ export default function StockPage() {
           <WarehouseCard
             key={warehouse.id}
             warehouse={warehouse}
-            isSelected={selectedWarehouse?.id === warehouse.id}
+            isSelected={
+              detail?.deposit.id === warehouse.id ||
+              (Boolean(warehouseId) && selectedWarehouse?.id === warehouse.id)
+            }
             canManage={canManage}
             onSelect={() => openWarehouse(warehouse)}
             onEdit={() => startEdit(warehouse)}
@@ -703,33 +892,6 @@ export default function StockPage() {
           />
         ))}
       </section>
-
-      {selectedWarehouse && (
-        <div className="stock-deposit-summary">
-          <div>
-            <span className="eyebrow">Filtro de depósito activo</span>
-            <h2>{selectedWarehouse.name}</h2>
-            <p>
-              {selectedWarehouse.address} · Responsable:{" "}
-              {selectedWarehouse.manager}
-            </p>
-          </div>
-          <div>
-            <b>{selectedWarehouse.stockTotal ?? 0}</b>
-            <span>unidades almacenadas</span>
-          </div>
-          <div>
-            <b>{selectedWarehouse.capacity || "∞"}</b>
-            <span>capacidad</span>
-          </div>
-          <button
-            className="button-secondary"
-            onClick={() => setWarehouseId("")}
-          >
-            Ver todos los depósitos
-          </button>
-        </div>
-      )}
 
       {/* Filtros de la tabla de stock */}
       <div className="stock-toolbar">

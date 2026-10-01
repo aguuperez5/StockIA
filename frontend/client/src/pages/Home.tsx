@@ -149,7 +149,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="quick-actions">
-                <button onClick={() => setLocation("/products/new")}>
+                <button onClick={() => setLocation("/products?new=1")}>
                   <span>
                     <Plus size={17} />
                   </span>

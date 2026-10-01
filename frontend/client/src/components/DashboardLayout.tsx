@@ -6,7 +6,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  PackagePlus,
   PanelLeftClose,
   PanelLeftOpen,
   ReceiptText,
@@ -26,12 +25,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 const navigation = [
   { label: "Resumen", path: "/", icon: LayoutDashboard },
   { label: "Productos", path: "/products", icon: Boxes },
-  {
-    label: "Nuevo producto",
-    path: "/products/new",
-    icon: PackagePlus,
-    roles: ["administrador"],
-  },
   { label: "Stock y depósitos", path: "/stock", icon: Warehouse },
   { label: "Nueva venta", path: "/sales/new", icon: ShoppingCart },
   { label: "Ventas", path: "/sales", icon: ReceiptText },
@@ -75,12 +68,8 @@ export default function DashboardLayout({
     item => !item.roles || item.roles.includes(user?.appRole ?? "caja")
   );
   const isItemActive = (itemPath: string) => {
-    if (itemPath === "/products/new") return location === "/products/new";
     if (itemPath === "/products")
-      return (
-        location === "/products" ||
-        (location.startsWith("/products/") && location !== "/products/new")
-      );
+      return location === "/products" || location.startsWith("/products/");
     return location === itemPath;
   };
   const active = visibleNavigation.find(item => isItemActive(item.path));

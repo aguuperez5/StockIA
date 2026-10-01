@@ -7,8 +7,9 @@ import {
   Save,
   Trash2,
   Upload,
+  Warehouse as WarehouseIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import {
@@ -18,6 +19,7 @@ import {
   PageHeader,
   SubmitButton,
 } from "@/components/StockUI";
+import { ModernSelect } from "@/components/ModernSelect";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService } from "@/services/products";
 import { priceRuleService } from "@/services/backlog";
@@ -135,9 +137,23 @@ export default function ProductFormPage() {
       .then(result => {
         cachedWarehouses = result.items;
         setWarehouses(result.items);
+        if (!editId) {
+          setForm(current => ({
+            ...current,
+            warehouseId:
+              current.warehouseId || (result.items[0]?.id ? String(result.items[0].id) : ""),
+          }));
+        }
       })
       .catch((reason: Error) => setPageError(reason.message));
-  }, []);
+  }, [editId]);
+
+  const warehouseOptions = useMemo(() => {
+    return warehouses.map(w => ({
+      value: String(w.id),
+      label: `${w.name} · ${w.type}`,
+    }));
+  }, [warehouses]);
   useEffect(() => {
     if (!editId) return;
     productService
@@ -543,8 +559,8 @@ export default function ProductFormPage() {
               <BadgeDollarSign size={18} />
             </span>
             <div>
-              <h2>Precios por cantidad</h2>
-              <p>Opcional: definí descuentos por volumen.</p>
+              <h2>Precio mayorista</h2>
+              <p>Opcional: definí precios con descuento por cantidad o volumen.</p>
             </div>
           </div>
           {priceRules.map((rule, index) => (
@@ -632,22 +648,27 @@ export default function ProductFormPage() {
                   error={errors.warehouseId}
                   className="full"
                 >
-                  <select
+                  <ModernSelect
                     value={form.warehouseId}
-                    onChange={e => update("warehouseId", e.target.value)}
-                    disabled={Number(form.initialStock) === 0}
-                  >
-                    <option value="">Seleccioná un depósito</option>
-                    {warehouses.map(warehouse => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name} · {warehouse.type}
-                      </option>
-                    ))}
-                  </select>
-                  {!warehouses.length && (
+                    onChange={value => update("warehouseId", value)}
+                    options={warehouseOptions}
+                    placeholder="Seleccioná un depósito"
+                    icon={<WarehouseIcon size={15} />}
+                    className="w-full"
+                    minWidth="100%"
+                    side="bottom"
+                    avoidCollisions={false}
+                    matchTriggerWidth={true}
+                  />
+                  {warehouses.length > 0 ? (
                     <small className="field-hint">
-                      Primero necesitás registrar un depósito para asignar stock
-                      inicial.
+                      {Number(form.initialStock) > 0
+                        ? `Se registrarán ${form.initialStock} unidades en este depósito al crear el producto.`
+                        : "Depósito asignado al producto (ingresará con 0 u. iniciales)."}
+                    </small>
+                  ) : (
+                    <small className="field-hint">
+                      Primero necesitás registrar al menos un depósito en "Stock y depósitos".
                     </small>
                   )}
                 </Field>
