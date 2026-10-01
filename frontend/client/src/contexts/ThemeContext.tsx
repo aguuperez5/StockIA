@@ -31,7 +31,8 @@ export function ThemeProvider({
     if (switchable) localStorage.setItem("stockia-theme", theme);
   }, [theme, switchable]);
 
-  const toggleTheme = () => setTheme(prev => (prev === "light" ? "dark" : "light"));
+  const toggleTheme = () =>
+    setTheme(prev => (prev === "light" ? "dark" : "light"));
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

@@ -25,7 +25,6 @@ export default defineConfig({
           react: ["react", "react-dom", "wouter"],
           charts: ["recharts"],
           ui: ["lucide-react", "sonner"],
-          query: ["@tanstack/react-query"],
         },
       },
     },

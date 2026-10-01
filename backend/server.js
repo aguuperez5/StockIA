@@ -24,5 +24,11 @@ app.use('/api/stock', requireAuth, stockRoutes);
 // que calcula totales y tramos de precio en el servidor.
 app.use('/api/sales-legacy', requireAuth, saleRoutes);
 
+// Middleware global de manejo de errores
+app.use((err, req, res, next) => {
+  const status = Number(err.status || err.statusCode) || 500;
+  res.status(status).json({ message: err.message || 'Error interno del servidor.' });
+});
+
 const PORT = Number(process.env.PORT || 3001);
 app.listen(PORT, () => console.log(`Servidor StockIA corriendo en http://localhost:${PORT}`));

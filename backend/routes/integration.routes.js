@@ -32,7 +32,7 @@ router.get('/sales/:id', requireAuth, c.getSale);
 router.get('/dashboard', requireAuth, c.dashboard);
 
 router.get('/transfers', requireAuth, c.listTransfers);
-router.post('/transfers', requireAuth, requireAppRole('administrador','deposito'), c.createTransfer);
+router.post('/transfers', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.createTransfer);
 router.get('/transfers/:id', requireAuth, c.getTransfer);
 
 router.get('/customers', requireAuth, c.listCustomers);
@@ -41,9 +41,9 @@ router.get('/customers/:id', requireAuth, c.customerDetail);
 router.put('/customers/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.updateCustomer);
 router.delete('/customers/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.deleteCustomer);
 
-router.get('/reports', requireAuth, requireAppRole('administrador'), c.reports);
-router.get('/team', requireAuth, requireAppRole('administrador'), c.team);
-router.patch('/team/:id', requireAuth, requireAppRole('administrador'), c.updateRole);
+router.get('/reports', requireAuth, requireAppRole(ROLE.ADMIN), c.reports);
+router.get('/team', requireAuth, requireAppRole(ROLE.ADMIN), c.team);
+router.patch('/team/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.updateRole);
 router.post('/recognition/analyze', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES, ROLE.WAREHOUSE), c.recognition);
 router.get('/telegram', requireAuth, c.listTelegram);
 router.post('/telegram', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.createTelegram);
