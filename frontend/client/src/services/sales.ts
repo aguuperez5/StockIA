@@ -95,12 +95,3 @@ export const saleService = {
       inventoryStatus: Array<{ label: string; value: number; color: string }>;
     }>("/dashboard"),
 };
-
-export const accountService = {
-  register: (input: {
-    fullName: string;
-    legajo: string;
-    email: string;
-    password: string;
-  }) => post<{ message: string }>("/users/register", input),
-};
