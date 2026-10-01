@@ -111,7 +111,9 @@ export default function ProductFormPage() {
         cachedCategories = cats;
         setKnownCategories(cats);
       })
-      .catch(() => undefined);
+      .catch((err: Error) => {
+        console.error("Error al cargar categorías sugeridas:", err);
+      });
   }, []);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pageError, setPageError] = useState("");
@@ -164,7 +166,9 @@ export default function ProductFormPage() {
           }))
         )
       )
-      .catch(() => undefined);
+      .catch((err: Error) => {
+        console.error("Error al cargar tramos de precio existentes:", err);
+      });
   }, [editId]);
 
   const stopCamera = () => {
@@ -315,8 +319,21 @@ export default function ProductFormPage() {
         : await productService.create(input);
       const productId: string | number =
         editId ?? ("id" in result ? Number(result.id) : 0);
-      if (productId && (editId || rules.length))
-        await priceRuleService.save(productId, rules);
+      if (productId && (editId || rules.length)) {
+        try {
+          await priceRuleService.save(productId, rules);
+        } catch (ruleErr) {
+          if (!editId) {
+            toast.warning(
+              "El producto fue creado, pero falló el guardado de tramos de precio: " +
+                (ruleErr as Error).message
+            );
+            setLocation(`/products/${productId}/edit`);
+            return;
+          }
+          throw ruleErr;
+        }
+      }
       toast.success(
         editId
           ? "Producto actualizado correctamente."

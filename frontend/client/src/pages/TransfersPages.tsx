@@ -65,7 +65,12 @@ export function TransfersHistoryPage() {
           setProducts(p.items);
         }
       })
-      .catch(() => undefined);
+      .catch((err: Error) => {
+        console.error(
+          "Error al cargar depósitos o productos para transferencias:",
+          err
+        );
+      });
     return () => {
       cancelled = true;
     };
