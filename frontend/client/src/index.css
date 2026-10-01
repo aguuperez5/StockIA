@@ -870,6 +870,7 @@ h3 {
   color: var(--ink-strong);
   font: 650 28px/1.15 var(--font-sans);
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .metric-card small {
   display: block;
@@ -975,6 +976,7 @@ h3 {
 .attention-amount strong {
   font: 650 18px/1.1 var(--font-sans);
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 .stock-badge {
@@ -1686,6 +1688,7 @@ th {
   letter-spacing: 0.09em;
   text-align: left;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 td {
   padding: 13px 17px;
@@ -1693,6 +1696,7 @@ td {
   color: var(--muted-ink);
   font-size: 12px;
   vertical-align: middle;
+  font-variant-numeric: tabular-nums;
 }
 tbody tr:last-child td {
   border-bottom: none;
@@ -1750,7 +1754,8 @@ td small {
 }
 .mono {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums;
 }
 .strong {
   font-weight: 700;
@@ -2420,6 +2425,7 @@ button.data-table-row:hover {
 .stock-number {
   color: var(--brand);
   font: 600 15px var(--font-sans);
+  font-variant-numeric: tabular-nums;
 }
 .stock-number small {
   display: inline;
@@ -2429,6 +2435,7 @@ button.data-table-row:hover {
 .stock-price {
   font-weight: 700;
   color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
 }
 .stock-progress {
   width: 96px;
@@ -3083,6 +3090,7 @@ button.data-table-row:hover {
   color: var(--ink-strong);
   font: 600 16px var(--font-sans);
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 .quantity-stepper {
   display: flex;
@@ -3105,6 +3113,7 @@ button.data-table-row:hover {
   text-align: center;
   font-size: 11px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .cart-empty {
   display: flex;
@@ -3136,6 +3145,7 @@ button.data-table-row:hover {
   margin-top: 18px;
   padding-top: 15px;
   border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
 }
 .ticket-total span {
   color: var(--muted-ink);
@@ -3145,6 +3155,7 @@ button.data-table-row:hover {
   color: var(--brand);
   font: 650 26px/1.1 var(--font-sans);
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .sale-confirm {
   width: 100%;
@@ -3205,6 +3216,7 @@ button.data-table-row:hover {
   align-items: center;
   gap: 8px;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 .status-confirmed {
   display: inline-flex;
@@ -3887,6 +3899,7 @@ button.data-table-row:hover {
 .highlight-number {
   color: var(--brand);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .empty-table-cell {
   text-align: center;
@@ -4085,9 +4098,10 @@ button.data-table-row:hover {
 
 .analysis-product-sku {
   margin-left: 8px;
-  font-size: 11px;
+  font-size: 0.92em;
   color: var(--muted-ink);
-  font-family: monospace;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-product-meta {
@@ -4101,6 +4115,7 @@ button.data-table-row:hover {
   font-weight: 700;
   font-size: 13px;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-match-evidence {
@@ -4117,6 +4132,7 @@ button.data-table-row:hover {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 99px;
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-total-stock.stock-ok {
@@ -4172,6 +4188,7 @@ button.data-table-row:hover {
   display: block;
   font-size: 11px;
   color: var(--muted-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-warehouse-pill.has-stock .warehouse-qty {
