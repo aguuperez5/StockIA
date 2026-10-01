@@ -37,8 +37,16 @@ export default function SalesHistoryPage() {
   const [warehouseId, setWarehouseId] = useState("");
   const [productId, setProductId] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [minTotal, setMinTotal] = useState("");
   const [maxTotal, setMaxTotal] = useState("");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const {
     data: salesData,
@@ -46,8 +54,8 @@ export default function SalesHistoryPage() {
     error,
     reload: load,
   } = useAsyncData(
-    () => saleService.list(from, to, warehouseId, search, productId),
-    [from, to, warehouseId, search, productId]
+    () => saleService.list(from, to, warehouseId, debouncedSearch, productId),
+    [from, to, warehouseId, debouncedSearch, productId]
   );
   const items = salesData?.items ?? [];
 
@@ -60,7 +68,12 @@ export default function SalesHistoryPage() {
           setProducts(productResult.items);
         }
       })
-      .catch(() => undefined);
+      .catch((err: Error) => {
+        console.error(
+          "Error al cargar depósitos o productos para historial de ventas:",
+          err
+        );
+      });
     return () => {
       cancelled = true;
     };
@@ -82,6 +95,7 @@ export default function SalesHistoryPage() {
     setWarehouseId("");
     setProductId("");
     setSearch("");
+    setDebouncedSearch("");
     setMinTotal("");
     setMaxTotal("");
   };
