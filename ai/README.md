@@ -22,13 +22,28 @@ Run locally from the repository root:
 
 ```powershell
 py -3.12 -m venv ai/.venv
-ai/.venv/Scripts/python -m pip install -e ai
-ai/.venv/Scripts/python -m uvicorn stockia_ai.app:app --app-dir ai/src --host 127.0.0.1 --port 8010
+ai/.venv/Scripts/python -m pip install -e "ai[ocr-local,test]"
+npm run dev:ai
 ```
 
 Set `AI_SERVICE_URL=http://127.0.0.1:8010` in `backend/.env`. For a shared secret, set the same value in backend `AI_SERVICE_TOKEN` and AI `STOCKIA_AI_SHARED_TOKEN`. Without `AI_SERVICE_URL`, photo recognition returns an honest 503; text/SKU search remains available.
 
-The core install includes FastAPI, OpenCV, Pillow, and zxing-cpp. OCR is optional: install a platform-appropriate PaddlePaddle inference engine first, then `python -m pip install -e "ai[ocr]"`. The adapter uses PaddleOCR's current `predict()` result fields and loads its model lazily; first inference can download weights. Pin engine/model versions in deployments and set `STOCKIA_OCR_ENABLED=false` to disable OCR deliberately.
+The core install includes FastAPI, OpenCV, Pillow, and zxing-cpp. The recommended local extra, `ocr-local`, installs RapidOCR with bundled ONNX models and CPU inference, without downloading weights during the first scan. The service prefers this reader when installed. PaddleOCR remains an alternative: install a platform-appropriate PaddlePaddle engine, then `python -m pip install -e "ai[ocr]"`. Its adapter uses `predict()` and may download weights on first inference. Set `STOCKIA_OCR_ENABLED=false` to disable OCR deliberately. `npm run dev:ai` reads the private `backend/.env` and maps `AI_SERVICE_TOKEN` to the AI service token.
+
+## Local scanner checks and Open Food Facts samples
+
+`npm run samples:ai` queries Open Food Facts API v3.6 without an API key, downloads three product records, and generates barcode labels with printed numbers in `ai/samples/openfoodfacts/`. `products.json` records source links and data license. Optional `--codes` and `--count` select up to six valid GTINs. Requests are paced five seconds apart; do not run simultaneous downloads/scans on the same IP because Open Food Facts allows 15 product reads/minute/IP. Failed or missing records are reported; names are never invented. The old sample folders retain their original provenance and are no longer used by the default commands.
+
+`npm run evaluate:ai` runs the real barcode and OCR readers against every manifest entry, including digits-only, a blank image and multiple codes. These synthetic checks do not establish real-photo accuracy. Express queries Open Food Facts for every distinct valid identifier within the provider limit and shows the source (bars, printed OCR number, or both), metadata/attribution, missing products and retry delays. Prices and stock remain in the local catalog.
+
+To download PNG labels with numbers below for the same products, run
+`ai/.venv/Scripts/python ai/scripts/download_barcode_labels.py` after downloading
+the product records. They are saved in
+`ai/samples/openfoodfacts/etiquetas_descargadas/`, verified with the real barcode
+reader and accompanied by a provenance manifest. The generator is bwip-js;
+Open Food Facts supplies product identifiers and metadata.
+
+The UI displays a decoded identifier even when no active product matches it. Products must have that identifier as their catalog code before they can be suggested for sale. Equivalent zero-padded UPC/EAN/GTIN values are supported. A valid unknown barcode does not fall back to an unrelated product with a similar OCR name. A short, readable barcode label is decoded before the resolution heuristic rejects it.
 
 Run the domain and API tests with `ai/.venv/Scripts/python -m pip install -e "ai[test]"` and `ai/.venv/Scripts/python -m unittest discover -s ai/tests`. See [`evaluation/README.md`](evaluation/README.md) for the evaluation gate. The existing notebook's eight synthetic cases are useful regression fixtures, not a production accuracy claim; its OCR path was stubbed.
 
@@ -47,5 +62,6 @@ Alternatively, start the barcode-capable container with `docker compose --profil
 - [PaddleOCR installation and inference engines](https://github.com/PaddlePaddle/PaddleOCR/blob/main/docs/version3.x/installation.en.md)
 - [PaddlePaddle installation guide](https://www.paddlepaddle.org.cn/documentation/docs/en/install/index_en.html)
 - [zxing-cpp Python bindings](https://github.com/zxing-cpp/zxing-cpp/blob/master/wrappers/python/README.md)
+- [RapidOCR local CPU package](https://pypi.org/project/rapidocr-onnxruntime/1.4.4/)
 - [FastAPI file uploads](https://fastapi.tiangolo.com/tutorial/request-files/)
 - [OpenAI: A practical guide to building agents](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)

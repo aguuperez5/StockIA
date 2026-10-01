@@ -4211,6 +4211,38 @@ button.data-table-row:hover {
   color: oklch(0.48 0.14 65);
 }
 
+.recognition-reading-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recognition-reading {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-sunken);
+}
+
+.recognition-reading-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.recognition-reading-header strong {
+  font-family: var(--font-mono);
+}
+
+.recognition-reading p {
+  margin: 8px 0 0;
+  color: var(--muted-ink);
+  font-size: 13px;
+}
+
 .analysis-total-stock {
   font-size: 11px;
   font-weight: 600;

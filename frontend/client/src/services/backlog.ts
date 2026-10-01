@@ -1,4 +1,37 @@
 import { get, patch, post, put, remove } from "./http";
+export type RecognitionMatchMethod =
+  "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
+export type ProductCatalogLookup = { provider: "openfoodfacts" } & (
+  | {
+      status: "found";
+      httpStatus?: number;
+      product: {
+        code: string;
+        name: string | null;
+        brand: string | null;
+        url: string;
+      };
+    }
+  | {
+      status:
+        | "not_found"
+        | "rate_limited"
+        | "timeout"
+        | "unavailable"
+        | "invalid_response";
+      httpStatus?: number;
+      retryAfterSeconds?: number;
+      product?: never;
+    }
+);
+export type RecognitionDetection = {
+  value: string;
+  sources: Array<"barcode" | "ocr">;
+  matchMethod: Exclude<RecognitionMatchMethod, "ocr_name">;
+  reviewRequired: boolean;
+  inLocalCatalog: boolean;
+  catalogLookup: ProductCatalogLookup;
+};
 export type PriceRule = {
   id?: number;
   productId?: number;
@@ -41,6 +74,13 @@ export const recognitionService = {
       simulated: boolean;
       status?: string;
       warnings?: string[];
+      identifiers?: Array<{
+        value: string;
+        source: "barcode" | "ocr";
+        checksum_valid: boolean;
+      }>;
+      agents?: Record<string, { state: string; detail: string }>;
+      detections?: RecognitionDetection[];
       items: Array<{
         id: number;
         name: string;

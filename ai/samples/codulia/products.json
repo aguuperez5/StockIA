@@ -1,0 +1,20 @@
+{
+  "downloaded_at": "2026-10-01T21:47:48.088665+00:00",
+  "note": "Codulia API: HTTP 402. Se usan ejemplos públicos si no hay suficientes resultados.",
+  "products": [
+    {
+      "barcode": "7790070410115",
+      "name": null,
+      "brand": null,
+      "source": "codulia_public_example",
+      "source_url": "https://codulia.com/"
+    },
+    {
+      "barcode": "7791337603615",
+      "name": "Yogur entero vainilla",
+      "brand": "La Serenísima",
+      "source": "codulia_public_example",
+      "source_url": "https://codulia.com/"
+    }
+  ]
+}
