@@ -20,7 +20,7 @@ api = FastAPI(title="StockIA Perception API", version=__version__)
 @api.get("/healthz")
 async def healthz():
     capabilities = pipeline.capabilities()
-    ready = all(item.state == "ready" for item in capabilities.values())
+    ready = all(item.state != "degraded" for item in capabilities.values())
     return {
         "status": "ready" if ready else "degraded",
         "version": __version__,

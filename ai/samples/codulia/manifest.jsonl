@@ -1,0 +1,14 @@
+{"sample_id": "7790070410115-claro", "image": "7790070410115-claro.png", "expected_gtins": ["7790070410115"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "clear"}
+{"sample_id": "7790070410115-girado", "image": "7790070410115-girado.png", "expected_gtins": ["7790070410115"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "rotated"}
+{"sample_id": "7790070410115-contraste", "image": "7790070410115-contraste.png", "expected_gtins": ["7790070410115"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "low_contrast"}
+{"sample_id": "7790070410115-bajo", "image": "7790070410115-bajo.png", "expected_gtins": ["7790070410115"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "short_label"}
+{"sample_id": "7790070410115-camara", "image": "7790070410115-camara.jpg", "expected_gtins": ["7790070410115"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "jpeg_camera"}
+{"sample_id": "7790070410115-solo-numeros", "image": "7790070410115-solo-numeros.png", "expected_gtins": ["7790070410115"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "ocr_only"}
+{"sample_id": "7791337603615-claro", "image": "7791337603615-claro.png", "expected_gtins": ["7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "clear"}
+{"sample_id": "7791337603615-girado", "image": "7791337603615-girado.png", "expected_gtins": ["7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "rotated"}
+{"sample_id": "7791337603615-contraste", "image": "7791337603615-contraste.png", "expected_gtins": ["7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "low_contrast"}
+{"sample_id": "7791337603615-bajo", "image": "7791337603615-bajo.png", "expected_gtins": ["7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "short_label"}
+{"sample_id": "7791337603615-camara", "image": "7791337603615-camara.jpg", "expected_gtins": ["7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "jpeg_camera"}
+{"sample_id": "7791337603615-solo-numeros", "image": "7791337603615-solo-numeros.png", "expected_gtins": ["7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "ocr_only"}
+{"sample_id": "sin-codigo", "image": "sin-codigo.png", "expected_gtins": [], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "negative"}
+{"sample_id": "varios-codigos", "image": "varios-codigos.png", "expected_gtins": ["7790070410115", "7791337603615"], "split": "regression", "source": "synthetic_from_codulia_identifier", "variant": "multiple"}

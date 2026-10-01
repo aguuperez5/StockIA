@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 import { appRole, clearSession, createSession, publicUser, setSession } from '../middleware.js';
 import { analyzeProductImage } from '../services/ai-recognition.client.js';
-import { findRecognitionCatalogCandidates, rankRecognitionProducts } from '../services/catalog-match.agent.js';
+import { canonicalGtin, findRecognitionCatalogCandidates, rankRecognitionProducts } from '../services/catalog-match.agent.js';
+import { buildRecognitionDetections } from '../services/recognition-detections.js';
 
 const moneyToCents = n => Math.round(Number(n) * 100);
 const centsToMoney = c => Number(c) / 100;
@@ -603,7 +604,12 @@ export async function recognition(req,res){
 
     if (photo.photoData) {
       const analysis = await analyzeProductImage(photo);
-      const catalog = await findRecognitionCatalogCandidates(prisma, analysis);
+      const [catalog, detections] = await Promise.all([
+        findRecognitionCatalogCandidates(prisma, analysis),
+        buildRecognitionDetections(analysis),
+      ]);
+      const items = rankRecognitionProducts(catalog);
+      const localCodes = new Set(items.map(item => canonicalGtin(item.sku)));
       return res.json({
         simulated: false,
         status: analysis.status,
@@ -611,8 +617,14 @@ export async function recognition(req,res){
         pipelineVersion: analysis.pipeline_version,
         quality: analysis.quality,
         consensus: analysis.consensus,
+        identifiers: analysis.identifiers,
+        agents: analysis.agents,
         warnings: analysis.warnings,
-        items: rankRecognitionProducts(catalog),
+        detections: detections.map(detection => ({
+          ...detection,
+          inLocalCatalog: localCodes.has(canonicalGtin(detection.value)),
+        })),
+        items,
       });
     }
 

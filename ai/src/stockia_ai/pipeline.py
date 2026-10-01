@@ -1,6 +1,6 @@
 from time import perf_counter
 
-from stockia_ai.adapters.paddle_ocr import PaddleOcrReader
+from stockia_ai.adapters.local_ocr import default_ocr_reader
 from stockia_ai.adapters.zxing_cpp import ZxingCppReader
 from stockia_ai.agents.barcode import BarcodeAgent
 from stockia_ai.agents.consensus import ConsensusAgent
@@ -27,7 +27,7 @@ class RecognitionPipeline:
         self.settings = settings or Settings.from_env()
         self.quality_agent = ImageQualityAgent(self.settings.min_image_edge)
         self.barcode_agent = BarcodeAgent(barcode_reader or ZxingCppReader())
-        self.ocr_agent = OcrAgent(ocr_reader or PaddleOcrReader(), enabled=self.settings.ocr_enabled)
+        self.ocr_agent = OcrAgent(ocr_reader or default_ocr_reader(), enabled=self.settings.ocr_enabled)
         self.consensus_agent = ConsensusAgent()
 
     def capabilities(self) -> dict[str, AgentCapability]:
@@ -39,7 +39,7 @@ class RecognitionPipeline:
             ),
             "ocr": AgentCapability(
                 state=("ready" if self.ocr_agent.available else "disabled" if not self.settings.ocr_enabled else "degraded"),
-                detail="PaddleOCR" if self.ocr_agent.available else "PaddleOCR/PaddlePaddle no disponible",
+                detail=getattr(self.ocr_agent.reader, "name", "PaddleOCR") if self.ocr_agent.available else "OCR local no disponible",
             ),
             "consensus": AgentCapability(state="ready", detail="reglas deterministas; sin escritura de inventario"),
         }
@@ -59,7 +59,13 @@ class RecognitionPipeline:
         step_started = perf_counter()
         quality = self.quality_agent.analyze(image)
         timings["quality"] = round((perf_counter() - step_started) * 1000, 2)
-        if not quality.usable:
+        # Short barcode labels can be perfectly readable despite the quality
+        # heuristic. Decode them before deciding whether to reject the image.
+        step_started = perf_counter()
+        barcode_evidence, barcode_warnings = self.barcode_agent.analyze(image)
+        timings["barcode"] = round((perf_counter() - step_started) * 1000, 2)
+        warnings.extend(barcode_warnings)
+        if not quality.usable and not any(item.checksum_valid for item in barcode_evidence):
             warnings.extend(quality.warnings)
             return AnalysisResponse(
                 request_id=request_id,
@@ -71,11 +77,6 @@ class RecognitionPipeline:
                 timings_ms=timings,
                 warnings=warnings,
             )
-
-        step_started = perf_counter()
-        barcode_evidence, barcode_warnings = self.barcode_agent.analyze(image)
-        timings["barcode"] = round((perf_counter() - step_started) * 1000, 2)
-        warnings.extend(barcode_warnings)
 
         # Always try independent OCR when configured: a valid checksum alone
         # cannot prove that a noisy barcode was decoded correctly.

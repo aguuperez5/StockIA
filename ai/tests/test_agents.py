@@ -57,6 +57,38 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(warnings, [])
         self.assertEqual(evidence[0].checksum_valid, False)
 
+    def test_matching_ocr_does_not_hide_a_second_barcode(self):
+        identifiers = [
+            IdentifierEvidence(value="7791000000109", format="EAN-13", source="barcode", checksum_valid=True),
+            IdentifierEvidence(value="7791000000116", format="EAN-13", source="barcode", checksum_valid=True),
+            IdentifierEvidence(value="7791000000109", format="EAN-13", source="ocr", checksum_valid=True),
+        ]
+        result = ConsensusAgent().analyze(identifiers)
+        self.assertEqual(result.status, "ambiguous")
+        self.assertEqual(result.candidate_values, ["7791000000109", "7791000000116"])
+
+    def test_upc_and_zero_padded_ean_are_independent_matching_reads(self):
+        result = ConsensusAgent().analyze([
+            IdentifierEvidence(value="0042100005264", format="EAN-13", source="barcode", checksum_valid=True),
+            IdentifierEvidence(value="042100005264", format="UPC-A", source="ocr", checksum_valid=True),
+        ])
+        self.assertEqual(result.status, "corroborated")
+        self.assertEqual(result.corroborated_values, ["0042100005264"])
+
+    def test_real_decoder_reads_short_labels_instead_of_rejecting_them(self):
+        from io import BytesIO
+        from PIL import Image
+        import zxingcpp
+
+        barcode = np.asarray(zxingcpp.write_barcode(zxingcpp.BarcodeFormat.EAN13, "7790070410115", width=600))
+        image = Image.fromarray(barcode).resize((barcode.shape[1], 65), Image.Resampling.NEAREST)
+        raw = BytesIO()
+        image.save(raw, format="PNG")
+        result = RecognitionPipeline(Settings(ocr_enabled=False)).analyze(raw.getvalue(), "image/png", "short-label")
+        self.assertFalse(result.quality.usable)
+        self.assertEqual(result.consensus.candidate_values, ["7790070410115"])
+        self.assertEqual(result.status, "needs_review")
+
     def test_pipeline_reconciles_independent_readers_and_returns_timings(self):
         import cv2
 

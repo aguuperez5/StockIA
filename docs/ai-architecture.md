@@ -25,12 +25,25 @@ Seller review → explicit cart action → existing server-side sale/stock valid
 
 The perception service accepts JPEG, PNG, and WebP, caps bytes and decoded pixels, checks the claimed MIME type against the image contents, and returns no image data. It does not access the database. The backend sends only the captured image, not customer identity, prices, or inventory.
 
+After image analysis, Express also queries Open Food Facts API v3.6 for each
+unique valid identifier on every scan, independently of the local catalog match.
+Only the identifier and a custom User-Agent go to Open Food Facts; no API key
+is required for public reads. The photo stays in
+the local perception path. The response/UI show barcode-only, OCR-number-only,
+or matching barcode+OCR evidence, plus Open Food Facts name/brand and an
+attribution link, or an explicit provider status. A sliding-window limiter caps
+product reads at 15/minute per backend process and honors upstream Retry-After;
+the UI shows a retry delay when limited. Missing products and timeouts preserve
+the detection. Deployments with multiple processes sharing an IP need a shared
+limiter. External
+catalog results never supply sale prices, stock, or automatic product creation.
+
 ## Specialist agents
 
 1. `ImageQualityAgent` measures resolution, brightness, and Laplacian sharpness; quality warnings are evidence, not claims that an image is good.
 2. `BarcodeAgent` delegates decoding to zxing-cpp and validates EAN-8, UPC-A, EAN-13, and GTIN-14 check digits.
-3. `OcrAgent` uses PaddleOCR's `predict()` pipeline to retain text and recognizer scores; it extracts candidate GTINs but does not trust OCR alone.
-4. `ConsensusAgent` marks matching independent reads as corroborated, conflicting reads ambiguous, and single-source reads as requiring review. It never converts a checksum into certainty.
+3. `OcrAgent` reads text through local RapidOCR/ONNX CPU models when installed, with PaddleOCR's `predict()` as an alternative adapter. It retains text and recognizer scores and extracts candidate GTINs without treating OCR alone as corroboration.
+4. `ConsensusAgent` marks matching independent reads as corroborated, conflicting or multiple reads ambiguous, and single-source reads as requiring review. It reconciles equivalent zero-padded GTIN representations. A corroborated code does not hide other codes in the image.
 5. The Node `Catalog Match Agent` resolves valid identifiers against `Product.code`, then ranks bounded OCR-name candidates. Scores describe ranking, not probability.
 
 The orchestrator is deterministic rather than an LLM-controlled multi-agent loop: this is a narrow perception workflow with known steps and safety-critical inventory writes. The OpenAI agent guide distinguishes autonomous LLM workflows from fixed workflows and recommends guardrails; StockIA keeps the fixed workflow and puts the human/backend checks at the write boundary. See the agent and library references in [`ai/README.md`](../ai/README.md).

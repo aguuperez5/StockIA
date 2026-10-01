@@ -400,10 +400,10 @@ export default function NewSalePage() {
                             >
                               {
                                 {
-                                  barcode_ocr: "Código + OCR",
+                                  barcode_ocr: "Barras + número impreso (OCR)",
                                   barcode: "Código de barras",
-                                  ocr_code: "Código leído",
-                                  ocr_name: "Nombre leído",
+                                  ocr_code: "Número impreso (OCR)",
+                                  ocr_name: "Texto del envase (OCR)",
                                 }[prod.matchMethod]
                               }
                               {prod.reviewRequired
