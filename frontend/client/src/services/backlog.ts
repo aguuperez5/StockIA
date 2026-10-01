@@ -203,5 +203,7 @@ export const reportService = {
         units: number;
         revenueCents: number;
       }>;
-    }>(`/reports?from=${from}&to=${to}`),
+    }>(
+      `/reports?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    ),
 };
