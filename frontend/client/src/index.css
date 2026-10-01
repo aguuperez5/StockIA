@@ -210,14 +210,17 @@ input,
 select {
   -webkit-tap-highlight-color: transparent;
 }
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible {
-  outline: 3px solid oklch(0.565 0.145 155 / 0.22);
+:focus-visible {
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
-  border-radius: 4px;
+}
+.nav-entry:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+.data-table-row:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 select {
   color-scheme: light;
@@ -246,8 +249,7 @@ h3 {
   color: var(--ink-strong);
 }
 ::selection {
-  background: var(--brand-soft);
-  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 25%, transparent);
 }
 
 /* Scrollbar discreto y consistente con el tema */
@@ -2589,8 +2591,8 @@ button.data-table-row:hover {
     var(--surface-sunken) 60%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.2s linear infinite;
-  border-radius: 7px;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
 }
 .skeleton-title {
   width: 28%;
@@ -2638,32 +2640,33 @@ button.data-table-row:hover {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 25px;
+  padding: 48px;
   border: 1px dashed var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface-sunken);
   text-align: center;
 }
 .empty-icon {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  margin-bottom: 13px;
-  border-radius: 16px;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-hover);
+  color: var(--muted-ink);
+  opacity: 0.6;
 }
 .empty-state h3 {
   color: var(--ink-strong);
-  font: 600 16px/1.2 var(--font-sans);
+  font: 600 15px/1.2 var(--font-sans);
   letter-spacing: -0.01em;
 }
 .empty-state p {
   max-width: 360px;
-  margin: 6px 0 17px;
+  margin: 6px 0 16px;
   color: var(--muted-ink);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .spin {
@@ -4294,4 +4297,24 @@ button.data-table-row:hover {
 
 .item-other-warehouse {
   opacity: 0.85;
+}
+
+/* Toasts (Sonner) */
+[data-sonner-toaster] [data-sonner-toast] {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
