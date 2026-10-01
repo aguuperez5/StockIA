@@ -732,44 +732,53 @@ h3 {
 
 .button-primary,
 .button-secondary {
-  min-height: 42px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font: 600 13px/1 var(--font-sans);
   transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    background 0.16s ease,
-    border-color 0.16s ease;
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .button-primary {
-  border: 1px solid var(--brand-strong);
-  background: linear-gradient(135deg, var(--brand-strong), var(--brand));
-  color: var(--brand-contrast);
-  box-shadow: var(--shadow-brand);
+  background: var(--brand);
+  color: #ffffff;
+  box-shadow: var(--shadow-xs);
+  border: 1px solid color-mix(in srgb, var(--brand) 85%, black);
 }
 .button-primary:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 14px 28px oklch(0.565 0.145 155 / 0.32);
+  background: color-mix(in srgb, var(--brand) 90%, black);
+  box-shadow: var(--shadow-sm);
+}
+.button-primary:active {
+  box-shadow: none;
+}
+.button-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .button-secondary {
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
+  box-shadow: var(--shadow-xs);
 }
 .button-secondary:hover {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-  color: var(--brand-ink);
+  background: var(--surface-hover);
+  border-color: var(--line);
+  color: var(--ink-strong);
 }
-.button-primary:active,
 .button-secondary:active {
-  transform: scale(0.97);
+  box-shadow: none;
+}
+.button-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .text-button {
   display: inline-flex;
