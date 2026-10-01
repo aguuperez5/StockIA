@@ -71,10 +71,26 @@ export async function createProductCompat(req, res) {
   let image = null;
   try { image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
   if (Number(initialStock) > 0 && !warehouseId) return res.status(400).json({ message: 'Elegí un depósito para el stock inicial.' });
+  const threshold = Math.max(0, Number(lowStockThreshold) || 0);
   try {
     const result = await prisma.$transaction(async tx => {
-      const p = await tx.product.create({ data: { name: name.trim(), code: sku.trim(), category: category.trim(), price: Number(price), lowStockThreshold: Number(lowStockThreshold) || 0, imageUrl: image } });
-      if (Number(initialStock) > 0) { const dep = await tx.deposit.findUnique({ where: { id: Number(warehouseId) } }); if (!dep) throw Object.assign(new Error('El depósito seleccionado no existe.'), { status: 400 }); await tx.stock.create({ data: { productId: p.id, depositId: dep.id, quantity: Number(initialStock) } }); await tx.stockMovement.create({ data: { productId: p.id, depositId: dep.id, quantity: Number(initialStock), reason: 'Stock inicial' } }); }
+      const p = await tx.product.create({ data: { name: name.trim(), code: sku.trim(), category: category.trim(), price: Number(price), lowStockThreshold: threshold, imageUrl: image } });
+      const deposits = await tx.deposit.findMany({ select: { id: true } });
+      if (deposits.length > 0) {
+        await tx.stock.createMany({
+          data: deposits.map(dep => ({
+            productId: p.id,
+            depositId: dep.id,
+            quantity: (dep.id === Number(warehouseId) && Number(initialStock) > 0) ? Number(initialStock) : 0
+          })),
+          skipDuplicates: true
+        });
+      }
+      if (Number(initialStock) > 0 && warehouseId) {
+        const dep = await tx.deposit.findUnique({ where: { id: Number(warehouseId) } });
+        if (!dep) throw Object.assign(new Error('El depósito seleccionado no existe.'), { status: 400 });
+        await tx.stockMovement.create({ data: { productId: p.id, depositId: dep.id, quantity: Number(initialStock), reason: 'Stock inicial' } });
+      }
       return p;
     });
     res.status(201).json({ id: result.id, message: 'Producto incorporado correctamente.' });
@@ -91,7 +107,8 @@ export async function updateProductCompat(req, res) {
     let image;
     try { if (imageUrl !== undefined) image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
     if (active !== undefined && typeof active !== 'boolean') return res.status(400).json({ message: 'El estado debe ser verdadero o falso.' });
-    const p = await prisma.product.update({ where: { id }, data: { ...(name !== undefined && { name: String(name).trim() }), ...(sku !== undefined && { code: String(sku).trim() }), ...(category !== undefined && { category: String(category).trim() }), ...(price !== undefined && { price: Number(price) }), ...(lowStockThreshold !== undefined && { lowStockThreshold: Number(lowStockThreshold) }), ...(image !== undefined && { imageUrl: image }), ...(active !== undefined && { active }) } });
+    const parsedThreshold = lowStockThreshold !== undefined ? Math.max(0, Number(lowStockThreshold) || 0) : undefined;
+    const p = await prisma.product.update({ where: { id }, data: { ...(name !== undefined && { name: String(name).trim() }), ...(sku !== undefined && { code: String(sku).trim() }), ...(category !== undefined && { category: String(category).trim() }), ...(price !== undefined && { price: Number(price) }), ...(parsedThreshold !== undefined && { lowStockThreshold: parsedThreshold }), ...(image !== undefined && { imageUrl: image }), ...(active !== undefined && { active }) } });
     res.json({ message: 'Producto actualizado correctamente.', item: serializeProduct(p) });
   } catch (e) { res.status(e.code === 'P2002' ? 409 : e.code === 'P2025' ? 404 : 400).json({ message: e.code === 'P2002' ? 'Ya existe otro producto con ese SKU.' : e.message }); }
 }
@@ -134,7 +151,21 @@ export async function updateWarehouse(req, res) {
     res.json({ message: 'Depósito actualizado correctamente.' });
   } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message }); }
 }
-export async function createWarehouse(req, res) { const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body; if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' }); if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' }); if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' } } })) return res.status(409).json({ message: 'Ya existe un depósito registrado con ese nombre.' }); const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } }); res.status(201).json({ id: d.id, message: 'Depósito registrado correctamente.' }); }
+export async function createWarehouse(req, res) {
+  const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body;
+  if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' });
+  if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' });
+  if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' } } })) return res.status(409).json({ message: 'Ya existe un depósito registrado con ese nombre.' });
+  const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } });
+  const activeProducts = await prisma.product.findMany({ where: { active: true }, select: { id: true } });
+  if (activeProducts.length > 0) {
+    await prisma.stock.createMany({
+      data: activeProducts.map(p => ({ productId: p.id, depositId: d.id, quantity: 0 })),
+      skipDuplicates: true
+    });
+  }
+  res.status(201).json({ id: d.id, message: 'Depósito registrado correctamente.' });
+}
 export async function deleteWarehouse(req, res) {
   try {
     const id = Number(req.params.id);
@@ -168,59 +199,36 @@ export async function deleteWarehouse(req, res) {
   }
 }
 export async function listInventory(req, res) {
-  const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined;
-  if (warehouseId !== undefined && !Number.isInteger(warehouseId)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
+  try {
+    const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined;
+    if (warehouseId !== undefined && !Number.isInteger(warehouseId)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
 
-  const [activeProducts, deposits] = await Promise.all([
-    prisma.product.findMany({ where: { active: true }, select: { id: true } }),
-    prisma.deposit.findMany({ where: warehouseId ? { id: warehouseId } : {}, select: { id: true } })
-  ]);
-
-  if (activeProducts.length > 0 && deposits.length > 0) {
-    const existingStocks = await prisma.stock.findMany({
+    const stocks = await prisma.stock.findMany({
       where: {
-        productId: { in: activeProducts.map(p => p.id) },
-        depositId: { in: deposits.map(d => d.id) }
+        ...(warehouseId ? { depositId: warehouseId } : {}),
+        product: { active: true }
       },
-      select: { productId: true, depositId: true }
+      include: { product: true, deposit: true },
+      orderBy: [{ product: { name: 'asc' } }, { deposit: { name: 'asc' } }]
     });
-    const existingSet = new Set(existingStocks.map(s => `${s.productId}:${s.depositId}`));
-    const toCreate = [];
-    for (const p of activeProducts) {
-      for (const d of deposits) {
-        if (!existingSet.has(`${p.id}:${d.id}`)) {
-          toCreate.push({ productId: p.id, depositId: d.id, quantity: 0 });
-        }
-      }
-    }
-    if (toCreate.length > 0) {
-      await prisma.stock.createMany({ data: toCreate, skipDuplicates: true });
-    }
+    res.json({
+      items: stocks.map(s => ({
+        inventoryId: s.id,
+        quantity: s.quantity,
+        updatedAt: s.updatedAt,
+        productId: s.productId,
+        productName: s.product.name,
+        sku: s.product.code,
+        category: s.product.category || '',
+        priceCents: moneyToCents(s.product.price),
+        lowStockThreshold: s.product.lowStockThreshold,
+        warehouseId: s.depositId,
+        warehouseName: s.deposit.name
+      }))
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos obtener el inventario.', details: e.message });
   }
-
-  const stocks = await prisma.stock.findMany({
-    where: {
-      ...(warehouseId ? { depositId: warehouseId } : {}),
-      product: { active: true }
-    },
-    include: { product: true, deposit: true },
-    orderBy: [{ product: { name: 'asc' } }, { deposit: { name: 'asc' } }]
-  });
-  res.json({
-    items: stocks.map(s => ({
-      inventoryId: s.id,
-      quantity: s.quantity,
-      updatedAt: s.updatedAt,
-      productId: s.productId,
-      productName: s.product.name,
-      sku: s.product.code,
-      category: s.product.category || '',
-      priceCents: moneyToCents(s.product.price),
-      lowStockThreshold: s.product.lowStockThreshold,
-      warehouseId: s.depositId,
-      warehouseName: s.deposit.name
-    }))
-  });
 }
 export async function updateInventory(req, res) { const id = Number(req.params.id); const quantity = Number(req.body.quantity); if (!Number.isInteger(quantity) || quantity < 0) return res.status(400).json({ message: 'La cantidad debe ser un entero mayor o igual a cero.' }); try { await prisma.$transaction(async tx => { const stock = await tx.stock.findUnique({ where: { id } }); if (!stock) throw Object.assign(new Error('Posición de inventario no encontrada.'), { status: 404 }); const delta = quantity - stock.quantity; if (delta === 0) return; await tx.stock.update({ where: { id }, data: { quantity } }); await tx.stockMovement.create({ data: { productId: stock.productId, depositId: stock.depositId, quantity: delta, reason: req.body.note || 'Ajuste manual' } }); }); res.json({ message: 'Inventario actualizado correctamente.' }); } catch (e) { res.status(e.status || 500).json({ message: e.message }); } }
 
