@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import {
@@ -56,6 +56,7 @@ export function ClientsPage() {
     user?.appRole === "administrador" || user?.appRole === "caja";
   const [items, setItems] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
+  const reqVersion = useRef(0);
   const [form, setForm] = useState({
     name: "",
     contact: "",
@@ -65,11 +66,17 @@ export function ClientsPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const load = (term = "") =>
+  const load = (term = "") => {
+    const currentVersion = ++reqVersion.current;
     customerService
       .list(term)
-      .then(r => setItems(r.items))
-      .catch(e => setError(e.message));
+      .then(r => {
+        if (currentVersion === reqVersion.current) setItems(r.items);
+      })
+      .catch(e => {
+        if (currentVersion === reqVersion.current) setError(e.message);
+      });
+  };
   useEffect(() => {
     void load();
   }, []);

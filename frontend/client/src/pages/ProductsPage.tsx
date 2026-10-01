@@ -7,7 +7,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import {
@@ -43,13 +43,14 @@ export default function ProductsPage() {
   const [stockFilter, setStockFilter] = useState("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const reqVersion = useRef(0);
   const reactivate = async (item: Product) => {
     try {
       await productService.setActive(item.id, true);
       toast.success(`"${item.name}" reactivado.`);
       load();
     } catch (reason) {
-      setError((reason as Error).message);
+      toast.error((reason as Error).message);
     }
   };
   const [error, setError] = useState("");
@@ -65,7 +66,7 @@ export default function ProductsPage() {
       setToDelete(null);
       load();
     } catch (reason) {
-      setError((reason as Error).message);
+      toast.error((reason as Error).message);
       setToDelete(null);
     } finally {
       setDeleting(false);
@@ -110,13 +111,20 @@ export default function ProductsPage() {
     setShowInactive(false);
   };
   const load = () => {
+    const currentVersion = ++reqVersion.current;
     setLoading(true);
     setError("");
     productService
       .list(search, category, showInactive)
-      .then(result => setItems(result.items))
-      .catch((reason: Error) => setError(reason.message))
-      .finally(() => setLoading(false));
+      .then(result => {
+        if (currentVersion === reqVersion.current) setItems(result.items);
+      })
+      .catch((reason: Error) => {
+        if (currentVersion === reqVersion.current) setError(reason.message);
+      })
+      .finally(() => {
+        if (currentVersion === reqVersion.current) setLoading(false);
+      });
   };
   useEffect(() => {
     const timer = window.setTimeout(load, 220);
