@@ -102,7 +102,7 @@ export default function StockPage() {
     event.preventDefault();
     if (!selected) return;
     if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0) {
-      setError("La cantidad debe ser un número entero igual o mayor a cero.");
+      toast.error("La cantidad debe ser un número entero igual o mayor a cero.");
       return;
     }
     setPending(true);
@@ -116,7 +116,7 @@ export default function StockPage() {
       load();
       toast.success("Inventario actualizado correctamente.");
     } catch (reason) {
-      setError((reason as Error).message);
+      toast.error((reason as Error).message);
     } finally {
       setPending(false);
     }
@@ -132,11 +132,11 @@ export default function StockPage() {
     if (!moving) return;
     const qty = Number(moveQty);
     if (!moveDest) {
-      setError("Elegí el depósito de destino.");
+      toast.error("Elegí el depósito de destino.");
       return;
     }
     if (!Number.isInteger(qty) || qty < 1 || qty > moving.quantity) {
-      setError(`La cantidad debe estar entre 1 y ${moving.quantity}.`);
+      toast.error(`La cantidad debe estar entre 1 y ${moving.quantity}.`);
       return;
     }
     setPending(true);
@@ -152,7 +152,7 @@ export default function StockPage() {
       setMoving(null);
       load();
     } catch (reason) {
-      setError((reason as Error).message);
+      toast.error((reason as Error).message);
     } finally {
       setPending(false);
     }
@@ -160,12 +160,11 @@ export default function StockPage() {
 
   const openWarehouse = async (warehouse: Warehouse) => {
     setWarehouseId(String(warehouse.id));
-    setError("");
     try {
       setDetail(await warehouseService.summary(warehouse.id));
       setDetailTab("products");
     } catch (reason) {
-      setError((reason as Error).message);
+      toast.error((reason as Error).message);
     }
   };
 
@@ -199,7 +198,7 @@ export default function StockPage() {
       !warehouseForm.manager.trim() ||
       warehouseForm.capacity < 0
     ) {
-      setError(
+      toast.error(
         "Completá nombre, dirección, responsable y una capacidad válida."
       );
       return;
@@ -216,7 +215,7 @@ export default function StockPage() {
       await loadWarehouses();
       load();
     } catch (reason) {
-      setError((reason as Error).message);
+      toast.error((reason as Error).message);
     } finally {
       setPending(false);
     }
@@ -236,7 +235,6 @@ export default function StockPage() {
       load();
     } catch (reason) {
       const msg = (reason as Error).message;
-      setError(msg);
       toast.error(msg);
     } finally {
       setPending(false);
