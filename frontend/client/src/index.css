@@ -1695,10 +1695,19 @@ button.modern-select-trigger:focus-visible,
 
 /* Variantes para modales y catalog-filters-row */
 .catalog-filters-row .modern-select-trigger {
-  min-height: 38px !important;
-  height: 38px !important;
-  border-radius: 10px !important;
-  font-size: 12.5px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  border-radius: 9px !important;
+  font-size: 12px !important;
+  padding: 0 10px !important;
+  gap: 6px !important;
+  max-width: 170px !important;
+  flex-shrink: 0 !important;
+}
+.catalog-filters-row .modern-select-label {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 .filter-popover-item .modern-select-trigger {
   width: 100% !important;
@@ -3000,31 +3009,52 @@ button.data-table-row:hover {
 }
 .catalog-heading {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--line);
+  flex-wrap: nowrap;
+}
+.catalog-heading-left {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 .catalog-heading h2,
+.catalog-heading-left h2 {
+  font: 700 16.5px/1.2 var(--font-sans);
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  margin: 0;
+  color: var(--ink);
+}
 .summary-head h2 {
-  font: 650 22px/1.15 var(--font-sans);
+  font: 650 20px/1.15 var(--font-sans);
   letter-spacing: -0.015em;
 }
-.catalog-heading p {
-  margin-top: 4px;
+.catalog-heading p,
+.catalog-heading-left p {
+  margin: 2px 0 0 0;
   color: var(--muted-ink);
   font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
 }
 .sale-search {
-  min-height: 38px;
-  height: 38px;
-  width: 220px;
+  min-height: 36px;
+  height: 36px;
+  width: auto;
+  min-width: 130px;
+  max-width: 210px;
+  flex: 1 1 170px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding: 0 10px;
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface);
   border: 1px solid var(--line);
   color: var(--muted-ink);
@@ -3298,10 +3328,304 @@ button.data-table-row:hover {
   font-size: 10px;
   font-weight: 700;
 }
-.camera-panel video {
-  width: 100%;
+/* PhotoCapture / Reconocimiento visual y por texto */
+.photo-capture-section {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.photo-capture-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.photo-capture-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+
+.photo-capture-headings h2 {
+  font: 700 16px/1.2 var(--font-sans);
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.photo-capture-headings p {
+  margin: 3px 0 0 0;
+  color: var(--muted-ink);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* Alert banner */
+.photo-capture-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+[data-theme="dark"] .photo-capture-alert {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.photo-capture-alert .alert-icon {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+[data-theme="dark"] .photo-capture-alert .alert-icon {
+  color: #f87171;
+}
+
+.photo-capture-alert .alert-text {
+  flex: 1 1 auto;
+  font-weight: 500;
+}
+
+.photo-capture-alert .alert-close-btn {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.photo-capture-alert .alert-close-btn:hover {
+  opacity: 1;
+}
+
+/* Camera Viewfinder */
+.camera-viewfinder-panel {
+  margin-bottom: 14px;
   border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
   background: #000;
+}
+
+.camera-viewfinder-inner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 340px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.camera-viewfinder-inner video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-viewfinder-guide {
+  position: absolute;
+  inset: 20px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+}
+
+.camera-viewfinder-guide .guide-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.camera-actions-bar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface-sunken);
+  border-top: 1px solid var(--line);
+}
+
+.camera-actions-bar .capture-btn {
+  gap: 6px;
+  font-weight: 600;
+}
+
+/* Preview Bar */
+.photo-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 9px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
+}
+
+.photo-preview-thumbnail {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 7px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.photo-preview-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-preview-meta b {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.photo-preview-meta span {
+  font-size: 11px;
+  color: var(--muted-ink);
+}
+
+.photo-preview-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 9px !important;
+  font-size: 11px !important;
+  gap: 5px !important;
+  flex-shrink: 0;
+  border-radius: 6px !important;
+}
+
+/* Controls Toolbar */
+.photo-capture-controls {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.photo-search-box {
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  min-width: 240px;
+  height: 38px;
+  padding: 3px 4px 3px 10px;
+  gap: 7px;
+  border-radius: 9px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.photo-search-box:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.photo-search-icon {
+  color: var(--muted-ink);
+  flex-shrink: 0;
+}
+
+.photo-search-box input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+  padding: 0;
+}
+
+.photo-search-box input::placeholder {
+  color: var(--muted-ink);
+  opacity: 0.85;
+}
+
+.photo-search-clear {
+  border: 0;
+  background: transparent;
+  color: var(--muted-ink);
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+.photo-search-clear:hover {
+  opacity: 1;
+  color: var(--ink);
+}
+
+.photo-analyze-btn {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  gap: 5px !important;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+}
+
+.photo-media-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.photo-action-btn {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-radius: 9px !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  cursor: pointer;
 }
 
 /* Remito de transferencia */
@@ -4293,7 +4617,20 @@ button.data-table-row:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.catalog-filters-row .catalog-clear-btn {
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 9px !important;
+  font-size: 11px !important;
+  border-radius: 9px !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
 }
 
 .active-warehouse-indicator-bar {

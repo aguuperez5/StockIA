@@ -494,7 +494,7 @@ export default function NewSalePage() {
 
             {/* SECCIÓN DE CATÁLOGO GENERAL Y FILTROS */}
             <div className="catalog-heading">
-              <div>
+              <div className="catalog-heading-left">
                 <h2>Catálogo de productos</h2>
                 <p>
                   {activeWarehouseName
@@ -538,19 +538,13 @@ export default function NewSalePage() {
                   categoryFilter !== "Todas") && (
                   <button
                     type="button"
-                    className="button-secondary"
-                    style={{
-                      minHeight: "38px",
-                      height: "38px",
-                      padding: "0 10px",
-                      fontSize: "11px",
-                      gap: "4px",
-                    }}
+                    className="button-secondary catalog-clear-btn"
                     onClick={() => {
                       setQuery("");
                       setSelectedWarehouseFilter("");
                       setCategoryFilter("Todas");
                     }}
+                    title="Limpiar filtros"
                   >
                     <X size={13} /> Limpiar
                   </button>

@@ -194,7 +194,7 @@ export default function NewTransferPage() {
         />
         <div className="form-section">
           <div className="form-section-title">
-            <div>
+            <div className="catalog-heading-left">
               <h2>Carga manual</h2>
               <p>
                 {origin
@@ -223,18 +223,12 @@ export default function NewTransferPage() {
                 {(productSearch || categoryFilter !== "Todas") && (
                   <button
                     type="button"
-                    className="button-secondary"
-                    style={{
-                      minHeight: "38px",
-                      height: "38px",
-                      padding: "0 10px",
-                      fontSize: "11px",
-                      gap: "4px",
-                    }}
+                    className="button-secondary catalog-clear-btn"
                     onClick={() => {
                       setProductSearch("");
                       setCategoryFilter("Todas");
                     }}
+                    title="Limpiar filtros"
                   >
                     <X size={13} /> Limpiar
                   </button>
