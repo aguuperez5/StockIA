@@ -82,15 +82,19 @@
   --rail-active-ink: oklch(0.28 0.09 155);
 
   /* Sombra y forma */
-  --shadow-sm: 0 1px 2px oklch(0.2 0.02 250 / 0.06);
-  --shadow:
-    0 1px 2px oklch(0.2 0.02 250 / 0.04), 0 12px 28px oklch(0.2 0.02 250 / 0.07);
-  --shadow-lg: 0 24px 60px oklch(0.2 0.02 250 / 0.16);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius: 14px;
+  --radius-lg: 14px;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 0.08), 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-md: 0 4px 12px rgb(16 24 40 / 0.08);
+  --shadow: 0 4px 12px rgb(16 24 40 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(16 24 40 / 0.12);
   --shadow-brand: 0 10px 22px oklch(0.565 0.145 155 / 0.28);
 
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 20px;
+  --ring: 0 0 0 3px color-mix(in srgb, var(--brand) 40%, transparent);
 
   /* Compat con integraciones (shadcn/radix) */
   --background: var(--paper);
@@ -103,7 +107,6 @@
   --primary-foreground: var(--brand-contrast);
   --border: var(--line);
   --input: var(--line);
-  --ring: var(--brand);
 }
 
 /* ---------- Tema oscuro: se activa con data-theme="dark" en <html> ---------- */
@@ -152,10 +155,13 @@
   --rail-active-bg: oklch(0.32 0.065 155);
   --rail-active-ink: oklch(0.9 0.08 155);
 
-  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.45);
-  --shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 16px 40px oklch(0 0 0 / 0.5);
-  --shadow-lg: 0 30px 80px oklch(0 0 0 / 0.6);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.55);
   --shadow-brand: 0 14px 30px oklch(0.7 0.135 155 / 0.22);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
 /* ==========================================================================
@@ -2052,7 +2058,7 @@ button.data-table-row:hover {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0 11px;
   background: var(--surface);
   color: var(--ink);
@@ -2088,7 +2094,7 @@ button.data-table-row:hover {
   align-items: center;
   height: 42px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .input-prefix > span {
@@ -3448,7 +3454,7 @@ button.data-table-row:hover {
   margin: 50px auto;
   padding: 35px;
   border: 1px solid var(--line);
-  border-radius: 17px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
 }
@@ -3659,7 +3665,7 @@ button.data-table-row:hover {
   width: min(100%, 430px);
   padding: 36px 40px 34px;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
 }
@@ -3735,7 +3741,7 @@ button.data-table-row:hover {
   }
   .auth-login-card {
     padding: 29px 22px 25px;
-    border-radius: 17px;
+    border-radius: var(--radius-lg);
   }
   .auth-login-card h1 {
     font-size: 28px;
