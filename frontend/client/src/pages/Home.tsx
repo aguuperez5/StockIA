@@ -7,7 +7,6 @@ import {
   ShoppingCart,
   Warehouse,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import DashboardCharts from "@/components/DashboardCharts";
 import {
@@ -17,37 +16,12 @@ import {
   money,
   StockBadge,
 } from "@/components/StockUI";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import { saleService } from "@/services/sales";
-
-type DashboardData = Awaited<ReturnType<typeof saleService.dashboard>>;
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState("");
-  const load = useCallback(() => {
-    setError("");
-    return saleService
-      .dashboard()
-      .then(setData)
-      .catch((reason: Error) => setError(reason.message));
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setError("");
-    saleService
-      .dashboard()
-      .then(res => {
-        if (!cancelled) setData(res);
-      })
-      .catch((reason: Error) => {
-        if (!cancelled) setError(reason.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data, loading, error, reload } = useAsyncData(saleService.dashboard);
 
   return (
     <>
@@ -65,8 +39,8 @@ export default function Home() {
           </button>
         }
       />
-      {!data && !error && <LoadingPanel rows={5} />}
-      {error && <ErrorPanel message={error} retry={load} />}
+      {!data && loading && !error && <LoadingPanel rows={5} />}
+      {error && <ErrorPanel message={error} retry={reload} />}
       {data && (
         <>
           <section className="metric-grid">

@@ -7,7 +7,7 @@ import {
   Store,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
   EmptyState,
@@ -23,13 +23,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { saleService, type Sale } from "@/services/sales";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { saleService } from "@/services/sales";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService, type Product } from "@/services/products";
 
 export default function SalesHistoryPage() {
   const [, setLocation] = useLocation();
-  const [items, setItems] = useState<Sale[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [from, setFrom] = useState("");
@@ -39,18 +39,17 @@ export default function SalesHistoryPage() {
   const [search, setSearch] = useState("");
   const [minTotal, setMinTotal] = useState("");
   const [maxTotal, setMaxTotal] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError("");
-    return saleService
-      .list(from, to, warehouseId, search, productId)
-      .then(result => setItems(result.items))
-      .catch((reason: Error) => setError(reason.message))
-      .finally(() => setLoading(false));
-  }, [from, to, warehouseId, search, productId]);
+  const {
+    data: salesData,
+    loading,
+    error,
+    reload: load,
+  } = useAsyncData(
+    () => saleService.list(from, to, warehouseId, search, productId),
+    [from, to, warehouseId, search, productId]
+  );
+  const items = salesData?.items ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -66,26 +65,6 @@ export default function SalesHistoryPage() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError("");
-    saleService
-      .list(from, to, warehouseId, search, productId)
-      .then(result => {
-        if (!cancelled) setItems(result.items);
-      })
-      .catch((reason: Error) => {
-        if (!cancelled) setError(reason.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [from, to, warehouseId, productId, search]);
 
   const filteredItems = useMemo(
     () =>
