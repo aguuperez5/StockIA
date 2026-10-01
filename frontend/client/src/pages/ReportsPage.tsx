@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertTriangle,
-  Boxes,
   CalendarDays,
-  DollarSign,
   Download,
   PackageCheck,
-  ShoppingBag,
   Store,
   X,
 } from "lucide-react";
@@ -20,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartEmpty } from "@/components/DashboardCharts";
+import { ReportExecutiveKpis } from "@/components/reports/ReportExecutiveKpis";
 import {
   ErrorPanel,
   LoadingPanel,
@@ -201,68 +198,7 @@ export default function ReportsPage() {
       {data && (
         <>
           {/* Métricas Ejecutivas */}
-          <div className="metric-grid decision-kpis">
-            <section className="metric-card">
-              <span className="metric-icon-bubble">
-                <DollarSign size={18} />
-              </span>
-              <div>
-                <p>Facturación total</p>
-                <h2>{money(data.sales.totalCents)}</h2>
-                <small>{data.sales.count} comprobantes cobrados</small>
-              </div>
-            </section>
-
-            <section className="metric-card">
-              <span className="metric-icon-bubble">
-                <ShoppingBag size={18} />
-              </span>
-              <div>
-                <p>Ticket promedio</p>
-                <h2>
-                  {money(
-                    data.sales.averageTicketCents ??
-                      (data.sales.count
-                        ? Math.round(data.sales.totalCents / data.sales.count)
-                        : 0)
-                  )}
-                </h2>
-                <small>Gasto medio por operación</small>
-              </div>
-            </section>
-
-            <section className="metric-card">
-              <span className="metric-icon-bubble alert-bubble">
-                <AlertTriangle size={18} />
-              </span>
-              <div>
-                <p>Unidades sugeridas para reponer</p>
-                <h2>
-                  {data.replenishment?.totalUnitsNeeded ?? data.lowStock.length}{" "}
-                  <small>un.</small>
-                </h2>
-                <small>
-                  Valor de referencia a precio de lista:{" "}
-                  {money(data.replenishment?.totalReferenceValueCents ?? 0)}
-                </small>
-              </div>
-            </section>
-
-            <section className="metric-card">
-              <span className="metric-icon-bubble warn-bubble">
-                <Boxes size={18} />
-              </span>
-              <div>
-                <p>Stock sin ventas (valor de lista)</p>
-                <h2>
-                  {money(data.stagnantStock?.totalReferenceValueCents ?? 0)}
-                </h2>
-                <small>
-                  {data.stagnantStock?.totalUnits ?? 0} unidades sin ventas
-                </small>
-              </div>
-            </section>
-          </div>
+          <ReportExecutiveKpis data={data} />
 
           {/* Gráfico de evolución de facturación */}
           <article className="chart-card chart-card-sales">

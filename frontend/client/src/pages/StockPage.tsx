@@ -21,6 +21,7 @@ import {
   StockBadge,
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
+import { WarehouseCard } from "@/components/stock/WarehouseCard";
 import {
   inventoryService,
   type InventoryItem,
@@ -694,58 +695,15 @@ export default function StockPage() {
       {/* Tarjetas de depósitos */}
       <section className="warehouse-grid stock-warehouse-grid">
         {warehouses.map(warehouse => (
-          <article
-            className={`warehouse-card ${selectedWarehouse?.id === warehouse.id ? "warehouse-card-selected" : ""}`}
+          <WarehouseCard
             key={warehouse.id}
-            onClick={() => openWarehouse(warehouse)}
-          >
-            <div className="warehouse-card-actions">
-              {canManage && (
-                <>
-                  <button
-                    className="icon-button"
-                    onClick={event => {
-                      event.stopPropagation();
-                      startEdit(warehouse);
-                    }}
-                    aria-label={`Editar ${warehouse.name}`}
-                    title="Editar depósito"
-                  >
-                    <Edit3 size={15} />
-                  </button>
-                  <button
-                    className="icon-button"
-                    onClick={event => {
-                      event.stopPropagation();
-                      setToDeleteWarehouse(warehouse);
-                    }}
-                    aria-label={`Eliminar ${warehouse.name}`}
-                    title="Eliminar depósito"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </>
-              )}
-            </div>
-            <span className="warehouse-icon">
-              <WarehouseIcon size={21} />
-            </span>
-            <div className="warehouse-heading">
-              <span className="category-tag">{warehouse.type}</span>
-              <h2>{warehouse.name}</h2>
-            </div>
-            <div className="warehouse-detail">
-              <MapPin size={16} />
-              <span>{warehouse.address || "Sin dirección"}</span>
-            </div>
-            <div className="warehouse-stats">
-              <b>{warehouse.skuCount ?? 0} SKUs</b>
-              <span>
-                {warehouse.stockTotal ?? 0} / {warehouse.capacity || "∞"}{" "}
-                unidades
-              </span>
-            </div>
-          </article>
+            warehouse={warehouse}
+            isSelected={selectedWarehouse?.id === warehouse.id}
+            canManage={canManage}
+            onSelect={() => openWarehouse(warehouse)}
+            onEdit={() => startEdit(warehouse)}
+            onDelete={() => setToDeleteWarehouse(warehouse)}
+          />
         ))}
       </section>
 
