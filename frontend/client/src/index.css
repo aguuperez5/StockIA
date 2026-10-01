@@ -827,20 +827,9 @@ h3 {
   align-items: flex-start;
   padding: 18px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow);
-}
-.metric-card::after {
-  position: absolute;
-  right: -34px;
-  bottom: -52px;
-  width: 120px;
-  height: 120px;
-  border: 1px solid oklch(0.565 0.145 155 / 0.12);
-  border-radius: 50%;
-  content: "";
-  pointer-events: none;
+  box-shadow: var(--shadow-xs);
 }
 .metric-icon {
   flex: none;
@@ -870,6 +859,7 @@ h3 {
 .card-copy {
   color: var(--muted-ink);
   font-size: 12px;
+  font-weight: 500;
 }
 .metric-card h2 {
   margin-top: 5px;
@@ -889,7 +879,8 @@ h3 {
 .ledger-card,
 .quick-card,
 .table-card,
-.warehouse-card {
+.warehouse-card,
+.chart-card {
   transition:
     box-shadow 180ms ease,
     transform 180ms ease,
@@ -899,10 +890,21 @@ h3 {
 .ledger-card:hover,
 .quick-card:hover,
 .table-card:hover,
-.warehouse-card:hover {
-  border-color: oklch(0.565 0.145 155 / 0.3);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+.warehouse-card:hover,
+.chart-card:hover {
+  border-color: color-mix(in srgb, var(--brand) 25%, var(--line));
+  box-shadow: var(--shadow-sm);
+}
+a.metric-card:hover,
+button.metric-card:hover,
+[role="button"].metric-card:hover,
+a.quick-card:hover,
+button.quick-card:hover,
+[role="button"].quick-card:hover,
+a.warehouse-card:hover,
+button.warehouse-card:hover,
+[role="button"].warehouse-card:hover {
+  transform: translateY(-1px);
 }
 
 .dashboard-grid {
@@ -917,9 +919,9 @@ h3 {
 .catalog-panel,
 .sale-summary {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-xs);
 }
 .ledger-card,
 .quick-card {
@@ -2175,9 +2177,9 @@ button.data-table-row:hover {
   min-height: 210px;
   padding: 21px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-xs);
 }
 .warehouse-card::after {
   position: absolute;
@@ -2710,9 +2712,9 @@ button.data-table-row:hover {
   min-width: 0;
   padding: 22px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-xs);
 }
 .chart-card-sales {
   grid-row: span 2;
