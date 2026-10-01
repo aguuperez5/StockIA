@@ -684,18 +684,6 @@ h3 {
 }
 
 @media (max-width: 1060px) {
-  .metric-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-  .sale-layout {
-    grid-template-columns: 1fr;
-  }
-  .sale-summary {
-    position: static;
-  }
   .page-content {
     padding: 32px 30px 50px;
   }
@@ -949,6 +937,19 @@ button.warehouse-card:hover,
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(310px, 0.65fr);
   gap: 20px;
+}
+@media (max-width: 1060px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .ledger-card,
 .quick-card,
@@ -3088,6 +3089,14 @@ button.data-table-row:hover {
   position: sticky;
   top: 18px;
   padding: 20px;
+}
+@media (max-width: 1060px) {
+  .sale-layout {
+    grid-template-columns: 1fr;
+  }
+  .sale-summary {
+    position: static;
+  }
 }
 .summary-head {
   display: flex;
