@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   DollarSign,
   Download,
-  Filter,
   Package,
   Search,
   ShoppingBag,
@@ -31,7 +30,7 @@ export interface WarehouseReportModalProps {
   warehouse: WarehouseBreakdownItem;
   from?: string;
   to?: string;
-  totalCompanySalesCents: number;
+  totalCompanySalesCents?: number;
   onClose: () => void;
 }
 
@@ -41,7 +40,6 @@ export function WarehouseReportModal({
   warehouse,
   from = "",
   to = "",
-  totalCompanySalesCents,
   onClose,
 }: WarehouseReportModalProps) {
   const [summary, setSummary] = useState<SummaryData | null>(null);

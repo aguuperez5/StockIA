@@ -1,4 +1,4 @@
-import { Plus, Search } from "lucide-react";
+import { ChevronRight, Mail, Phone, Plus, Search, User } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
@@ -52,7 +52,6 @@ function validateCustomer(form: {
 }
 
 export function ClientsPage() {
-  const [, setLocation] = useLocation();
   const { user } = useStockAuth();
   const canManageClients =
     user?.appRole === "administrador" || user?.appRole === "caja";
@@ -104,7 +103,7 @@ export function ClientsPage() {
       />
       {error && <ErrorPanel message={error} retry={() => load(search)} />}
 
-      <section className="filter-bar">
+      <section className="filter-bar client-filter-bar">
         <label className="search-control">
           <Search size={17} />
           <input
@@ -114,28 +113,62 @@ export function ClientsPage() {
             aria-label="Buscar clientes"
           />
         </label>
+        <span className="client-count-chip">
+          {items.length} {items.length === 1 ? "cliente" : "clientes"}
+        </span>
       </section>
 
       {items.length ? (
-        <div className="data-table" role="list">
+        <div className="client-list-container" role="list">
           {items.map(item => (
             <button
-              className="data-table-row client-table-row"
+              type="button"
+              className="client-card-item"
               key={item.id}
               role="listitem"
               onClick={() => setSelectedCustomerId(item.id)}
+              aria-label={`Ver detalles de ${item.name}`}
             >
-              <div className="client-row-avatar">
+              <div className="client-card-avatar">
                 <span>{item.name.slice(0, 2).toUpperCase()}</span>
               </div>
-              <div className="client-row-info">
-                <b>{item.name}</b>
-                <small>{item.contact}</small>
+
+              <div className="client-card-main">
+                <div className="client-card-title-line">
+                  <b className="client-card-name">{item.name}</b>
+                  <span className="client-id-pill">ID #{item.id}</span>
+                </div>
+                <div className="client-card-meta">
+                  <span className="client-contact-tag">
+                    <User size={12} />
+                    {item.contact}
+                  </span>
+                </div>
               </div>
-              <span className="client-row-contact">
-                {item.email || item.phone || "Sin datos de contacto adicionales"}
-              </span>
-              <span className="client-row-action-hint">Ver ficha &rarr;</span>
+
+              <div className="client-card-channels">
+                {item.email && (
+                  <span className="client-channel-item" title={item.email}>
+                    <Mail size={12} />
+                    <span>{item.email}</span>
+                  </span>
+                )}
+                {item.phone && (
+                  <span className="client-channel-item" title={item.phone}>
+                    <Phone size={12} />
+                    <span>{item.phone}</span>
+                  </span>
+                )}
+                {!item.email && !item.phone && (
+                  <span className="client-channel-empty">
+                    Sin teléfono ni email adicional
+                  </span>
+                )}
+              </div>
+
+              <div className="client-card-select-arrow" aria-hidden="true">
+                <ChevronRight size={18} />
+              </div>
             </button>
           ))}
         </div>

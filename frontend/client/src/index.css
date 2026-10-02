@@ -8342,62 +8342,122 @@ button.data-table-row:hover {
    Client Table Row & Client Modals (Detail & Create)
    ========================================================================== */
 
-/* Client Table Row */
-.client-table-row {
+/* Client Filter Bar & Count Chip */
+.client-filter-bar {
   display: flex !important;
   align-items: center !important;
-  gap: 14px !important;
-  padding: 12px 18px !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.client-count-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  color: var(--muted-ink);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Client List Container & Selectable Cards */
+.client-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.client-card-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 14px 20px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+  color: inherit !important;
+  width: 100% !important;
+  text-align: left !important;
+  cursor: pointer !important;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
 }
 
-.client-table-row:hover {
+.client-card-item:hover {
   background: var(--surface-raised) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 }
 
-.client-row-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+.client-card-item:focus-visible {
+  outline: none;
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.client-card-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   background: var(--brand-soft);
   color: var(--brand);
   display: grid;
   place-items: center;
   font-weight: 750;
-  font-size: 13px;
+  font-size: 14px;
   flex-shrink: 0;
   border: 1px solid var(--line-soft);
 }
 
-.client-row-info {
-  flex: 1.2 !important;
+.client-card-main {
+  flex: 1.2;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
-.client-row-info b {
-  font-size: 13.5px;
-  font-weight: 650;
+.client-card-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.client-card-name {
+  font-size: 14px;
+  font-weight: 700;
   color: var(--ink-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.client-row-info small {
-  font-size: 11.5px;
+.client-id-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
   color: var(--muted-ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.client-row-contact {
-  flex: 1.5 !important;
+.client-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.client-contact-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   color: var(--muted-ink);
   overflow: hidden;
@@ -8405,23 +8465,53 @@ button.data-table-row:hover {
   white-space: nowrap;
 }
 
-.client-row-action-hint {
-  flex: 0 0 auto !important;
-  font-size: 11.5px;
-  font-weight: 600;
+.client-contact-tag svg {
   color: var(--brand);
-  padding: 5px 11px;
-  border-radius: 6px;
-  background: var(--brand-soft);
   opacity: 0.85;
-  transition: all 0.15s ease;
+}
+
+.client-card-channels {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.client-channel-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.client-table-row:hover .client-row-action-hint {
-  opacity: 1;
-  background: var(--brand);
-  color: #ffffff;
+.client-channel-item svg {
+  color: var(--brand);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.client-channel-empty {
+  font-size: 12px;
+  color: var(--faint-ink);
+  font-style: italic;
+}
+
+.client-card-select-arrow {
+  flex: 0 0 auto;
+  color: var(--faint-ink);
+  display: grid;
+  place-items: center;
+  transition: all 0.18s ease;
+}
+
+.client-card-item:hover .client-card-select-arrow {
+  color: var(--brand);
+  transform: translateX(3px);
 }
 
 /* Modals Backdrops & Dialogs */
@@ -8439,13 +8529,13 @@ button.data-table-row:hover {
 }
 
 .client-detail-modal {
-  width: min(100%, 680px) !important;
-  max-height: 90vh;
+  width: min(100%, 640px) !important;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   padding: 0 !important;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
   overflow: hidden;
@@ -8453,13 +8543,13 @@ button.data-table-row:hover {
 }
 
 .client-create-modal {
-  width: min(100%, 540px) !important;
+  width: min(100%, 560px) !important;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   padding: 0 !important;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--surface);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
   overflow: hidden;
@@ -8471,8 +8561,8 @@ button.data-table-row:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 14px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-raised);
 }
@@ -8480,19 +8570,19 @@ button.data-table-row:hover {
 .client-modal-title-group {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .client-avatar-badge {
-  width: 46px;
-  height: 46px;
-  border-radius: 13px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
   display: grid;
   place-items: center;
   background: var(--brand-soft);
   color: var(--brand);
   font-weight: 750;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
   border: 1px solid var(--line-soft);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -8525,12 +8615,12 @@ button.data-table-row:hover {
 
 /* Modal Body */
 .client-modal-body {
-  padding: 22px 24px;
+  padding: 12px 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  max-height: calc(90vh - 150px);
+  gap: 10px;
+  max-height: calc(92vh - 110px);
 }
 
 .client-modal-loading {
@@ -8538,8 +8628,8 @@ button.data-table-row:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 50px 20px;
+  gap: 10px;
+  padding: 36px 20px;
   color: var(--muted-ink);
   font-size: 13px;
 }
@@ -8547,38 +8637,37 @@ button.data-table-row:hover {
 .client-view-container {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
 }
 
-/* Contact Strip */
+/* Contact Strip - Compact */
 .client-contact-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
   background: var(--surface-raised);
   border: 1px solid var(--line);
 }
 
 .client-contact-item {
   display: flex;
-  align-items: flex-start;
-  gap: 9px;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
 .client-contact-item .contact-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
   display: grid;
   place-items: center;
   color: var(--brand);
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
 .client-contact-item .contact-info {
@@ -8588,28 +8677,32 @@ button.data-table-row:hover {
 }
 
 .client-contact-item .contact-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--faint-ink);
+  line-height: 1;
+  margin-bottom: 2px;
 }
 
 .client-contact-item .contact-info b {
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: var(--ink-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .client-contact-item .contact-link {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--brand);
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .client-contact-item .contact-link:hover {
@@ -8617,33 +8710,34 @@ button.data-table-row:hover {
 }
 
 .client-contact-item .contact-empty {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted-ink);
   font-style: italic;
+  line-height: 1.2;
 }
 
-/* Metrics Grid */
+/* Metrics Grid - Compact */
 .client-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 8px;
 }
 
 .client-metric-card {
-  padding: 14px 16px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
   background: var(--surface-raised);
   border: 1px solid var(--line);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   overflow: hidden;
 }
 
 .client-metric-card .metric-icon-bg {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: var(--surface);
   border: 1px solid var(--line);
   display: grid;
@@ -8653,40 +8747,42 @@ button.data-table-row:hover {
 }
 
 .client-metric-card p {
-  font-size: 10.5px;
+  font-size: 9.5px;
   color: var(--muted-ink);
-  margin: 0 0 2px 0;
+  margin: 0 0 1px 0;
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.04em;
+  line-height: 1;
 }
 
 .client-metric-card h3 {
-  font-size: 16.5px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--ink-strong);
   margin: 0;
+  line-height: 1.2;
 }
 
 /* Tabs */
 .client-tabs-nav {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 
 .client-tab-button {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 6px 12px;
   border: none;
   background: transparent;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--muted-ink);
-  border-radius: 8px 8px 0 0;
+  border-radius: 6px 6px 0 0;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.15s ease;
@@ -8703,40 +8799,52 @@ button.data-table-row:hover {
   background: var(--brand-soft);
 }
 
-/* Tables */
+/* Tables - Compact and Fixed without scrollbar */
 .client-table-wrapper {
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--line);
-  overflow: hidden;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
   background: var(--surface);
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .client-frequent-table,
 .client-sales-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-size: 12px;
+  box-sizing: border-box !important;
 }
 
 .client-frequent-table th,
 .client-sales-table th {
-  padding: 10px 14px;
+  padding: 8px 12px !important;
   text-align: left;
-  font-size: 11px;
+  font-size: 10px !important;
   font-weight: 650;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--muted-ink);
   background: var(--surface-raised);
   border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  box-sizing: border-box !important;
 }
 
 .client-frequent-table td,
 .client-sales-table td {
-  padding: 10px 14px;
+  padding: 7px 12px !important;
   border-bottom: 1px solid var(--line-soft);
   color: var(--ink);
   vertical-align: middle;
+  box-sizing: border-box !important;
 }
 
 .client-frequent-table tr:last-child td,
@@ -8744,97 +8852,125 @@ button.data-table-row:hover {
   border-bottom: none;
 }
 
+.client-frequent-table th.text-right,
+.client-sales-table th.text-right,
+.client-frequent-table td.text-right,
+.client-sales-table td.text-right {
+  text-align: right !important;
+  padding-right: 14px !important;
+  white-space: nowrap;
+}
+
+.client-frequent-table th.text-center,
+.client-frequent-table td.text-center {
+  text-align: center !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
 .client-frequent-table .rank-cell {
-  width: 44px;
+  width: 42px;
 }
 
 .rank-pill {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--surface-raised);
   border: 1px solid var(--line);
   display: inline-grid;
   place-items: center;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 750;
   color: var(--muted-ink);
+  margin: 0 auto;
 }
 
 .product-title-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .product-title-cell b {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--ink-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .product-title-cell span {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .units-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 9px;
+  justify-content: center;
+  padding: 3px 10px;
   border-radius: 20px;
   font-size: 11.5px;
   font-weight: 650;
   background: var(--brand-soft);
   color: var(--brand-ink);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .receipt-number {
   font-family: monospace;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--ink-strong);
   font-weight: 700;
 }
 
 .sale-date {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted-ink);
 }
 
 .sale-total {
   color: var(--brand);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .client-empty-tab {
-  padding: 36px 20px;
+  padding: 22px 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--muted-ink);
 }
 
 .client-empty-tab b {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--ink-strong);
 }
 
 .client-empty-tab p {
-  font-size: 12px;
+  font-size: 11.5px;
   margin: 0;
   max-width: 320px;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 /* Edit Mode in Modal */
 .client-edit-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px;
-  border-radius: 14px;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
   background: var(--surface-raised);
   border: 1px solid var(--line);
 }
@@ -8842,40 +8978,40 @@ button.data-table-row:hover {
 .client-edit-header-bar {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .client-edit-header-bar h4 {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ink-strong);
   margin: 0;
 }
 
 .client-edit-header-bar span {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted-ink);
 }
 
 .client-edit-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .client-edit-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 /* Client Form Body (Create Modal) */
 .client-form-body {
-  padding: 22px 24px;
+  padding: 18px 22px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .client-fields-grid {
@@ -8884,12 +9020,184 @@ button.data-table-row:hover {
   gap: 14px;
 }
 
+.client-fields-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.client-create-modal .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.client-clear-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ef4444;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 1px 5px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.client-clear-link:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.client-create-modal .field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+
+.client-create-modal .field-label svg {
+  color: var(--brand);
+  opacity: 0.9;
+}
+
+.client-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.client-input-wrapper .input-field {
+  padding-right: 36px;
+}
+
+.client-field-clear-btn {
+  position: absolute;
+  right: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--muted-ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.client-field-clear-btn:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.client-create-modal .input-field {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.client-create-modal .input-field:focus {
+  border-color: var(--brand);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.client-create-modal .input-field::placeholder {
+  color: var(--faint-ink);
+  opacity: 0.75;
+}
+
+.client-create-modal .input-field-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.client-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.client-quick-chips-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--faint-ink);
+  margin-right: 2px;
+}
+
+.client-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 550;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  color: var(--muted-ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.client-chip-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.client-chip-btn.active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand);
+  font-weight: 650;
+}
+
+.chip-dismiss-icon {
+  opacity: 0.8;
+}
+
+.client-create-modal .field-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
 .client-modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px;
+  gap: 8px;
+  padding: 10px 20px;
   border-top: 1px solid var(--line);
   background: var(--surface-raised);
 }
@@ -8900,6 +9208,14 @@ button.data-table-row:hover {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+}
+
+@media (max-width: 720px) {
+  .client-contact-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
@@ -8913,12 +9229,18 @@ button.data-table-row:hover {
   .client-fields-grid {
     grid-template-columns: 1fr;
   }
-  .client-table-row {
+  .client-card-item {
     flex-wrap: wrap;
+    gap: 12px !important;
   }
-  .client-row-contact {
+  .client-card-channels {
     width: 100%;
     order: 3;
+  }
+  .client-card-select-arrow {
+    position: absolute;
+    top: 16px;
+    right: 16px;
   }
 }
 

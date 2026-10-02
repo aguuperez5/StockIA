@@ -39,7 +39,6 @@ export function NewTransferModal({
 }: NewTransferModalProps) {
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   const [origin, setOrigin] = useState("");
@@ -55,7 +54,6 @@ export function NewTransferModal({
   // Carga inicial de depósitos e inventario
   useEffect(() => {
     let cancelled = false;
-    setLoadingData(true);
     setLoadError("");
 
     Promise.all([warehouseService.list(), inventoryService.list()])
@@ -63,13 +61,11 @@ export function NewTransferModal({
         if (!cancelled) {
           setWarehouses(wRes.items);
           setInventory(iRes.items);
-          setLoadingData(false);
         }
       })
       .catch(err => {
         if (!cancelled) {
           setLoadError(err instanceof Error ? err.message : String(err));
-          setLoadingData(false);
         }
       });
 

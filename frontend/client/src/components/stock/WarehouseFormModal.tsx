@@ -1,9 +1,7 @@
 import {
-  Building2,
   Check,
   ImageIcon,
   Link as LinkIcon,
-  RotateCcw,
   Trash2,
   Upload,
   Warehouse as WarehouseIcon,

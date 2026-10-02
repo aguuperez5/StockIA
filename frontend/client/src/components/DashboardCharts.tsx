@@ -17,12 +17,9 @@ import { useLocation } from "wouter";
 import {
   AlertTriangle,
   ArrowUpRight,
-  BarChart2,
-  CheckCircle2,
   Layers,
   Sparkles,
   TrendingUp,
-  XCircle,
 } from "lucide-react";
 import { formatAxisMoney, money } from "@/components/StockUI";
 

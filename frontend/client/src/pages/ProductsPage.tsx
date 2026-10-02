@@ -8,7 +8,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -34,7 +33,6 @@ import { productService, type Product } from "@/services/products";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
 export default function ProductsPage() {
-  const [, setLocation] = useLocation();
   const { user } = useStockAuth();
   const canManage = user?.appRole === "administrador";
   const [items, setItems] = useState<Product[]>([]);

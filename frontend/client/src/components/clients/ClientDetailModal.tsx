@@ -1,8 +1,6 @@
 import {
   AlertCircle,
-  Building2,
   Calendar,
-  Check,
   Edit3,
   Mail,
   Package,
@@ -27,7 +25,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   customerService,
-  type Customer,
   type CustomerDetail,
 } from "@/services/backlog";
 
@@ -534,9 +531,14 @@ export function ClientDetailModal({
                       {data.frequent.length > 0 ? (
                         <div className="client-table-wrapper">
                           <table className="client-frequent-table">
+                            <colgroup>
+                              <col style={{ width: "42px" }} />
+                              <col style={{ width: "auto" }} />
+                              <col style={{ width: "160px" }} />
+                            </colgroup>
                             <thead>
                               <tr>
-                                <th>#</th>
+                                <th className="text-center">#</th>
                                 <th>Producto</th>
                                 <th className="text-right">Unidades compradas</th>
                               </tr>
@@ -544,7 +546,7 @@ export function ClientDetailModal({
                             <tbody>
                               {data.frequent.map((item, index) => (
                                 <tr key={item.productId}>
-                                  <td className="rank-cell">
+                                  <td className="rank-cell text-center">
                                     <span className="rank-pill">
                                       {index + 1}
                                     </span>
@@ -555,7 +557,7 @@ export function ClientDetailModal({
                                       <span>ID producto: #{item.productId}</span>
                                     </div>
                                   </td>
-                                  <td className="text-right">
+                                  <td className="text-right units-cell">
                                     <span className="units-badge">
                                       {item.units} unidad
                                       {item.units === 1 ? "" : "es"}
@@ -585,6 +587,11 @@ export function ClientDetailModal({
                       {data.sales && data.sales.length > 0 ? (
                         <div className="client-table-wrapper">
                           <table className="client-sales-table">
+                            <colgroup>
+                              <col style={{ width: "26%" }} />
+                              <col style={{ width: "46%" }} />
+                              <col style={{ width: "28%" }} />
+                            </colgroup>
                             <thead>
                               <tr>
                                 <th>Comprobante</th>
@@ -614,7 +621,7 @@ export function ClientDetailModal({
                                       )}
                                     </span>
                                   </td>
-                                  <td className="text-right">
+                                  <td className="text-right sale-total-cell">
                                     <b className="sale-total">
                                       {new Intl.NumberFormat("es-AR", {
                                         style: "currency",

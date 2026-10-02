@@ -33,7 +33,6 @@ import { TransferDetailModal } from "@/components/transfers/TransferDetailModal"
 import { NewTransferModal } from "@/components/transfers/NewTransferModal";
 
 export function TransfersHistoryPage() {
-  const [, setLocation] = useLocation();
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [isNewTransferOpen, setIsNewTransferOpen] = useState(false);
   const [items, setItems] = useState<Transfer[]>([]);
