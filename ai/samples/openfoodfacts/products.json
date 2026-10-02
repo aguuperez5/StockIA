@@ -1,0 +1,30 @@
+{
+  "downloaded_at": "2026-10-01T23:00:10.257901+00:00",
+  "license": "ODbL 1.0 / Database Contents License",
+  "products": [
+    {
+      "barcode": "3017620422003",
+      "name": "Nutella",
+      "brand": "Nutella, Ferrero",
+      "source": "openfoodfacts_api",
+      "source_url": "https://world.openfoodfacts.org/api/v3.6/product/3017620422003.json?fields=code%2Cproduct_name%2Cproduct_name_es%2Cproduct_name_en%2Cbrands&lc=es",
+      "product_url": "https://world.openfoodfacts.org/product/3017620422003"
+    },
+    {
+      "barcode": "5449000000996",
+      "name": "Coca-Cola Original",
+      "brand": "COCA-COLA SERVICES SA/NV",
+      "source": "openfoodfacts_api",
+      "source_url": "https://world.openfoodfacts.org/api/v3.6/product/5449000000996.json?fields=code%2Cproduct_name%2Cproduct_name_es%2Cproduct_name_en%2Cbrands&lc=es",
+      "product_url": "https://world.openfoodfacts.org/product/5449000000996"
+    },
+    {
+      "barcode": "3274080005003",
+      "name": "isabelle",
+      "brand": "Cristaline",
+      "source": "openfoodfacts_api",
+      "source_url": "https://world.openfoodfacts.org/api/v3.6/product/3274080005003.json?fields=code%2Cproduct_name%2Cproduct_name_es%2Cproduct_name_en%2Cbrands&lc=es",
+      "product_url": "https://world.openfoodfacts.org/product/3274080005003"
+    }
+  ]
+}

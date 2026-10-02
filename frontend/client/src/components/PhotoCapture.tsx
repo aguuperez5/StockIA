@@ -9,7 +9,12 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { recognitionService } from "@/services/backlog";
+import {
+  recognitionService,
+  type RecognitionDetection,
+} from "@/services/backlog";
+import { recognitionFeedback } from "@/lib/recognitionFeedback";
+import RecognitionReadings from "./RecognitionReadings";
 
 export type DetectedProduct = {
   id: number;
@@ -37,6 +42,12 @@ export default function PhotoCapture({
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [detections, setDetections] = useState<RecognitionDetection[]>([]);
+  const evidenceRef = useRef<{ data: string; mimeType: string } | undefined>(
+    undefined
+  );
+  const requestRef = useRef(0);
   const [cameraOpen, setCameraOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -72,7 +83,11 @@ export default function PhotoCapture({
     }
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       });
       setCameraOpen(true);
@@ -97,6 +112,7 @@ export default function PhotoCapture({
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return;
     const data = toEvidencePhoto(video, video.videoWidth, video.videoHeight);
+    evidenceRef.current = { data, mimeType: "image/jpeg" };
     setPreview(data);
     onPhoto?.(data, "image/jpeg");
     closeCamera();
@@ -106,7 +122,15 @@ export default function PhotoCapture({
   const clearPhoto = () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     previewUrlRef.current = "";
+    requestRef.current += 1;
+    evidenceRef.current = undefined;
+    setPending(false);
+    setFeedback("");
+    setDetections([]);
+    setError("");
+    onDetected([]);
     setPreview("");
+    setQuery("");
     onPhoto?.("", "image/jpeg");
   };
 
@@ -115,21 +139,30 @@ export default function PhotoCapture({
     photo?: { data: string; mimeType: string }
   ) => {
     const trimmed = value.trim();
+    photo ??= trimmed ? undefined : evidenceRef.current;
     if (!trimmed && !photo) {
       setError(
         "Para analizar, tomá una foto, subí una imagen o ingresá un nombre o SKU."
       );
       return;
     }
+    const request = ++requestRef.current;
     setPending(true);
     setError("");
+    setFeedback("");
+    setDetections([]);
     try {
       const result = await recognitionService.analyze(trimmed, photo);
+      if (request !== requestRef.current) return;
       onDetected(result.items);
+      setDetections(result.detections ?? []);
+      setFeedback(recognitionFeedback(result));
     } catch (e) {
+      if (request !== requestRef.current) return;
+      onDetected([]);
       setError((e as Error).message);
     } finally {
-      setPending(false);
+      if (request === requestRef.current) setPending(false);
     }
   };
 
@@ -153,6 +186,7 @@ export default function PhotoCapture({
         image.naturalWidth,
         image.naturalHeight
       );
+      evidenceRef.current = { data, mimeType: "image/jpeg" };
       onPhoto?.(data, "image/jpeg");
       void analyze("", { data, mimeType: "image/jpeg" });
     };
@@ -187,6 +221,18 @@ export default function PhotoCapture({
           >
             <X size={13} />
           </button>
+        </div>
+      )}
+
+      {feedback && !detections.length && (
+        <p role="status" className="photo-capture-feedback">
+          {feedback}
+        </p>
+      )}
+
+      {detections.length > 0 && (
+        <div style={{ marginBottom: "14px" }}>
+          <RecognitionReadings detections={detections} />
         </div>
       )}
 

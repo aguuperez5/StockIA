@@ -6,6 +6,7 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: projectRoot,
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": path.resolve(projectRoot, "client", "src"),

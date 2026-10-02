@@ -1,5 +1,19 @@
 const MIN_NAME_MATCH_SCORE = 0.28;
 
+// UPC-A, EAN-13 and padded GTIN-14 can identify the same retail item.
+export function canonicalGtin(value) {
+  const code = String(value);
+  return /^\d{8}$|^\d{12,14}$/.test(code) ? code.padStart(14, "0") : code;
+}
+
+function catalogCodeVariants(value) {
+  const canonical = canonicalGtin(value);
+  if (!/^\d{14}$/.test(canonical)) return [String(value)];
+  return [8, 12, 13, 14]
+    .filter(length => /^0*$/.test(canonical.slice(0, 14 - length)))
+    .map(length => canonical.slice(-length));
+}
+
 export function normalizeCatalogText(value) {
   return String(value || "")
     .normalize("NFD")
@@ -44,7 +58,7 @@ export async function findRecognitionCatalogCandidates(prisma, analysis) {
   const validCodes = [...new Set(
     (analysis.identifiers || [])
       .filter(item => item.checksum_valid)
-      .map(item => String(item.value)),
+      .flatMap(item => catalogCodeVariants(item.value)),
   )];
   const evidenceLines = (analysis.text_evidence || [])
     .map(item => String(item.text || "").trim())
@@ -79,19 +93,20 @@ export async function findRecognitionCatalogCandidates(prisma, analysis) {
 }
 
 export function rankRecognitionProducts({ products, validCodes, evidenceLines, analysis }) {
-  const corroborated = new Set(analysis.consensus?.corroborated_values || []);
+  const corroborated = new Set((analysis.consensus?.corroborated_values || []).map(canonicalGtin));
   const codeEvidence = new Map();
   for (const evidence of analysis.identifiers || []) {
     if (!evidence.checksum_valid) continue;
-    const sources = codeEvidence.get(evidence.value) || new Set();
+    const key = canonicalGtin(evidence.value);
+    const sources = codeEvidence.get(key) || new Set();
     sources.add(evidence.source);
-    codeEvidence.set(evidence.value, sources);
+    codeEvidence.set(key, sources);
   }
 
   const ranked = products.map(product => {
     const exactCode = validCodes.includes(String(product.code));
     const score = exactCode ? 1 : scoreCatalogName(product.name, evidenceLines);
-    const sources = codeEvidence.get(String(product.code)) || new Set();
+    const sources = codeEvidence.get(canonicalGtin(product.code)) || new Set();
     const matchMethod = exactCode
       ? sources.size > 1 ? "barcode_ocr" : sources.has("barcode") ? "barcode" : "ocr_code"
       : "ocr_name";
@@ -100,9 +115,9 @@ export function rankRecognitionProducts({ products, validCodes, evidenceLines, a
       score,
       exactCode,
       matchMethod,
-      reviewRequired: !corroborated.has(String(product.code)) || analysis.status === "ambiguous" || !exactCode,
+      reviewRequired: !corroborated.has(canonicalGtin(product.code)) || analysis.status === "ambiguous" || !exactCode,
     };
-  }).filter(match => match.exactCode || match.score >= MIN_NAME_MATCH_SCORE);
+  }).filter(match => match.exactCode || (!validCodes.length && match.score >= MIN_NAME_MATCH_SCORE));
 
   ranked.sort((left, right) => Number(right.exactCode) - Number(left.exactCode) || right.score - left.score);
   return ranked.slice(0, 8).map(({ product, score, matchMethod, reviewRequired }) => ({

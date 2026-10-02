@@ -6,24 +6,26 @@ class ConsensusAgent:
 
     def analyze(self, identifiers: list[IdentifierEvidence]) -> Consensus:
         barcodes = {
-            item.value for item in identifiers
+            item.value.zfill(14): item.value for item in identifiers
             if item.source == "barcode" and item.checksum_valid
         }
         ocr_codes = {
-            item.value for item in identifiers
+            item.value.zfill(14): item.value for item in identifiers
             if item.source == "ocr" and item.checksum_valid
         }
-        shared = sorted(barcodes & ocr_codes)
+        # Different zero-padded representations of a GTIN are equivalent.
+        values = {**ocr_codes, **barcodes}
+        shared = sorted(values[key] for key in barcodes.keys() & ocr_codes.keys())
 
-        if shared:
+        if len(values) > 1:
+            status = "ambiguous"
+            candidates = sorted(values.values())
+        elif shared:
             status = "corroborated"
             candidates = shared
-        elif len(barcodes) > 1 or len(ocr_codes) > 1 or (barcodes and ocr_codes):
-            status = "ambiguous"
-            candidates = sorted(barcodes | ocr_codes)
         elif barcodes or ocr_codes:
             status = "needs_review"
-            candidates = sorted(barcodes | ocr_codes)
+            candidates = sorted(values.values())
         else:
             status = "no_detection"
             candidates = []

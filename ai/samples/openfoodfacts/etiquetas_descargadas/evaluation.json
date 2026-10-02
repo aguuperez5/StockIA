@@ -1,0 +1,65 @@
+{
+  "pipeline_version": "0.1.0",
+  "agents": {
+    "image_quality": {
+      "state": "ready",
+      "detail": "OpenCV"
+    },
+    "barcode": {
+      "state": "ready",
+      "detail": "zxing-cpp"
+    },
+    "ocr": {
+      "state": "ready",
+      "detail": "RapidOCR / ONNX Runtime CPU"
+    },
+    "consensus": {
+      "state": "ready",
+      "detail": "reglas deterministas; sin escritura de inventario"
+    }
+  },
+  "passed": 3,
+  "total": 3,
+  "results": [
+    {
+      "image": "3017620422003.png",
+      "expected": [
+        "3017620422003"
+      ],
+      "actual": [
+        "3017620422003"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 892.37,
+      "warnings": []
+    },
+    {
+      "image": "5449000000996.png",
+      "expected": [
+        "5449000000996"
+      ],
+      "actual": [
+        "5449000000996"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 269.22,
+      "warnings": []
+    },
+    {
+      "image": "3274080005003.png",
+      "expected": [
+        "3274080005003"
+      ],
+      "actual": [
+        "3274080005003"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 251.57,
+      "warnings": []
+    }
+  ],
+  "scope": "Synthetic regression fixtures; not a real-world accuracy estimate."
+}

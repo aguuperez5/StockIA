@@ -1,0 +1,223 @@
+{
+  "pipeline_version": "0.1.0",
+  "agents": {
+    "image_quality": {
+      "state": "ready",
+      "detail": "OpenCV"
+    },
+    "barcode": {
+      "state": "ready",
+      "detail": "zxing-cpp"
+    },
+    "ocr": {
+      "state": "ready",
+      "detail": "RapidOCR / ONNX Runtime CPU"
+    },
+    "consensus": {
+      "state": "ready",
+      "detail": "reglas deterministas; sin escritura de inventario"
+    }
+  },
+  "passed": 14,
+  "total": 14,
+  "results": [
+    {
+      "image": "7790070410115-claro.png",
+      "expected": [
+        "7790070410115"
+      ],
+      "actual": [
+        "7790070410115"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 3374.06,
+      "warnings": []
+    },
+    {
+      "image": "7790070410115-girado.png",
+      "expected": [
+        "7790070410115"
+      ],
+      "actual": [
+        "7790070410115"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 1128.87,
+      "warnings": []
+    },
+    {
+      "image": "7790070410115-contraste.png",
+      "expected": [
+        "7790070410115"
+      ],
+      "actual": [
+        "7790070410115"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 971.99,
+      "warnings": []
+    },
+    {
+      "image": "7790070410115-bajo.png",
+      "expected": [
+        "7790070410115"
+      ],
+      "actual": [
+        "7790070410115"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 2256.86,
+      "warnings": [
+        "identifier_not_independently_corroborated",
+        "low_resolution"
+      ]
+    },
+    {
+      "image": "7790070410115-camara.jpg",
+      "expected": [
+        "7790070410115"
+      ],
+      "actual": [
+        "7790070410115"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 1590.09,
+      "warnings": []
+    },
+    {
+      "image": "7790070410115-solo-numeros.png",
+      "expected": [
+        "7790070410115"
+      ],
+      "actual": [
+        "7790070410115"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 2494.44,
+      "warnings": [
+        "identifier_not_independently_corroborated",
+        "overexposed"
+      ]
+    },
+    {
+      "image": "7791337603615-claro.png",
+      "expected": [
+        "7791337603615"
+      ],
+      "actual": [
+        "7791337603615"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 1512.12,
+      "warnings": []
+    },
+    {
+      "image": "7791337603615-girado.png",
+      "expected": [
+        "7791337603615"
+      ],
+      "actual": [
+        "7791337603615"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 817.04,
+      "warnings": []
+    },
+    {
+      "image": "7791337603615-contraste.png",
+      "expected": [
+        "7791337603615"
+      ],
+      "actual": [
+        "7791337603615"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 1056.35,
+      "warnings": []
+    },
+    {
+      "image": "7791337603615-bajo.png",
+      "expected": [
+        "7791337603615"
+      ],
+      "actual": [
+        "7791337603615"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 1250.46,
+      "warnings": [
+        "identifier_not_independently_corroborated",
+        "low_resolution"
+      ]
+    },
+    {
+      "image": "7791337603615-camara.jpg",
+      "expected": [
+        "7791337603615"
+      ],
+      "actual": [
+        "7791337603615"
+      ],
+      "status": "corroborated",
+      "passed": true,
+      "elapsed_ms": 1494.62,
+      "warnings": []
+    },
+    {
+      "image": "7791337603615-solo-numeros.png",
+      "expected": [
+        "7791337603615"
+      ],
+      "actual": [
+        "7791337603615"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 1681.0,
+      "warnings": [
+        "identifier_not_independently_corroborated",
+        "overexposed"
+      ]
+    },
+    {
+      "image": "sin-codigo.png",
+      "expected": [],
+      "actual": [],
+      "status": "no_detection",
+      "passed": true,
+      "elapsed_ms": 1346.3,
+      "warnings": [
+        "overexposed",
+        "possible_blur"
+      ]
+    },
+    {
+      "image": "varios-codigos.png",
+      "expected": [
+        "7790070410115",
+        "7791337603615"
+      ],
+      "actual": [
+        "7790070410115",
+        "7791337603615"
+      ],
+      "status": "ambiguous",
+      "passed": true,
+      "elapsed_ms": 1255.55,
+      "warnings": [
+        "conflicting_or_multiple_identifiers"
+      ]
+    }
+  ],
+  "scope": "Synthetic regression fixtures; not a real-world accuracy estimate."
+}

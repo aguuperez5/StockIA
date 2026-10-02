@@ -3579,6 +3579,17 @@ button.data-table-row:hover {
   opacity: 1;
 }
 
+.photo-capture-feedback {
+  margin: 0 0 12px 0;
+  padding: 9px 13px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* Camera Viewfinder */
 .camera-viewfinder-panel {
   margin-bottom: 14px;
@@ -4693,6 +4704,38 @@ button.data-table-row:hover {
 
 .analysis-match-evidence.needs-review {
   color: oklch(0.48 0.14 65);
+}
+
+.recognition-reading-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recognition-reading {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-sunken);
+}
+
+.recognition-reading-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.recognition-reading-header strong {
+  font-family: var(--font-mono);
+}
+
+.recognition-reading p {
+  margin: 8px 0 0;
+  color: var(--muted-ink);
+  font-size: 13px;
 }
 
 .analysis-total-stock {
