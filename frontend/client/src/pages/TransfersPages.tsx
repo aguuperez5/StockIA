@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import {
   ArrowLeft,
+  ArrowRight,
+  Boxes,
   CalendarDays,
+  Eye,
+  FileText,
   Plus,
   SlidersHorizontal,
+  Store as StoreIcon,
+  Warehouse as WarehouseIcon,
   X,
 } from "lucide-react";
 import {
@@ -23,9 +29,13 @@ import { ModernSelect } from "@/components/ModernSelect";
 import { transferService, type Transfer } from "@/services/backlog";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService, type Product } from "@/services/products";
+import { TransferDetailModal } from "@/components/transfers/TransferDetailModal";
+import { NewTransferModal } from "@/components/transfers/NewTransferModal";
 
 export function TransfersHistoryPage() {
   const [, setLocation] = useLocation();
+  const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
+  const [isNewTransferOpen, setIsNewTransferOpen] = useState(false);
   const [items, setItems] = useState<Transfer[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -74,6 +84,18 @@ export function TransfersHistoryPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      (window.location.search.includes("new=1") ||
+        window.location.search.includes("new=true"))
+    ) {
+      setIsNewTransferOpen(true);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
   }, []);
 
   useEffect(() => {
@@ -147,7 +169,7 @@ export function TransfersHistoryPage() {
         action={
           <button
             className="button-primary"
-            onClick={() => setLocation("/transfers/new")}
+            onClick={() => setIsNewTransferOpen(true)}
           >
             <Plus size={16} />
             Nueva transferencia
@@ -289,32 +311,131 @@ export function TransfersHistoryPage() {
       {loading ? (
         <LoadingPanel />
       ) : items.length ? (
-        <div className="data-table">
-          <div className="data-table-head">
-            <span>Remito</span>
-            <span>Origen</span>
-            <span>Estado</span>
-            <span>Fecha</span>
+        <div className="table-card transfers-table-card">
+          <div className="table-scroll">
+            <table className="transfers-table">
+              <thead>
+                <tr>
+                  <th style={{ minWidth: "120px" }}>Remito</th>
+                  <th style={{ minWidth: "160px" }}>Origen</th>
+                  <th style={{ width: "24px", textAlign: "center", padding: "10px 2px" }}></th>
+                  <th style={{ minWidth: "160px" }}>Destino</th>
+                  <th style={{ minWidth: "140px" }}>Mercadería movida</th>
+                  <th style={{ minWidth: "110px" }}>Estado</th>
+                  <th style={{ minWidth: "140px" }}>Fecha</th>
+                  <th style={{ textAlign: "right", minWidth: "110px" }}>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(item => (
+                  <tr
+                    key={item.id}
+                    className="clickable-transfer-row"
+                    onClick={() => setSelectedTransfer(item)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedTransfer(item);
+                      }
+                    }}
+                  >
+                    <td>
+                      <div className="transfer-receipt-cell">
+                        <FileText size={15} className="receipt-icon" />
+                        <b className="receipt-number">{item.receiptNumber}</b>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="transfer-point-cell origin">
+                        <StoreIcon size={14} className="point-icon origin" />
+                        <span className="point-name">
+                          {item.originName ?? `Depósito ${item.originWarehouseId}`}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ textAlign: "center", padding: "0 2px" }}>
+                      <ArrowRight size={13} className="route-arrow-icon" />
+                    </td>
+                    <td>
+                      <div className="transfer-point-cell destination">
+                        <WarehouseIcon size={14} className="point-icon destination" />
+                        <span className="point-name">
+                          {item.destinationName ?? `Depósito ${item.destinationWarehouseId}`}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="transfer-volume-cell">
+                        <span className="transfer-units-pill">
+                          <Boxes size={13} />
+                          {item.totalUnits != null
+                            ? `${item.totalUnits.toLocaleString("es-AR")} un.`
+                            : `${item.itemCount ?? 1} ítems`}
+                        </span>
+                        {item.itemCount != null && (
+                          <small className="transfer-skus-caption">
+                            {item.itemCount} artículo{item.itemCount === 1 ? "" : "s"}
+                          </small>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="transfer-status-tag">
+                        {item.status || "Confirmada"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="transfer-date-cell">{datetime(item.createdAt)}</span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className="button-secondary button-sm transfer-detail-btn"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedTransfer(item);
+                        }}
+                      >
+                        <Eye size={13} />
+                        <span>Detalle</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {items.map(item => (
-            <button
-              className="data-table-row"
-              key={item.id}
-              onClick={() => setLocation(`/transfers/${item.id}/receipt`)}
-            >
-              <b>{item.receiptNumber}</b>
-              <span>
-                {item.originName ?? `Depósito ${item.originWarehouseId}`}
-              </span>
-              <span>{item.status}</span>
-              <span>{datetime(item.createdAt)}</span>
-            </button>
-          ))}
+          <div className="table-footer transfers-table-footer">
+            <span>
+              Mostrando <b>{items.length}</b> transferencias registradas
+            </span>
+          </div>
         </div>
       ) : (
         <EmptyState
           title="Todavía no hay transferencias"
           detail="Cuando muevas mercadería entre depósitos, los remitos van a aparecer acá."
+        />
+      )}
+
+      {isNewTransferOpen && (
+        <NewTransferModal
+          isOpen={isNewTransferOpen}
+          onClose={() => setIsNewTransferOpen(false)}
+          onSuccess={created => {
+            load();
+            setSelectedTransfer(created);
+          }}
+        />
+      )}
+
+      {selectedTransfer && (
+        <TransferDetailModal
+          transferId={selectedTransfer.id}
+          initialTransfer={selectedTransfer}
+          onClose={() => setSelectedTransfer(null)}
         />
       )}
     </>
@@ -360,7 +481,7 @@ export function TransferReceiptPage() {
           <b>Origen:</b> {data.transfer.originName} · <b>Destino:</b>{" "}
           {data.transfer.destinationName}
         </p>
-        {data.transfer.photoData && (
+        {typeof data.transfer.photoData === "string" && (
           <img
             src={data.transfer.photoData}
             alt="Foto asociada a la transferencia"

@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import {
 } from "@/components/StockUI";
 import { customerService, type Customer } from "@/services/backlog";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { ClientDetailModal } from "@/components/clients/ClientDetailModal";
+import { ClientCreateModal } from "@/components/clients/ClientCreateModal";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9\s\-()]{7,25}$/;
@@ -57,15 +59,10 @@ export function ClientsPage() {
   const [items, setItems] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const reqVersion = useRef(0);
-  const [form, setForm] = useState({
-    name: "",
-    contact: "",
-    email: "",
-    phone: "",
-  });
   const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const load = (term = "") => {
     const currentVersion = ++reqVersion.current;
     customerService
@@ -77,76 +74,36 @@ export function ClientsPage() {
         if (currentVersion === reqVersion.current) setError(e.message);
       });
   };
+
   useEffect(() => {
     void load();
   }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => void load(search), 220);
     return () => window.clearTimeout(timer);
   }, [search]);
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const next = validateCustomer(form);
-    setFormErrors(next);
-    if (Object.keys(next).length) return;
-    setPending(true);
-    try {
-      await customerService.create(form);
-      setForm({ name: "", contact: "", email: "", phone: "" });
-      toast.success("Cliente registrado correctamente.");
-      load(search);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setPending(false);
-    }
-  };
+
   return (
     <>
       <PageHeader
         eyebrow="Relación comercial"
         title="Clientes"
-        description="Registrá contactos y consultá sus hábitos de compra."
+        description="Registrá contactos, consultá sus hábitos de compra e historial."
+        action={
+          canManageClients ? (
+            <button
+              className="button-primary"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={16} />
+              Nuevo cliente
+            </button>
+          ) : undefined
+        }
       />
-      {error && <ErrorPanel message={error} />}
-      {canManageClients && (
-        <form className="form-card form-card-pad" onSubmit={create}>
-          <div className="form-grid two">
-            {(["name", "contact", "email", "phone"] as const).map(key => (
-              <label className="field" key={key}>
-                <span>
-                  {key === "name"
-                    ? "Nombre"
-                    : key === "contact"
-                      ? "Contacto"
-                      : key === "email"
-                        ? "Email"
-                        : "Teléfono"}
-                </span>
-                <input
-                  value={form[key]}
-                  onChange={e => setForm({ ...form, [key]: e.target.value })}
-                  placeholder={
-                    key === "name"
-                      ? "Ej. Ana Gómez"
-                      : key === "contact"
-                        ? "Ej. telegram:@ana"
-                        : key === "email"
-                          ? "Ej. cliente@gmail.com"
-                          : "Ej. +54 9 11 1234-5678"
-                  }
-                />
-                {formErrors[key] && (
-                  <small className="field-error">{formErrors[key]}</small>
-                )}
-              </label>
-            ))}
-          </div>
-          <button className="button-primary" disabled={pending}>
-            {pending ? "Agregando…" : "Agregar cliente"}
-          </button>
-        </form>
-      )}
+      {error && <ErrorPanel message={error} retry={() => load(search)} />}
+
       <section className="filter-bar">
         <label className="search-control">
           <Search size={17} />
@@ -158,18 +115,27 @@ export function ClientsPage() {
           />
         </label>
       </section>
+
       {items.length ? (
         <div className="data-table" role="list">
           {items.map(item => (
             <button
-              className="data-table-row"
+              className="data-table-row client-table-row"
               key={item.id}
               role="listitem"
-              onClick={() => setLocation(`/clients/${item.id}`)}
+              onClick={() => setSelectedCustomerId(item.id)}
             >
-              <b>{item.name}</b>
-              <span>{item.contact}</span>
-              <span>{item.email ?? item.phone ?? "Sin datos adicionales"}</span>
+              <div className="client-row-avatar">
+                <span>{item.name.slice(0, 2).toUpperCase()}</span>
+              </div>
+              <div className="client-row-info">
+                <b>{item.name}</b>
+                <small>{item.contact}</small>
+              </div>
+              <span className="client-row-contact">
+                {item.email || item.phone || "Sin datos de contacto adicionales"}
+              </span>
+              <span className="client-row-action-hint">Ver ficha &rarr;</span>
             </button>
           ))}
         </div>
@@ -181,8 +147,30 @@ export function ClientsPage() {
           detail={
             search
               ? "Probá con otro nombre o contacto."
-              : "El primer cliente se puede registrar desde el formulario."
+              : "El primer cliente se puede registrar presionando 'Nuevo cliente'."
           }
+        />
+      )}
+
+      {/* Modal de Detalle y Edición de Cliente */}
+      <ClientDetailModal
+        customerId={selectedCustomerId}
+        isOpen={Boolean(selectedCustomerId)}
+        onClose={() => setSelectedCustomerId(null)}
+        canManage={canManageClients}
+        onClientUpdated={() => load(search)}
+        onClientDeleted={() => {
+          setSelectedCustomerId(null);
+          load(search);
+        }}
+      />
+
+      {/* Modal de Registro de Nuevo Cliente */}
+      {canManageClients && (
+        <ClientCreateModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => load(search)}
         />
       )}
     </>

@@ -10,7 +10,6 @@ import {
   PanelLeftOpen,
   ReceiptText,
   Send,
-  ShoppingCart,
   Store,
   Sun,
   Users,
@@ -26,7 +25,6 @@ const navigation = [
   { label: "Resumen", path: "/", icon: LayoutDashboard },
   { label: "Productos", path: "/products", icon: Boxes },
   { label: "Stock y depósitos", path: "/stock", icon: Warehouse },
-  { label: "Nueva venta", path: "/sales/new", icon: ShoppingCart },
   { label: "Ventas", path: "/sales", icon: ReceiptText },
   {
     label: "Transferencias",

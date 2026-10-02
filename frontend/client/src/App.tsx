@@ -3,14 +3,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import DashboardLayout from "@/components/DashboardLayout";
 import Home from "@/pages/Home";
 import LoginPage from "@/pages/LoginPage";
-import NewSalePage from "@/pages/NewSalePage";
 import ProductFormPage from "@/pages/ProductFormPage";
 import ProductsPage from "@/pages/ProductsPage";
 import RegisterPage from "@/pages/RegisterPage";
 import SalesHistoryPage from "@/pages/SalesHistoryPage";
 import StockPage from "@/pages/StockPage";
 import TicketPage from "@/pages/TicketPage";
-import NewTransferPage from "@/pages/NewTransferPage";
 import {
   TransfersHistoryPage,
   TransferReceiptPage,
@@ -54,14 +52,14 @@ function WorkspaceRoutes() {
         <Route path="/stock" component={StockPage} />
         <Route path="/sales/new">
           <RequireRole roles={["administrador", "caja"]}>
-            <NewSalePage />
+            <Redirect to="/sales?new=1" />
           </RequireRole>
         </Route>
         <Route path="/sales" component={SalesHistoryPage} />
         <Route path="/sales/:id/ticket" component={TicketPage} />
         <Route path="/transfers/new">
           <RequireRole roles={["administrador", "deposito"]}>
-            <NewTransferPage />
+            <Redirect to="/transfers?new=1" />
           </RequireRole>
         </Route>
         <Route path="/transfers/:id/receipt" component={TransferReceiptPage} />

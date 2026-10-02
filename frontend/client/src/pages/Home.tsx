@@ -32,7 +32,7 @@ export default function Home() {
         action={
           <button
             className="button-primary"
-            onClick={() => setLocation("/sales/new")}
+            onClick={() => setLocation("/sales?new=1")}
           >
             <ShoppingCart size={17} />
             Registrar venta
@@ -169,7 +169,7 @@ export default function Home() {
                   </div>
                   <ArrowUpRight size={16} />
                 </button>
-                <button onClick={() => setLocation("/sales/new")}>
+                <button onClick={() => setLocation("/sales?new=1")}>
                   <span>
                     <ShoppingCart size={17} />
                   </span>

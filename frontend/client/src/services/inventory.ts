@@ -7,6 +7,7 @@ export type Warehouse = {
   address: string;
   manager: string;
   capacity: number;
+  imageUrl?: string | null;
   stockTotal?: number;
   skuCount?: number;
   createdAt: string;
@@ -28,8 +29,12 @@ export type InventoryItem = {
 
 export const warehouseService = {
   list: () => get<{ items: Warehouse[] }>("/warehouses"),
-  summary: (id: number) =>
-    get<{
+  summary: (id: number, from = "", to = "") => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<{
       deposit: Warehouse;
       stock: Array<{
         productId: number;
@@ -46,8 +51,16 @@ export const warehouseService = {
         createdAt: string;
         customerName: string;
         itemCount: number;
+        items?: Array<{
+          productId: number;
+          productName: string;
+          sku: string;
+          quantity: number;
+          priceCents: number;
+        }>;
       }>;
-    }>(`/warehouses/${id}/summary`),
+    }>(`/warehouses/${id}/summary${q}`);
+  },
   create: (
     input: Omit<Warehouse, "id" | "createdAt" | "stockTotal" | "skuCount">
   ) => post<{ id: number; message: string }>("/warehouses", input),

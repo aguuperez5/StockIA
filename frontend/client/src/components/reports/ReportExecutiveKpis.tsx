@@ -9,66 +9,70 @@ export interface ReportExecutiveKpisProps {
 }
 
 export function ReportExecutiveKpis({ data }: ReportExecutiveKpisProps) {
+  const avgTicket =
+    data.sales.averageTicketCents ??
+    (data.sales.count
+      ? Math.round(data.sales.totalCents / data.sales.count)
+      : 0);
+
+  const totalReplenishmentUnits =
+    data.replenishment?.totalUnitsNeeded ?? data.lowStock.length;
+  const replenishmentValue =
+    data.replenishment?.totalReferenceValueCents ?? 0;
+
+  const stagnantValue = data.stagnantStock?.totalReferenceValueCents ?? 0;
+  const stagnantUnits = data.stagnantStock?.totalUnits ?? 0;
+
   return (
-    <div className="metric-grid decision-kpis">
-      <section className="metric-card">
+    <section className="metric-grid decision-kpis">
+      <article className="metric-card">
         <span className="metric-icon-bubble">
-          <DollarSign size={18} />
+          <DollarSign size={19} />
         </span>
         <div>
           <p>Facturación total</p>
           <h2>{money(data.sales.totalCents)}</h2>
-          <small>{data.sales.count} comprobantes cobrados</small>
+          <small>
+            {data.sales.count} comprobante{data.sales.count === 1 ? "" : "s"}{" "}
+            cobrado{data.sales.count === 1 ? "" : "s"}
+          </small>
         </div>
-      </section>
+      </article>
 
-      <section className="metric-card">
+      <article className="metric-card">
         <span className="metric-icon-bubble">
-          <ShoppingBag size={18} />
+          <ShoppingBag size={19} />
         </span>
         <div>
           <p>Ticket promedio</p>
-          <h2>
-            {money(
-              data.sales.averageTicketCents ??
-                (data.sales.count
-                  ? Math.round(data.sales.totalCents / data.sales.count)
-                  : 0)
-            )}
-          </h2>
+          <h2>{money(avgTicket)}</h2>
           <small>Gasto medio por operación</small>
         </div>
-      </section>
+      </article>
 
-      <section className="metric-card">
+      <article className="metric-card">
         <span className="metric-icon-bubble alert-bubble">
-          <AlertTriangle size={18} />
+          <AlertTriangle size={19} />
         </span>
         <div>
-          <p>Unidades sugeridas para reponer</p>
+          <p>Plan de reposición urgente</p>
           <h2>
-            {data.replenishment?.totalUnitsNeeded ?? data.lowStock.length}{" "}
-            <small>un.</small>
+            +{totalReplenishmentUnits} <small>un.</small>
           </h2>
-          <small>
-            Valor de referencia a precio de lista:{" "}
-            {money(data.replenishment?.totalReferenceValueCents ?? 0)}
-          </small>
+          <small>Inversión estimada: {money(replenishmentValue)}</small>
         </div>
-      </section>
+      </article>
 
-      <section className="metric-card">
+      <article className="metric-card">
         <span className="metric-icon-bubble warn-bubble">
-          <Boxes size={18} />
+          <Boxes size={19} />
         </span>
         <div>
-          <p>Stock sin ventas (valor de lista)</p>
-          <h2>{money(data.stagnantStock?.totalReferenceValueCents ?? 0)}</h2>
-          <small>
-            {data.stagnantStock?.totalUnits ?? 0} unidades sin ventas
-          </small>
+          <p>Capital inmovilizado</p>
+          <h2>{money(stagnantValue)}</h2>
+          <small>{stagnantUnits} unidades sin rotación</small>
         </div>
-      </section>
-    </div>
+      </article>
+    </section>
   );
 }

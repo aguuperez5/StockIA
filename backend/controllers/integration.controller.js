@@ -127,37 +127,86 @@ export async function deleteProductCompat(req, res) {
   } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Producto no encontrado.' : e.message }); }
 }
 
-export async function listWarehouses(req, res) { const items = await prisma.deposit.findMany({ include: { stocks: true }, orderBy: { createdAt: 'asc' } }); res.json({ items: items.map(d => ({ id: d.id, name: d.name, type: d.type, address: d.address || d.location || '', manager: d.manager || 'Sin asignar', capacity: d.capacity, stockTotal: d.stocks.reduce((total, stock) => total + stock.quantity, 0), skuCount: d.stocks.filter(stock => stock.quantity > 0).length, createdAt: d.createdAt })) }); }
+export async function listWarehouses(req, res) { const items = await prisma.deposit.findMany({ include: { stocks: true }, orderBy: { createdAt: 'asc' } }); res.json({ items: items.map(d => ({ id: d.id, name: d.name, type: d.type, address: d.address || d.location || '', manager: d.manager || 'Sin asignar', capacity: d.capacity, imageUrl: d.imageUrl || null, stockTotal: d.stocks.reduce((total, stock) => total + stock.quantity, 0), skuCount: d.stocks.filter(stock => stock.quantity > 0).length, createdAt: d.createdAt })) }); }
 export async function warehouseSummary(req, res) {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
   const deposit = await prisma.deposit.findUnique({ where: { id }, include: { stocks: { include: { product: true } } } });
   if (!deposit) return res.status(404).json({ message: 'Depósito no encontrado.' });
-  const sales = await prisma.sale.findMany({ where: { depositId: id }, include: { customer: true, items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } });
+  
+  const { from, to } = req.query;
+  const fromDate = from ? new Date(`${from}T00:00:00`) : null;
+  const toDate = to ? new Date(`${to}T23:59:59.999`) : null;
+  const dateFilter = (fromDate || toDate) ? {
+    createdAt: {
+      ...(fromDate && !Number.isNaN(fromDate.getTime()) ? { gte: fromDate } : {}),
+      ...(toDate && !Number.isNaN(toDate.getTime()) ? { lte: toDate } : {})
+    }
+  } : {};
+
+  const sales = await prisma.sale.findMany({
+    where: { depositId: id, ...dateFilter },
+    include: { customer: true, items: { include: { product: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+
   res.json({
-    deposit: { id: deposit.id, name: deposit.name, type: deposit.type, address: deposit.address || deposit.location || '', manager: deposit.manager, capacity: deposit.capacity },
-    stock: deposit.stocks.map(stock => ({ productId: stock.productId, productName: stock.product.name, sku: stock.product.code, category: stock.product.category || '', priceCents: moneyToCents(stock.product.price), quantity: stock.quantity, threshold: stock.product.lowStockThreshold })),
-    sales: sales.map(sale => ({ id: sale.id, totalCents: moneyToCents(sale.total), createdAt: sale.createdAt, customerName: sale.customer?.name || 'Venta mostrador', itemCount: sale.items.reduce((total, item) => total + item.quantity, 0) })),
+    deposit: {
+      id: deposit.id,
+      name: deposit.name,
+      type: deposit.type,
+      address: deposit.address || deposit.location || '',
+      manager: deposit.manager,
+      capacity: deposit.capacity,
+      imageUrl: deposit.imageUrl || null
+    },
+    stock: deposit.stocks.map(stock => ({
+      productId: stock.productId,
+      productName: stock.product.name,
+      sku: stock.product.code,
+      category: stock.product.category || '',
+      priceCents: moneyToCents(stock.product.price),
+      quantity: stock.quantity,
+      threshold: stock.product.lowStockThreshold
+    })),
+    sales: sales.map(sale => ({
+      id: sale.id,
+      totalCents: moneyToCents(sale.total),
+      createdAt: sale.createdAt,
+      customerName: sale.customer?.name || 'Venta mostrador',
+      itemCount: sale.items.reduce((total, item) => total + item.quantity, 0),
+      items: sale.items.map(i => ({
+        productId: i.productId,
+        productName: i.product.name,
+        sku: i.product.code,
+        quantity: i.quantity,
+        priceCents: moneyToCents(i.price)
+      }))
+    })),
   });
 }
 export async function updateWarehouse(req, res) {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID del depósito no es válido.' });
-    const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body || {};
+    const { name, type = 'Principal', address = '', manager = '', capacity = 0, imageUrl } = req.body || {};
     if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' });
     if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' });
     if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' }, NOT: { id } } })) return res.status(409).json({ message: 'Ya existe otro depósito registrado con ese nombre.' });
-    await prisma.deposit.update({ where: { id }, data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } });
+    let image;
+    try { if (imageUrl !== undefined) image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
+    await prisma.deposit.update({ where: { id }, data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity), ...(image !== undefined && { imageUrl: image }) } });
     res.json({ message: 'Depósito actualizado correctamente.' });
   } catch (e) { res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message }); }
 }
 export async function createWarehouse(req, res) {
-  const { name, type = 'Principal', address = '', manager = '', capacity = 0 } = req.body;
+  const { name, type = 'Principal', address = '', manager = '', capacity = 0, imageUrl } = req.body;
   if (!name?.trim() || !address?.trim() || !manager?.trim()) return res.status(400).json({ message: 'Nombre, dirección y responsable son obligatorios.' });
   if (!Number.isInteger(Number(capacity)) || Number(capacity) < 0) return res.status(400).json({ message: 'La capacidad debe ser un entero mayor o igual a cero.' });
   if (await prisma.deposit.findFirst({ where: { name: { equals: name.trim(), mode: 'insensitive' } } })) return res.status(409).json({ message: 'Ya existe un depósito registrado con ese nombre.' });
-  const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity) } });
+  let image = null;
+  try { image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
+  const d = await prisma.deposit.create({ data: { name: name.trim(), type, address: address.trim(), location: address.trim(), manager: manager.trim(), capacity: Number(capacity), imageUrl: image } });
   const activeProducts = await prisma.product.findMany({ where: { active: true }, select: { id: true } });
   if (activeProducts.length > 0) {
     await prisma.stock.createMany({
@@ -331,9 +380,14 @@ export async function dashboard(req, res) {
   const inventoryValueCents = productsList.reduce((n, p) => n + (stockByProduct.get(p.id) || 0) * moneyToCents(p.price), 0);
   const lowStock = productsList.filter(p => (stockByProduct.get(p.id) || 0) <= p.lowStockThreshold).map(p => ({ id:p.id, name:p.name, sku:p.code, stock:stockByProduct.get(p.id)||0, threshold:p.lowStockThreshold }));
 
+  const toLocalDateString = (d) => {
+    const dt = new Date(d);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  };
+
   const salesByDayMap = new Map();
   for (const s of weekSales) {
-    const key = s.createdAt.toISOString().slice(0, 10);
+    const key = toLocalDateString(s.createdAt);
     const existing = salesByDayMap.get(key) || { totalCents: 0, count: 0 };
     existing.totalCents += moneyToCents(s.total);
     existing.count += 1;
@@ -343,7 +397,7 @@ export async function dashboard(req, res) {
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = toLocalDateString(d);
     const dayData = salesByDayMap.get(dateStr) || { totalCents: 0, count: 0 };
     days.push({ date: dateStr, label: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', ''), totalCents: dayData.totalCents, count: dayData.count });
   }
@@ -395,9 +449,9 @@ export async function listTransfers(req, res) {
   const productId = query.productId ? Number(query.productId) : undefined;
   const status = query.status ? String(query.status) : undefined;
   const ts = await prisma.transfer.findMany({ where: { ...(Number.isInteger(originWarehouseId) ? { originWarehouseId } : {}), ...(Number.isInteger(destinationWarehouseId) ? { destinationWarehouseId } : {}), ...(Number.isInteger(warehouseId) ? { OR: [{ originWarehouseId: warehouseId }, { destinationWarehouseId: warehouseId }] } : {}), ...(Number.isInteger(productId) ? { items: { some: { productId } } } : {}), ...(status ? { status } : {}), ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}) }, include: { originWarehouse: true, destinationWarehouse: true, items: true }, orderBy: { createdAt: 'desc' } });
-  res.json({ items: ts.map(t => ({ id:t.id, receiptNumber:transferReceipt(t.id), originWarehouseId:t.originWarehouseId, destinationWarehouseId:t.destinationWarehouseId, status:t.status, createdAt:t.createdAt, itemCount:t.items.length, originName:t.originWarehouse.name, destinationName:t.destinationWarehouse.name, photoData: t.photoData ? true : false })) });
+  res.json({ items: ts.map(t => ({ id:t.id, receiptNumber:transferReceipt(t.id), originWarehouseId:t.originWarehouseId, destinationWarehouseId:t.destinationWarehouseId, status:t.status, createdAt:t.createdAt, itemCount:t.items.length, totalUnits: t.items.reduce((acc, i) => acc + i.quantity, 0), originName:t.originWarehouse.name, destinationName:t.destinationWarehouse.name, photoData: t.photoData ? true : false })) });
 }
-export async function getTransfer(req,res){const t=await prisma.transfer.findUnique({where:{id:Number(req.params.id)},include:{originWarehouse:true,destinationWarehouse:true,items:{include:{product:true}}}});if(!t)return res.status(404).json({message:'Transferencia no encontrada.'});res.json({transfer:{id:t.id,receiptNumber:transferReceipt(t.id),originWarehouseId:t.originWarehouseId,destinationWarehouseId:t.destinationWarehouseId,status:t.status,createdAt:t.createdAt,originName:t.originWarehouse.name,destinationName:t.destinationWarehouse.name,photoData:t.photoData,photoMimeType:t.photoMimeType},items:t.items.map(i=>({productId:i.productId,productName:i.product.name,sku:i.product.code,quantity:i.quantity}))});}
+export async function getTransfer(req,res){const t=await prisma.transfer.findUnique({where:{id:Number(req.params.id)},include:{originWarehouse:true,destinationWarehouse:true,items:{include:{product:true}}}});if(!t)return res.status(404).json({message:'Transferencia no encontrada.'});res.json({transfer:{id:t.id,receiptNumber:transferReceipt(t.id),originWarehouseId:t.originWarehouseId,destinationWarehouseId:t.destinationWarehouseId,status:t.status,createdAt:t.createdAt,originName:t.originWarehouse.name,originLocation:t.originWarehouse.location || t.originWarehouse.address || '',destinationName:t.destinationWarehouse.name,destinationLocation:t.destinationWarehouse.location || t.destinationWarehouse.address || '',photoData:t.photoData,photoMimeType:t.photoMimeType},items:t.items.map(i=>({productId:i.productId,productName:i.product.name,sku:i.product.code,category:i.product.category || 'General',priceCents:moneyToCents(i.product.price),quantity:i.quantity}))});}
 
 export async function listCustomers(req,res){const search=String(req.query.search||'').trim();const items=await prisma.customer.findMany({where:search?{OR:[{name:{contains:search,mode:'insensitive'}},{contact:{contains:search,mode:'insensitive'}},{email:{contains:search,mode:'insensitive'}}]}:{},orderBy:{name:'asc'}});res.json({items});}
 export async function createCustomer(req,res){
@@ -450,7 +504,38 @@ export async function deleteCustomer(req,res){
     res.json({message:'Cliente eliminado correctamente.'});
   } catch(e){ res.status(500).json({message:e.message}); }
 }
-export async function customerDetail(req,res){const c=await prisma.customer.findUnique({where:{id:Number(req.params.id)}});if(!c)return res.status(404).json({message:'Cliente no encontrado.'});const rows=await prisma.saleItem.findMany({where:{sale:{customerId:c.id}},include:{product:true}});const frequentMap=new Map();for(const r of rows)frequentMap.set(r.productId,(frequentMap.get(r.productId)||0)+r.quantity);const frequent=[...frequentMap].map(([productId,units])=>({productId,productName:rows.find(r=>r.productId===productId)?.product.name,units})).sort((a,b)=>b.units-a.units);res.json({customer:c,frequent});}
+export async function customerDetail(req, res) {
+  const c = await prisma.customer.findUnique({ where: { id: Number(req.params.id) } });
+  if (!c) return res.status(404).json({ message: 'Cliente no encontrado.' });
+  const rows = await prisma.saleItem.findMany({ where: { sale: { customerId: c.id } }, include: { product: true } });
+  const frequentMap = new Map();
+  for (const r of rows) frequentMap.set(r.productId, (frequentMap.get(r.productId) || 0) + r.quantity);
+  const frequent = [...frequentMap].map(([productId, units]) => ({
+    productId,
+    productName: rows.find(r => r.productId === productId)?.product?.name || `Producto #${productId}`,
+    units
+  })).sort((a, b) => b.units - a.units);
+  const sales = await prisma.sale.findMany({
+    where: { customerId: c.id },
+    select: { id: true, total: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+  const totalPurchasesCents = sales.reduce((acc, s) => acc + moneyToCents(s.total), 0);
+  res.json({
+    customer: c,
+    frequent,
+    sales: sales.map(s => ({
+      id: s.id,
+      receiptNumber: receiptNumber(s.id),
+      totalCents: moneyToCents(s.total),
+      createdAt: s.createdAt.toISOString()
+    })),
+    totalPurchasesCents,
+    purchasesCount: sales.length
+  });
+}
+
 
 export async function reports(req, res) {
   try {
@@ -523,9 +608,31 @@ export async function reports(req, res) {
   const topRevenue = [...revenueMap.values()].sort((a, b) => b.revenueCents - a.revenueCents).slice(0, 10);
 
   // Ventas diarias
+  const toLocalDateString = (d) => {
+    const dt = new Date(d);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  };
+
   const dailyMap = new Map();
-  sales.forEach(s => { const key = s.createdAt.toISOString().slice(0, 10); dailyMap.set(key, (dailyMap.get(key) || 0) + moneyToCents(s.total)); });
-  const dailySales = [...dailyMap].sort(([a], [b]) => a.localeCompare(b)).map(([date, totalCents]) => ({ date, totalCents }));
+  sales.forEach(s => {
+    const key = toLocalDateString(s.createdAt);
+    dailyMap.set(key, (dailyMap.get(key) || 0) + moneyToCents(s.total));
+  });
+
+  let dailySales = [];
+  if (fromDate && toDate) {
+    const cur = new Date(fromDate);
+    cur.setHours(0, 0, 0, 0);
+    const end = new Date(toDate);
+    end.setHours(0, 0, 0, 0);
+    while (cur <= end) {
+      const key = toLocalDateString(cur);
+      dailySales.push({ date: key, totalCents: dailyMap.get(key) || 0 });
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else {
+    dailySales = [...dailyMap].sort(([a], [b]) => a.localeCompare(b)).map(([date, totalCents]) => ({ date, totalCents }));
+  }
 
   // Desglose de ventas por depósito
   const depositSalesMap = new Map();

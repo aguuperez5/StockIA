@@ -22,6 +22,7 @@ import {
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
 import { WarehouseCard } from "@/components/stock/WarehouseCard";
+import { WarehouseFormModal } from "@/components/stock/WarehouseFormModal";
 import {
   inventoryService,
   type InventoryItem,
@@ -40,14 +41,6 @@ const DEFAULT_CATEGORIES = [
   "Válvulas",
 ];
 
-const initialWarehouse = {
-  name: "",
-  type: "Principal" as Warehouse["type"],
-  address: "",
-  manager: "",
-  capacity: 0,
-};
-
 export default function StockPage() {
   const { user } = useStockAuth();
   const canManage =
@@ -61,8 +54,7 @@ export default function StockPage() {
   const [moving, setMoving] = useState<InventoryItem | null>(null);
   const [moveDest, setMoveDest] = useState("");
   const [moveQty, setMoveQty] = useState("1");
-  const [warehouseForm, setWarehouseForm] = useState(initialWarehouse);
-  const [editingWarehouse, setEditingWarehouse] = useState<number | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
   const [toDeleteWarehouse, setToDeleteWarehouse] = useState<Warehouse | null>(
     null
@@ -195,52 +187,13 @@ export default function StockPage() {
   };
 
   const startCreate = () => {
-    setWarehouseForm(initialWarehouse);
     setEditingWarehouse(null);
     setShowWarehouseForm(true);
   };
 
   const startEdit = (warehouse: Warehouse) => {
-    setWarehouseForm({
-      name: warehouse.name,
-      type: warehouse.type,
-      address: warehouse.address,
-      manager: warehouse.manager,
-      capacity: warehouse.capacity,
-    });
-    setEditingWarehouse(warehouse.id);
+    setEditingWarehouse(warehouse);
     setShowWarehouseForm(true);
-  };
-
-  const saveWarehouse = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (
-      !warehouseForm.name.trim() ||
-      !warehouseForm.address.trim() ||
-      !warehouseForm.manager.trim() ||
-      warehouseForm.capacity < 0
-    ) {
-      toast.error(
-        "Completá nombre, dirección, responsable y una capacidad válida."
-      );
-      return;
-    }
-    setPending(true);
-    try {
-      if (editingWarehouse)
-        await warehouseService.update(editingWarehouse, warehouseForm);
-      else await warehouseService.create(warehouseForm);
-      toast.success(
-        editingWarehouse ? "Depósito actualizado." : "Depósito creado."
-      );
-      setShowWarehouseForm(false);
-      await loadWarehouses();
-      load();
-    } catch (reason) {
-      toast.error((reason as Error).message);
-    } finally {
-      setPending(false);
-    }
   };
 
   const confirmRemoveWarehouse = async () => {
@@ -726,110 +679,20 @@ export default function StockPage() {
         </div>
       )}
 
-      {/* Formulario de Alta / Edición de Depósito */}
-      {canManage && showWarehouseForm && (
-        <form
-          className="form-card compact-form"
-          onSubmit={saveWarehouse}
-          noValidate
-        >
-          <div className="form-section-title">
-            <span>
-              <WarehouseIcon size={18} />
-            </span>
-            <div>
-              <h2>{editingWarehouse ? "Editar depósito" : "Nuevo depósito"}</h2>
-              <p>
-                Definí la capacidad máxima de unidades almacenadas y el
-                responsable.
-              </p>
-            </div>
-          </div>
-          <div className="form-grid two">
-            <label className="field">
-              <span>Nombre</span>
-              <input
-                value={warehouseForm.name}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    name: event.target.value,
-                  })
-                }
-                placeholder="Ej. Depósito Central"
-              />
-            </label>
-            <label className="field">
-              <span>Tipo</span>
-              <ModernSelect
-                value={warehouseForm.type}
-                onChange={val =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    type: val as Warehouse["type"],
-                  })
-                }
-                options={["Principal", "Sucursal", "Depósito externo"]}
-                ariaLabel="Tipo de depósito"
-                minWidth="100%"
-                className="w-full"
-              />
-            </label>
-            <label className="field">
-              <span>Dirección</span>
-              <input
-                value={warehouseForm.address}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    address: event.target.value,
-                  })
-                }
-                placeholder="Calle y número"
-              />
-            </label>
-            <label className="field">
-              <span>Responsable</span>
-              <input
-                value={warehouseForm.manager}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    manager: event.target.value,
-                  })
-                }
-                placeholder="Nombre del encargado"
-              />
-            </label>
-            <label className="field">
-              <span>Capacidad (unidades)</span>
-              <input
-                type="number"
-                min="0"
-                value={warehouseForm.capacity}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    capacity: Number(event.target.value),
-                  })
-                }
-              />
-            </label>
-          </div>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={() => setShowWarehouseForm(false)}
-            >
-              Cancelar
-            </button>
-            <button className="button-primary" disabled={pending}>
-              <Check size={16} />
-              {editingWarehouse ? "Guardar cambios" : "Guardar depósito"}
-            </button>
-          </div>
-        </form>
+      {/* Modal de Alta / Edición de Depósito */}
+      {canManage && (
+        <WarehouseFormModal
+          isOpen={showWarehouseForm}
+          initialData={editingWarehouse}
+          onClose={() => {
+            setShowWarehouseForm(false);
+            setEditingWarehouse(null);
+          }}
+          onSuccess={async () => {
+            await loadWarehouses();
+            load();
+          }}
+        />
       )}
 
       {/* Modal de confirmación de eliminación de depósito */}
