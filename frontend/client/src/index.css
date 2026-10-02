@@ -2928,8 +2928,8 @@ button.data-table-row:hover {
 
 .chart-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.9fr);
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
   margin-bottom: 24px;
 }
 .chart-card {
@@ -2939,29 +2939,60 @@ button.data-table-row:hover {
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
 }
 .chart-card-sales {
-  grid-row: span 2;
+  grid-column: 1 / -1;
 }
+.chart-card-inventory {
+  grid-column: 1;
+}
+.chart-card-status {
+  grid-column: 2;
+}
+
 .chart-card-header {
   display: flex;
-  min-height: 58px;
+  min-height: 52px;
   align-items: flex-start;
   justify-content: space-between;
   gap: 15px;
 }
+
+.chart-header-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--brand);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .chart-card-header h2 {
   color: var(--ink-strong);
-  font: 650 19px/1.15 var(--font-sans);
+  font: 700 18.5px/1.2 var(--font-sans);
   letter-spacing: -0.02em;
+  margin: 0;
 }
 .chart-subtitle {
-  max-width: 360px;
-  margin-top: 6px;
+  max-width: 480px;
+  margin: 4px 0 0 0;
   color: var(--muted-ink);
-  font-size: 11px;
+  font-size: 11.5px;
   line-height: 1.45;
 }
+
+.chart-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .chart-switcher {
   display: inline-flex;
   flex: none;
@@ -2969,51 +3000,395 @@ button.data-table-row:hover {
   padding: 3px;
   border-radius: 8px;
   background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
 }
 .chart-switcher button {
-  padding: 6px 8px;
+  padding: 5px 9px;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--muted-ink);
-  font-size: 10px;
-  font-weight: 750;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chart-switcher button:hover {
+  color: var(--ink);
 }
 .chart-switcher button.active {
   background: var(--surface);
   color: var(--brand-ink);
   box-shadow: var(--shadow-sm);
 }
+
+/* Tira de KPIs de ventas (ancho completo) */
+.chart-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 16px 0 12px 0;
+  padding: 12px 16px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+}
+
+.chart-kpi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chart-kpi-item .kpi-label {
+  font-size: 10px;
+  color: var(--muted-ink);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chart-kpi-item .kpi-value {
+  font: 750 18px/1.2 var(--font-sans);
+  color: var(--ink-strong);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-kpi-item .kpi-sub {
+  font-size: 10.5px;
+  color: var(--muted-ink);
+}
+
+/* Áreas de gráficos */
 .chart-area {
+  min-width: 0;
   height: 250px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
-.chart-area-category {
-  height: 168px;
-  margin-top: 11px;
+.chart-area-sales-wide {
+  height: 270px;
+  margin-top: 10px;
 }
+.chart-area-category-balanced {
+  height: 180px;
+  margin-top: 8px;
+}
+
+/* Tira día por día de ventas */
+.sales-days-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.day-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.day-pill:hover {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--shadow-xs);
+}
+
+.day-pill-best {
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+}
+
+.day-pill .day-name {
+  font-size: 10.5px;
+  color: var(--muted-ink);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.day-pill-best .day-name {
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.day-pill .day-val {
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--ink);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.day-pill-best .day-val {
+  color: var(--brand-ink);
+}
+
+.day-pill .day-badge {
+  font-size: 9px;
+  font-weight: 750;
+  color: var(--brand);
+  background: rgba(37, 99, 235, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 3px;
+}
+
+/* Card Categorías */
+.inventory-summary-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 12px 0 8px 0;
+  background: var(--surface-sunken);
+  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  font-size: 11px;
+  color: var(--muted-ink);
+  flex-wrap: wrap;
+}
+
+.inventory-summary-strip b {
+  color: var(--ink-strong);
+}
+
+.top-category-pill b {
+  color: var(--brand);
+}
+
+.category-bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.category-bar-row {
+  display: grid;
+  grid-template-columns: 105px 1fr 100px;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.category-bar-name {
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-bar-track {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.category-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--chart-2);
+  transition: width 0.3s ease;
+}
+
+.category-bar-values {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-ink);
+  white-space: nowrap;
+}
+
+.category-bar-values b {
+  color: var(--ink);
+}
+
+/* Card Salud del inventario */
+.chart-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(216, 137, 54, 0.12);
+  color: #d88936;
+  border: 1px solid rgba(216, 137, 54, 0.28);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chart-alert-badge:hover {
+  background: rgba(216, 137, 54, 0.2);
+}
+
+.status-chart-body-modern {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-top: 12px;
+  min-height: 160px;
+}
+
+.status-cards-col {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.status-mini-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
+  transition: all 0.15s ease;
+}
+
+.status-mini-card:hover {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.status-mini-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-mini-left .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-mini-left .status-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.status-mini-left .status-hint {
+  display: block;
+  font-size: 9.5px;
+  color: var(--muted-ink);
+}
+
+.status-mini-right {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.status-mini-right strong {
+  font-size: 12.5px;
+  color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.status-mini-right span {
+  font-size: 10px;
+  color: var(--muted-ink);
+}
+
+.health-progress-wrap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.health-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  color: var(--muted-ink);
+  margin-bottom: 6px;
+}
+
+.health-progress-labels b {
+  color: #159666;
+}
+
+.health-progress-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--line-soft);
+  gap: 2px;
+}
+
+.health-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.status-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.status-action-link:hover {
+  text-decoration: underline;
+  color: var(--brand-ink);
+}
+
+/* Tooltips y estados vacíos */
 .chart-tooltip {
   display: flex;
-  min-width: 105px;
+  min-width: 110px;
   flex-direction: column;
-  gap: 5px;
-  padding: 9px 10px;
+  gap: 4px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 .chart-tooltip b {
   color: var(--muted-ink);
   font-size: 10px;
+  text-transform: capitalize;
 }
 .chart-tooltip span {
   color: var(--brand-ink);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 800;
 }
 .chart-empty {
   height: 100%;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3023,29 +3398,24 @@ button.data-table-row:hover {
   text-align: center;
 }
 .chart-empty span {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: var(--brand-soft);
   color: var(--brand-ink);
-  font-size: 18px;
+  font-size: 16px;
 }
 .chart-empty p {
-  max-width: 220px;
+  max-width: 240px;
   font-size: 11px;
 }
-.status-chart-body {
-  min-height: 168px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
+
 .donut-wrap {
   position: relative;
-  width: 166px;
-  height: 166px;
+  width: 145px;
+  height: 145px;
   flex: none;
 }
 .donut-center {
@@ -3059,98 +3429,57 @@ button.data-table-row:hover {
 }
 .donut-center strong {
   color: var(--ink-strong);
-  font: 650 24px/1 var(--font-sans);
+  font: 750 22px/1 var(--font-sans);
   letter-spacing: -0.02em;
 }
 .donut-center span {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--muted-ink);
-  font-size: 10px;
-}
-.status-legend {
-  flex: 1;
-  display: grid;
-  gap: 11px;
-}
-.status-legend > div {
-  display: grid;
-  grid-template-columns: 9px 1fr auto;
-  gap: 8px;
-  align-items: center;
-  color: var(--muted-ink);
-  font-size: 11px;
-}
-.status-legend b {
-  color: var(--ink-strong);
-  font-size: 12px;
-}
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-@media (max-width: 1060px) {
-  .chart-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .chart-card-sales {
-    grid-column: 1 / -1;
-    grid-row: auto;
-  }
-  .chart-area {
-    height: 230px;
-  }
-}
-@media (max-width: 760px) {
+/* Responsividad de gráficos */
+@media (max-width: 980px) {
   .chart-grid {
     grid-template-columns: 1fr;
-    gap: 13px;
+    gap: 16px;
   }
-  .chart-card-sales {
+  .chart-card-inventory,
+  .chart-card-status {
     grid-column: auto;
   }
-  .chart-card {
-    padding: 17px;
-  }
-  .chart-card-header {
-    display: block;
-  }
-  .chart-switcher {
-    margin-top: 13px;
-  }
-  .chart-area {
-    height: 220px;
-  }
-  .chart-area-category {
-    height: 185px;
-  }
-  .status-chart-body {
-    justify-content: center;
+  .chart-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 420px) {
-  .chart-card-header h2 {
-    font-size: 17px;
+
+@media (max-width: 640px) {
+  .chart-card {
+    padding: 16px;
   }
-  .chart-subtitle {
-    font-size: 10px;
+  .chart-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
-  .chart-area {
-    height: 205px;
+  .chart-controls-group {
+    justify-content: space-between;
   }
-  .status-chart-body {
-    gap: 8px;
+  .chart-kpi-strip {
+    grid-template-columns: 1fr 1fr;
+    padding: 10px 12px;
   }
-  .donut-wrap {
-    width: 145px;
-    height: 145px;
+  .chart-area-sales-wide {
+    height: 220px;
   }
-  .status-legend {
-    gap: 8px;
+  .sales-days-strip {
+    grid-template-columns: repeat(4, 1fr);
   }
-  .status-legend > div {
-    font-size: 10px;
+  .status-chart-body-modern {
+    grid-template-columns: 1fr;
+    justify-items: center;
   }
 }
 
