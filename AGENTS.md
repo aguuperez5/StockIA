@@ -4,12 +4,15 @@
 
 - `backend/` is the Express API; routes/controllers and Prisma schema/migrations/seeds stay in their existing folders. `backend/tests/` has serial `node:test` integration tests.
 - `frontend/client/src/` is the active React/TypeScript UI (legacy JavaScript frontend has been removed).
-- `ai/` contains the Python perception service, agents, evaluation protocol, and PoC notebook. `docs/` holds project/architecture guides; root Compose starts PostgreSQL.
+- `backend/services/reconocimiento-tags/` contiene el microservicio de visión determinista basado en **AprilTags** (`FastAPI` + `OpenCV`), con `detector.py`, `api.py` y `generador_tags.py`.
+- `ai/` contiene la exploración previa y prototipos anteriores (OCR / Barcode). `docs/` contiene las guías de arquitectura (ver `docs/reconocimiento-apriltags.md`); root Compose inicia PostgreSQL.
 
 ## Build, Test, and Development Commands
 
 - `docker compose up -d` starts PostgreSQL on port `5434`.
 - `npm run dev` starts the API; `npm run dev:frontend` starts Vite on port `3000`.
+- Iniciar reconocimiento de AprilTags: en `backend/services/reconocimiento-tags`, activar `venv` y ejecutar `python api.py` (corre en el puerto `8000`).
+- Generar tags imprimibles: `python backend/services/reconocimiento-tags/generador_tags.py`.
 - `npm test` runs backend then frontend suites; use `npm run test:backend` or `npm run test:frontend` separately. Backend tests reset the test database.
 - `npm run check:frontend` type-checks; `npm run build:frontend` builds the active UI.
 - AI tests: `py -3.12 -m pip install -e "ai[test]"`, then `py -3.12 -m unittest discover -s ai/tests`.
