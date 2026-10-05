@@ -10,28 +10,80 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 import { Field } from "@/components/StockUI";
+import {
+  validateEmail,
+  validateLoginForm,
+  validatePassword,
+} from "@/pages/loginValidation";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { login } = useStockAuth();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [touched, setTouched] = useState({ email: false, password: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleEmailChange = (value: string) => {
+    setForm(prev => ({ ...prev, email: value }));
+    if (touched.email) {
+      const err = validateEmail(value);
+      setErrors(prev => {
+        const next = { ...prev };
+        if (err) next.email = err;
+        else delete next.email;
+        return next;
+      });
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setTouched(prev => ({ ...prev, email: true }));
+    const err = validateEmail(form.email);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (err) next.email = err;
+      else delete next.email;
+      return next;
+    });
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setForm(prev => ({ ...prev, password: value }));
+    if (touched.password) {
+      const err = validatePassword(value);
+      setErrors(prev => {
+        const next = { ...prev };
+        if (err) next.password = err;
+        else delete next.password;
+        return next;
+      });
+    }
+  };
+
+  const handlePasswordBlur = () => {
+    setTouched(prev => ({ ...prev, password: true }));
+    const err = validatePassword(form.password);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (err) next.password = err;
+      else delete next.password;
+      return next;
+    });
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const next: Record<string, string> = {};
-    if (
-      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(
-        form.email.trim()
-      )
-    )
-      next.email =
-        "Ingresá un correo electrónico válido (ej. usuario@gmail.com).";
-    if (!form.password) next.password = "Ingresá tu contraseña.";
-    setErrors(next);
-    if (Object.keys(next).length) return;
+    setTouched({ email: true, password: true });
+    const validation = validateLoginForm(form);
+    const nextErrors: Record<string, string> = {};
+    if (validation.email) nextErrors.email = validation.email;
+    if (validation.password) nextErrors.password = validation.password;
+    setErrors(nextErrors);
+
+    if (!validation.isValid) return;
+
     setPending(true);
     try {
       await login(form.email, form.password);
@@ -71,25 +123,41 @@ export default function LoginPage() {
           <p className="auth-login-lead">
             Administrá tu operación desde un espacio simple y conectado.
           </p>
-          {errors.form && <div className="auth-error">{errors.form}</div>}
+          {errors.form && (
+            <div className="auth-error" role="alert" aria-live="assertive">
+              {errors.form}
+            </div>
+          )}
           <form onSubmit={submit} noValidate>
             <Field label="Email" error={errors.email} htmlFor="login-email">
               <input
                 id="login-email"
                 type="email"
                 value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
+                onChange={e => handleEmailChange(e.target.value)}
+                onBlur={handleEmailBlur}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "login-email-error" : undefined}
                 autoComplete="email"
                 placeholder="vos@comercio.com"
               />
             </Field>
-            <Field label="Contraseña" error={errors.password} htmlFor="login-password">
+            <Field
+              label="Contraseña"
+              error={errors.password}
+              htmlFor="login-password"
+            >
               <div className="password-input">
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
                   value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  onChange={e => handlePasswordChange(e.target.value)}
+                  onBlur={handlePasswordBlur}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={
+                    errors.password ? "login-password-error" : undefined
+                  }
                   autoComplete="current-password"
                   placeholder="Tu contraseña"
                 />
@@ -104,7 +172,7 @@ export default function LoginPage() {
                 </button>
               </div>
             </Field>
-            <button className="auth-submit" disabled={pending}>
+            <button className="auth-submit" disabled={pending} type="submit">
               {pending ? "Ingresando…" : "Ingresar al panel"}
               <ArrowRight size={17} />
             </button>
@@ -127,4 +195,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

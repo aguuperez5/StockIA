@@ -95,32 +95,60 @@ export async function findRecognitionCatalogCandidates(prisma, analysis) {
 export function rankRecognitionProducts({ products, validCodes, evidenceLines, analysis }) {
   const corroborated = new Set((analysis.consensus?.corroborated_values || []).map(canonicalGtin));
   const codeEvidence = new Map();
+  const codeBarcodes = new Map();
+  const codeOcrs = new Map();
+
   for (const evidence of analysis.identifiers || []) {
     if (!evidence.checksum_valid) continue;
     const key = canonicalGtin(evidence.value);
     const sources = codeEvidence.get(key) || new Set();
     sources.add(evidence.source);
     codeEvidence.set(key, sources);
+
+    const occ = Number(evidence.occurrences || evidence.quantity || 1) || 1;
+    if (evidence.source === "barcode") {
+      codeBarcodes.set(key, (codeBarcodes.get(key) || 0) + occ);
+    } else if (evidence.source === "ocr") {
+      codeOcrs.set(key, (codeOcrs.get(key) || 0) + occ);
+    }
+  }
+
+  const codeQuantities = new Map();
+  for (const key of new Set([...codeBarcodes.keys(), ...codeOcrs.keys()])) {
+    const consensusQty = analysis.consensus?.quantities?.[key];
+    if (consensusQty !== undefined) {
+      codeQuantities.set(key, consensusQty);
+    } else {
+      const bQty = codeBarcodes.get(key) || 0;
+      const oQty = codeOcrs.get(key) || 0;
+      codeQuantities.set(key, bQty > 0 ? bQty : Math.max(1, oQty));
+    }
   }
 
   const ranked = products.map(product => {
     const exactCode = validCodes.includes(String(product.code));
     const score = exactCode ? 1 : scoreCatalogName(product.name, evidenceLines);
-    const sources = codeEvidence.get(canonicalGtin(product.code)) || new Set();
+    const canonicalCode = canonicalGtin(product.code);
+    const sources = codeEvidence.get(canonicalCode) || new Set();
     const matchMethod = exactCode
       ? sources.size > 1 ? "barcode_ocr" : sources.has("barcode") ? "barcode" : "ocr_code"
       : "ocr_name";
+    const suggestedQuantity = exactCode
+      ? (codeQuantities.get(canonicalCode) ?? analysis.consensus?.quantities?.[product.code] ?? 1)
+      : 1;
+
     return {
       product,
       score,
       exactCode,
       matchMethod,
-      reviewRequired: !corroborated.has(canonicalGtin(product.code)) || analysis.status === "ambiguous" || !exactCode,
+      suggestedQuantity: Math.max(1, Number(suggestedQuantity) || 1),
+      reviewRequired: !corroborated.has(canonicalCode) || analysis.status === "ambiguous" || !exactCode,
     };
   }).filter(match => match.exactCode || (!validCodes.length && match.score >= MIN_NAME_MATCH_SCORE));
 
   ranked.sort((left, right) => Number(right.exactCode) - Number(left.exactCode) || right.score - left.score);
-  return ranked.slice(0, 8).map(({ product, score, matchMethod, reviewRequired }) => ({
+  return ranked.slice(0, 8).map(({ product, score, matchMethod, reviewRequired, suggestedQuantity }) => ({
     id: product.id,
     name: product.name,
     sku: product.code,
@@ -128,6 +156,7 @@ export function rankRecognitionProducts({ products, validCodes, evidenceLines, a
     matchScore: score,
     matchMethod,
     reviewRequired,
+    suggestedQuantity,
     stocks: (product.stocks || []).map(stock => ({
       warehouseId: stock.depositId,
       warehouseName: stock.deposit.name,

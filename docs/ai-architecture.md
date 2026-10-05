@@ -21,9 +21,9 @@ Express recognition route ── no AI_SERVICE_URL ──► truthful 503 / manu
 FastAPI image guard → Image Quality → ZXing Barcode → PaddleOCR → Consensus
     │ structured, non-persistent evidence (never a sale command)
     ▼
-Express Catalog Match Agent → active products + warehouse stock
+Express Catalog Match Agent → active products + warehouse stock + suggested quantities
     ▼
-Seller review → explicit cart action → existing server-side sale/stock validation
+Editable cart preloading (capped by warehouse stock) → seller review / manual adjustment → manual confirmation
 ```
 
 The perception service accepts JPEG, PNG, and WebP, caps bytes and decoded pixels, checks the claimed MIME type against the image contents, and returns no image data. It does not access the database. The backend sends only the captured image, not customer identity, prices, or inventory.

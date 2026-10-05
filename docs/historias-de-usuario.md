@@ -19,6 +19,11 @@ Catálogo oficial de Historias de Usuario desarrolladas y validadas durante el *
 | [HU-09](#hu-09-confirmación-de-venta) | Confirmación de venta | Usuario de caja / ventas | Crítica | 2 horas | Implementada |
 | [HU-10](#hu-10-descuento-automático-de-stock-por-venta) | Descuento automático de stock por venta | Sistema | Crítica | 2 horas | Implementada |
 | [HU-11](#hu-11-visualización-de-historial-de-ventas) | Visualización de historial de ventas | Encargado / Administrador | Media | 1 hora | Implementada |
+| [HU-12](#hu-12-autenticación-segura-y-control-de-acceso-por-roles) | Autenticación segura y control de roles | Usuario del sistema | Crítica | 2 horas | Implementada |
+| [HU-13](#hu-13-carga-asistida-por-imagen-en-terminal-de-ventas) | Carga asistida por imagen en terminal de ventas | Cajero / Vendedor | Crítica | 4 horas | Implementada |
+| [HU-14](#hu-14-transferencias-atómicas-entre-depósitos-y-concurrencia) | Transferencias atómicas entre depósitos | Encargado de depósito | Crítica | 3 horas | Implementada |
+| [HU-15](#hu-15-precios-por-volumen-en-tiempo-real) | Precios por volumen en tiempo real | Cajero / Vendedor | Alto | 2 horas | Implementada |
+| [HU-16](#hu-16-alertas-de-stock-mínimo-y-criticidad) | Alertas de stock mínimo y criticidad | Encargado de compras / Depósito | Alto | 2 horas | Implementada |
 
 ---
 
@@ -250,3 +255,114 @@ Catálogo oficial de Historias de Usuario desarrolladas y validadas durante el *
 - **CA-02:** Se puede consultar fecha, productos y total de cada venta.
 - **CA-03:** El usuario puede filtrar o buscar ventas.
 - **CA-04:** La información se obtiene correctamente del sistema.
+
+---
+
+### HU-12: Autenticación segura y control de acceso por roles
+
+| Campo | Detalle |
+| :--- | :--- |
+| **Título** | Autenticación segura y control de acceso por roles |
+| **YO COMO** | Usuario del sistema |
+| **DESEO** | Iniciar sesión de forma segura y operar según mis permisos |
+| **PARA** | Proteger los datos comerciales y acceder solo a las funciones autorizadas para mi rol |
+| **Prioridad** | Crítica |
+| **Estado** | Implementada |
+| **Estimación** | 2 horas |
+| **Tareas Backlog** | `SB-064`, `SB-065`, `SB-066`, `SB-067` |
+
+#### Criterios de Aceptación
+- **CA-01:** El sistema autentica credenciales con hash seguro bcrypt y emite tokens JWT estándar firmados con algoritmo HS256 y expiración a 7 días.
+- **CA-02:** El token se almacena en una cookie `stockia_session` con atributos `HttpOnly`, `SameSite=Lax` y `Secure` habilitado en entornos de producción.
+- **CA-03:** En producción (`NODE_ENV=production`), el servidor aborta el inicio si `SESSION_SECRET` o `JWT_SECRET` no están configurados o conservan el valor por defecto.
+- **CA-04:** El rate limiting de login bloquea tras reiterados intentos fallidos consecutivos, pero resetea el contador al autenticarse exitosamente.
+- **CA-05:** El formulario de login valida formato de email y campos requeridos en tiempo real (`onChange`/`onBlur`) con accesibilidad `aria-invalid` y botón deshabilitado durante el envío.
+- **CA-06:** Se aplica control de acceso basado en roles (RBAC) estricto: `administrador` (acceso total), `caja` (ventas, escaneo asistido y clientes; denegado en productos y transferencias), `deposito` (transferencias, inventario y depósitos; denegado en ventas).
+
+---
+
+### HU-13: Carga asistida por imagen en terminal de ventas
+
+| Campo | Detalle |
+| :--- | :--- |
+| **Título** | Carga asistida por imagen en terminal de ventas |
+| **YO COMO** | Cajero o vendedor |
+| **DESEO** | Escanear fotográficamente uno o varios productos para cargar automáticamente el comprobante |
+| **PARA** | Agilizar el despacho en caja, reducir el tiempo de atención y minimizar errores de tipeo |
+| **Prioridad** | Crítica |
+| **Estado** | Implementada |
+| **Estimación** | 4 horas |
+| **Tareas Backlog** | `SB-068`, `SB-069`, `SB-070`, `SB-071` |
+
+#### Criterios de Aceptación
+- **CA-01:** El vendedor puede capturar o adjuntar una fotografía desde el comprobante de venta (`PhotoCapture.tsx`) invocando `POST /api/sales/scan`.
+- **CA-02:** El pipeline de percepción cuenta apariciones físicas reales: cada barcode en distinta posición cuenta como 1 unidad; la lectura OCR de la misma etiqueta corrobora pero suma 0 unidades (anti-doble conteo).
+- **CA-03:** Tras el escaneo, el carrito se precarga automáticamente con los productos coincidentes del catálogo local y sus cantidades sugeridas (`suggestedQuantity`).
+- **CA-04:** Si la cantidad sugerida supera el stock disponible en el depósito de venta, el sistema recorta la cantidad al tope disponible y emite una notificación informativa clara.
+- **CA-05:** La venta se asocia a un único depósito; si se detectan productos con existencias en múltiples depósitos, se alerta al vendedor para confirmar la selección.
+- **CA-06:** Todas las líneas del comprobante permanecen 100% editables (modificar cantidad o eliminar línea). La venta nunca se confirma sola y requiere acción manual explícita.
+- **CA-07:** Si se detectan códigos válidos que no están en el catálogo, se ofrece al usuario administrador un botón directo para dar de alta el producto con el código precargado.
+
+---
+
+### HU-14: Transferencias atómicas entre depósitos y concurrencia
+
+| Campo | Detalle |
+| :--- | :--- |
+| **Título** | Transferencias atómicas entre depósitos y concurrencia |
+| **YO COMO** | Encargado de depósito |
+| **DESEO** | Transferir stock entre depósitos de forma atómica y protegida contra sobregiros |
+| **PARA** | Reabastecer sucursales manteniendo la integridad y consistencia absoluta del inventario |
+| **Prioridad** | Crítica |
+| **Estado** | Implementada |
+| **Estimación** | 3 horas |
+| **Tareas Backlog** | `SB-072`, `SB-073`, `SB-074`, `SB-075`, `SB-081` |
+
+#### Criterios de Aceptación
+- **CA-01:** Se implementa `StockTransferService.transferStock` ejecutando todas las operaciones dentro de una transacción atómica (`prisma.$transaction`).
+- **CA-02:** El descuento de stock en origen utiliza actualización condicional atómica (`updateMany` con `quantity: { gte: qty }`), impidiendo sobregiros en transferencias o ventas concurrentes.
+- **CA-03:** Cualquier infracción del constraint de base CHECK 23514 se captura y responde con HTTP 400 claro ("Stock insuficiente"), nunca con error técnico HTTP 500.
+- **CA-04:** Se registran exactamente dos movimientos `StockMovement` por producto: uno con signo negativo en el depósito origen y uno positivo en destino, con un único `depositId` por movimiento.
+- **CA-05:** Si la transferencia falla por stock insuficiente en cualquier ítem, toda la operación revierte en su totalidad sin dejar movimientos huérfanos ni saldos inconsistentes.
+
+---
+
+### HU-15: Precios por volumen en tiempo real
+
+| Campo | Detalle |
+| :--- | :--- |
+| **Título** | Precios por volumen en tiempo real |
+| **YO COMO** | Cajero o vendedor |
+| **DESEO** | Visualizar en tiempo real el precio unitario y subtotal según los tramos por cantidad en el comprobante |
+| **PARA** | Ofrecer precios mayoristas transparentes y asegurar que el total en pantalla coincida con el facturado |
+| **Prioridad** | Alto |
+| **Estado** | Implementada |
+| **Estimación** | 2 horas |
+| **Tareas Backlog** | `SB-076` |
+
+#### Criterios de Aceptación
+- **CA-01:** `GET /api/inventory` expone `priceRules` con los tramos configurados para cada producto, evitando consultas HTTP redundantes al tipear en el comprobante.
+- **CA-02:** Se implementa la función pura compartida `unitPriceForQuantity` y `calculateLinePricing`, aplicando la regla con mayor `minQuantity <= cantidad`, o el precio base si ninguna aplica.
+- **CA-03:** En `NewSaleModal.tsx` y `SaleCartLine.tsx`, al cambiar la cantidad se recalculan dinámicamente el precio unitario, subtotal y total general, mostrando el tag "Precio mayorista aplicado".
+- **CA-04:** Paridad total comprobada: el total calculado por el frontend en centavos coincide exactamente con el valor persistido por `createSaleCompat` en el backend.
+
+---
+
+### HU-16: Alertas de stock mínimo y criticidad
+
+| Campo | Detalle |
+| :--- | :--- |
+| **Título** | Alertas de stock mínimo y criticidad |
+| **YO COMO** | Encargado de compras o depósito |
+| **DESEO** | Filtrar y visualizar rápidamente productos con existencias por debajo o en el umbral mínimo |
+| **PARA** | Evitar quiebres de stock y programar reposiciones oportunamente |
+| **Prioridad** | Alto |
+| **Estado** | Implementada |
+| **Estimación** | 2 horas |
+| **Tareas Backlog** | `SB-077`, `SB-078` |
+
+#### Criterios de Aceptación
+- **CA-01:** Endpoint `GET /api/inventory/low-stock` (y parámetro `?lowStock=true`) protegido con autenticación, con filtro opcional por `warehouseId`.
+- **CA-02:** Devuelve posiciones con `quantity <= lowStockThreshold`, incluyendo artículos con stock 0.
+- **CA-03:** Clasifica cada ítem con su criticidad (`level`): `sin_stock` (cantidad = 0), `critico` (cantidad <= umbral / 2), `bajo` (cantidad <= umbral) y `saludable` (cantidad > umbral).
+- **CA-04:** `StockPage.tsx` utiliza este endpoint al activar el filtro "Bajo mínimo", compartiendo la misma clasificación y badges que el dashboard y reportes.

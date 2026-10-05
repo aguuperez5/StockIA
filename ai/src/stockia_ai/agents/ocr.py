@@ -41,27 +41,47 @@ class OcrAgent:
 
         lines: list[TextEvidence] = []
         identifiers: list[IdentifierEvidence] = []
-        seen: set[str] = set()
+        counts: dict[str, int] = {}
+        best_scores: dict[str, float | None] = {}
+        first_seen: list[str] = []
+        formats: dict[str, tuple[str, bool]] = {}
+
         for raw_text, raw_score in raw_lines:
             text = str(raw_text).strip()
             if not text:
                 continue
             score = None if raw_score is None else min(1.0, max(0.0, float(raw_score)))
             lines.append(TextEvidence(text=text[:160], score=score))
+            line_seen_in_this_line: set[str] = set()
             for match in _GTIN_LIKE.finditer(text.upper()):
                 value = normalize_gtin(match.group().translate(_OCR_CONFUSABLES))
-                if value in seen:
+                if not value or value in line_seen_in_this_line:
                     continue
-                seen.add(value)
+                line_seen_in_this_line.add(value)
                 format_name, valid = classify_gtin(value)
                 if format_name != "unknown":
-                    identifiers.append(
-                        IdentifierEvidence(
-                            value=value,
-                            format=format_name,
-                            source="ocr",
-                            checksum_valid=valid,
-                            score=score,
-                        )
-                    )
+                    if value not in counts:
+                        counts[value] = 0
+                        first_seen.append(value)
+                        formats[value] = (format_name, valid)
+                        best_scores[value] = score
+                    else:
+                        if score is not None and (best_scores[value] is None or score > best_scores[value]):
+                            best_scores[value] = score
+                    counts[value] += 1
+
+        for value in first_seen:
+            format_name, valid = formats[value]
+            count = counts[value]
+            identifiers.append(
+                IdentifierEvidence(
+                    value=value,
+                    format=format_name,
+                    source="ocr",
+                    checksum_valid=valid,
+                    score=best_scores[value],
+                    occurrences=count,
+                    quantity=count,
+                )
+            )
         return lines, identifiers, []

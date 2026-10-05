@@ -27,9 +27,11 @@ import { useAsyncData } from "@/hooks/useAsyncData";
 import { saleService } from "@/services/sales";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService, type Product } from "@/services/products";
+import { NewSaleModal } from "@/components/sales/NewSaleModal";
 
 export default function SalesHistoryPage() {
   const [, setLocation] = useLocation();
+  const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [from, setFrom] = useState("");
@@ -40,6 +42,18 @@ export default function SalesHistoryPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [minTotal, setMinTotal] = useState("");
   const [maxTotal, setMaxTotal] = useState("");
+
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      (window.location.search.includes("new=1") ||
+        window.location.search.includes("new=true"))
+    ) {
+      setIsNewSaleOpen(true);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -124,7 +138,7 @@ export default function SalesHistoryPage() {
         action={
           <button
             className="button-primary"
-            onClick={() => setLocation("/sales/new")}
+            onClick={() => setIsNewSaleOpen(true)}
           >
             <ShoppingCart size={17} />
             Nueva venta
@@ -335,6 +349,17 @@ export default function SalesHistoryPage() {
             }
           />
         ))}
+
+      {isNewSaleOpen && (
+        <NewSaleModal
+          isOpen={isNewSaleOpen}
+          onClose={() => setIsNewSaleOpen(false)}
+          onSuccess={() => {
+            setIsNewSaleOpen(false);
+            load();
+          }}
+        />
+      )}
     </>
   );
 }

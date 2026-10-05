@@ -1,5 +1,6 @@
 import { AlertCircle, Box, LoaderCircle } from "lucide-react";
 import type { ReactNode } from "react";
+import { getStockBadgeInfo } from "@/lib/stockLevel";
 
 export const money = (cents: number) =>
   new Intl.NumberFormat("es-AR", {
@@ -15,10 +16,17 @@ export const formatAxisMoney = (cents: number) => {
   if (pesos >= 1_000) return `$${Math.round(pesos / 1_000)}k`;
   return `$${Math.round(pesos)}`;
 };
-export const day = (value: string | Date) =>
-  new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" }).format(
+export const day = (value: string | Date) => {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, dayNum] = value.split("-").map(Number);
+    return new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" }).format(
+      new Date(year, month - 1, dayNum)
+    );
+  }
+  return new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" }).format(
     new Date(value)
   );
+};
 export const datetime = (value: string | Date) =>
   new Intl.DateTimeFormat("es-AR", {
     dateStyle: "short",
@@ -129,13 +137,10 @@ export function StockBadge({
   quantity: number;
   threshold: number;
 }) {
-  const critical = quantity === 0;
-  const low = quantity > 0 && quantity <= threshold;
+  const info = getStockBadgeInfo(quantity, threshold);
   return (
-    <span
-      className={`stock-badge ${critical ? "stock-critical" : low ? "stock-low" : "stock-good"}`}
-    >
-      {critical ? "Sin stock" : low ? "Stock bajo" : "Disponible"}
+    <span className={`stock-badge ${info.badgeClass}`}>
+      {info.label}
     </span>
   );
 }

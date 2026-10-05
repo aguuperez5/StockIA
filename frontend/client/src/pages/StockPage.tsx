@@ -7,7 +7,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Warehouse as WarehouseIcon,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -21,6 +20,8 @@ import {
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
 import { WarehouseCard } from "@/components/stock/WarehouseCard";
+import { WarehouseFormModal } from "@/components/stock/WarehouseFormModal";
+import { WarehouseDetailModal } from "@/components/stock/WarehouseDetailModal";
 import {
   inventoryService,
   type InventoryItem,
@@ -30,13 +31,14 @@ import {
 import { transferService } from "@/services/backlog";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
-const initialWarehouse = {
-  name: "",
-  type: "Principal" as Warehouse["type"],
-  address: "",
-  manager: "",
-  capacity: 0,
-};
+const DEFAULT_CATEGORIES = [
+  "Almacén",
+  "Bebidas",
+  "Ferretería",
+  "Hogar",
+  "Limpieza",
+  "Válvulas",
+];
 
 export default function StockPage() {
   const { user } = useStockAuth();
@@ -51,8 +53,7 @@ export default function StockPage() {
   const [moving, setMoving] = useState<InventoryItem | null>(null);
   const [moveDest, setMoveDest] = useState("");
   const [moveQty, setMoveQty] = useState("1");
-  const [warehouseForm, setWarehouseForm] = useState(initialWarehouse);
-  const [editingWarehouse, setEditingWarehouse] = useState<number | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
   const [toDeleteWarehouse, setToDeleteWarehouse] = useState<Warehouse | null>(
     null
@@ -60,7 +61,6 @@ export default function StockPage() {
   const [detail, setDetail] = useState<Awaited<
     ReturnType<typeof warehouseService.summary>
   > | null>(null);
-  const [detailTab, setDetailTab] = useState<"products" | "sales">("products");
   const [productSearch, setProductSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todas");
   const [stockFilter, setStockFilter] = useState("all");
@@ -78,10 +78,14 @@ export default function StockPage() {
   const load = () => {
     setLoading(true);
     setError("");
-    Promise.all([
-      inventoryService.list(warehouseId || undefined),
-      warehouseService.list(),
-    ])
+    const inventoryPromise =
+      stockFilter === "low"
+        ? inventoryService
+            .listLowStock(warehouseId || undefined)
+            .then(res => ({ items: res.items }))
+        : inventoryService.list(warehouseId || undefined);
+
+    Promise.all([inventoryPromise, warehouseService.list()])
       .then(([inventory, deposits]) => {
         setItems(inventory.items);
         setWarehouses(deposits.items);
@@ -91,7 +95,7 @@ export default function StockPage() {
   };
   useEffect(() => {
     void load();
-  }, [warehouseId]);
+  }, [warehouseId, stockFilter]);
 
   const openAdjustment = (item: InventoryItem) => {
     setSelected(item);
@@ -159,10 +163,8 @@ export default function StockPage() {
   };
 
   const openWarehouse = async (warehouse: Warehouse) => {
-    setWarehouseId(String(warehouse.id));
     try {
       setDetail(await warehouseService.summary(warehouse.id));
-      setDetailTab("products");
     } catch (reason) {
       toast.error((reason as Error).message);
     }
@@ -170,55 +172,17 @@ export default function StockPage() {
 
   const closeWarehouse = () => {
     setDetail(null);
+    setWarehouseId("");
   };
 
   const startCreate = () => {
-    setWarehouseForm(initialWarehouse);
     setEditingWarehouse(null);
     setShowWarehouseForm(true);
   };
 
   const startEdit = (warehouse: Warehouse) => {
-    setWarehouseForm({
-      name: warehouse.name,
-      type: warehouse.type,
-      address: warehouse.address,
-      manager: warehouse.manager,
-      capacity: warehouse.capacity,
-    });
-    setEditingWarehouse(warehouse.id);
+    setEditingWarehouse(warehouse);
     setShowWarehouseForm(true);
-  };
-
-  const saveWarehouse = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (
-      !warehouseForm.name.trim() ||
-      !warehouseForm.address.trim() ||
-      !warehouseForm.manager.trim() ||
-      warehouseForm.capacity < 0
-    ) {
-      toast.error(
-        "Completá nombre, dirección, responsable y una capacidad válida."
-      );
-      return;
-    }
-    setPending(true);
-    try {
-      if (editingWarehouse)
-        await warehouseService.update(editingWarehouse, warehouseForm);
-      else await warehouseService.create(warehouseForm);
-      toast.success(
-        editingWarehouse ? "Depósito actualizado." : "Depósito creado."
-      );
-      setShowWarehouseForm(false);
-      await loadWarehouses();
-      load();
-    } catch (reason) {
-      toast.error((reason as Error).message);
-    } finally {
-      setPending(false);
-    }
   };
 
   const confirmRemoveWarehouse = async () => {
@@ -244,19 +208,20 @@ export default function StockPage() {
   const selectedWarehouse = warehouses.find(
     warehouse => String(warehouse.id) === warehouseId
   );
-  const categories = useMemo(
-    () => [
+  const categories = useMemo(() => {
+    const set = new Set<string>(DEFAULT_CATEGORIES);
+    items.forEach(item => {
+      const c = item.category?.trim();
+      if (c) set.add(c);
+    });
+    return [
       "Todas",
-      ...Array.from(
-        new Set(
-          items
-            .map(item => item.category?.trim())
-            .filter((c): c is string => Boolean(c && c.length > 0))
-        )
-      ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })),
-    ],
-    [items]
-  );
+      ...Array.from(set).sort((a, b) =>
+        a.localeCompare(b, "es", { sensitivity: "base" })
+      ),
+    ];
+  }, [items]);
+
   const filteredItems = useMemo(
     () =>
       items.filter(item => {
@@ -268,9 +233,7 @@ export default function StockPage() {
         const matchesStock =
           stockFilter === "all" ||
           (stockFilter === "out" && item.quantity === 0) ||
-          (stockFilter === "low" &&
-            item.quantity > 0 &&
-            item.quantity <= item.lowStockThreshold) ||
+          (stockFilter === "low" && item.quantity <= item.lowStockThreshold) ||
           (stockFilter === "available" &&
             item.quantity > item.lowStockThreshold);
         const matchesMin =
@@ -294,6 +257,7 @@ export default function StockPage() {
       maxQuantity,
     ]
   );
+
   const clearStockFilters = () => {
     setProductSearch("");
     setCategoryFilter("Todas");
@@ -321,329 +285,27 @@ export default function StockPage() {
 
       {/* Modal de Detalle de Depósito a Ancho Completo */}
       {detail && (
-        <div
-          className="modal-backdrop warehouse-detail-backdrop"
-          onClick={closeWarehouse}
-        >
-          <section
-            className="warehouse-detail-screen warehouse-detail-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="warehouse-detail-title"
-            onClick={event => event.stopPropagation()}
-          >
-            <div className="warehouse-detail-header">
-              <div>
-                <span className="eyebrow">Detalle del depósito</span>
-                <h2 id="warehouse-detail-title">{detail.deposit.name}</h2>
-                <p>
-                  {detail.deposit.address} · Responsable:{" "}
-                  {detail.deposit.manager}
-                </p>
-              </div>
-              <button
-                className="modal-close"
-                type="button"
-                onClick={closeWarehouse}
-                aria-label="Cerrar detalle"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="metric-grid warehouse-detail-metrics">
-              <div className="metric-card">
-                <div>
-                  <p>Unidades en stock</p>
-                  <h2>
-                    {detail.stock.reduce(
-                      (total, item) => total + item.quantity,
-                      0
-                    )}
-                  </h2>
-                </div>
-              </div>
-              <div className="metric-card">
-                <div>
-                  <p>Productos almacenados</p>
-                  <h2>
-                    {detail.stock.filter(item => item.quantity > 0).length}
-                  </h2>
-                </div>
-              </div>
-              <div className="metric-card">
-                <div>
-                  <p>Ventas registradas</p>
-                  <h2>{detail.sales.length}</h2>
-                </div>
-              </div>
-              <div className="metric-card">
-                <div>
-                  <p>Total vendido</p>
-                  <h2>
-                    {new Intl.NumberFormat("es-AR", {
-                      style: "currency",
-                      currency: "ARS",
-                      maximumFractionDigits: 0,
-                    }).format(
-                      detail.sales.reduce(
-                        (total, sale) => total + sale.totalCents,
-                        0
-                      ) / 100
-                    )}
-                  </h2>
-                </div>
-              </div>
-            </div>
-
-            <div className="warehouse-detail-tabs">
-              <button
-                type="button"
-                className={`warehouse-tab-btn ${detailTab === "products" ? "active" : ""}`}
-                onClick={() => setDetailTab("products")}
-              >
-                Productos en este depósito ({detail.stock.length})
-              </button>
-              <button
-                type="button"
-                className={`warehouse-tab-btn ${detailTab === "sales" ? "active" : ""}`}
-                onClick={() => setDetailTab("sales")}
-              >
-                Historial de ventas ({detail.sales.length})
-              </button>
-            </div>
-
-            {detailTab === "products" ? (
-              <section className="table-card warehouse-full-table">
-                <div className="table-card-heading">
-                  <h3>Productos en {detail.deposit.name}</h3>
-                  <span>{detail.stock.length} artículos en lista</span>
-                </div>
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Producto</th>
-                        <th scope="col">SKU</th>
-                        <th scope="col">Categoría</th>
-                        <th scope="col">Unidades</th>
-                        <th scope="col">Precio venta</th>
-                        <th scope="col">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.stock.length ? (
-                        detail.stock.map(item => (
-                          <tr key={item.productId}>
-                            <td>
-                              <b>{item.productName}</b>
-                            </td>
-                            <td>{item.sku}</td>
-                            <td>{item.category || "General"}</td>
-                            <td>
-                              <b>{item.quantity}</b> un.
-                            </td>
-                            <td>
-                              {new Intl.NumberFormat("es-AR", {
-                                style: "currency",
-                                currency: "ARS",
-                                maximumFractionDigits: 0,
-                              }).format(item.priceCents / 100)}
-                            </td>
-                            <td>
-                              <StockBadge
-                                quantity={item.quantity}
-                                threshold={item.threshold}
-                              />
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={6}
-                            style={{
-                              textAlign: "center",
-                              padding: "28px",
-                              color: "var(--muted-ink)",
-                            }}
-                          >
-                            No hay productos en este depósito.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ) : (
-              <section className="table-card warehouse-full-table">
-                <div className="table-card-heading">
-                  <h3>Ventas despachadas desde {detail.deposit.name}</h3>
-                  <span>{detail.sales.length} comprobantes registrados</span>
-                </div>
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Fecha</th>
-                        <th scope="col">Cliente</th>
-                        <th scope="col">Unidades despachadas</th>
-                        <th scope="col">Total de la venta</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.sales.length ? (
-                        detail.sales.map(sale => (
-                          <tr key={sale.id}>
-                            <td>
-                              {new Intl.DateTimeFormat("es-AR", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              }).format(new Date(sale.createdAt))}
-                            </td>
-                            <td>
-                              <b>{sale.customerName}</b>
-                            </td>
-                            <td>{sale.itemCount} un.</td>
-                            <td>
-                              <b>
-                                {new Intl.NumberFormat("es-AR", {
-                                  style: "currency",
-                                  currency: "ARS",
-                                  maximumFractionDigits: 0,
-                                }).format(sale.totalCents / 100)}
-                              </b>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            style={{
-                              textAlign: "center",
-                              padding: "28px",
-                              color: "var(--muted-ink)",
-                            }}
-                          >
-                            No se registran ventas desde este depósito.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-          </section>
-        </div>
+        <WarehouseDetailModal
+          detail={detail}
+          categories={categories}
+          onClose={closeWarehouse}
+        />
       )}
 
-      {/* Formulario de Alta / Edición de Depósito */}
-      {canManage && showWarehouseForm && (
-        <form
-          className="form-card compact-form"
-          onSubmit={saveWarehouse}
-          noValidate
-        >
-          <div className="form-section-title">
-            <span>
-              <WarehouseIcon size={18} />
-            </span>
-            <div>
-              <h2>{editingWarehouse ? "Editar depósito" : "Nuevo depósito"}</h2>
-              <p>
-                Definí la capacidad máxima de unidades almacenadas y el
-                responsable.
-              </p>
-            </div>
-          </div>
-          <div className="form-grid two">
-            <label className="field">
-              <span>Nombre</span>
-              <input
-                value={warehouseForm.name}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    name: event.target.value,
-                  })
-                }
-                placeholder="Ej. Depósito Central"
-              />
-            </label>
-            <label className="field">
-              <span>Tipo</span>
-              <ModernSelect
-                value={warehouseForm.type}
-                onChange={val =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    type: val as Warehouse["type"],
-                  })
-                }
-                options={["Principal", "Sucursal", "Depósito externo"]}
-                ariaLabel="Tipo de depósito"
-                minWidth="100%"
-                className="w-full"
-              />
-            </label>
-            <label className="field">
-              <span>Dirección</span>
-              <input
-                value={warehouseForm.address}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    address: event.target.value,
-                  })
-                }
-                placeholder="Calle y número"
-              />
-            </label>
-            <label className="field">
-              <span>Responsable</span>
-              <input
-                value={warehouseForm.manager}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    manager: event.target.value,
-                  })
-                }
-                placeholder="Nombre del encargado"
-              />
-            </label>
-            <label className="field">
-              <span>Capacidad (unidades)</span>
-              <input
-                type="number"
-                min="0"
-                value={warehouseForm.capacity}
-                onChange={event =>
-                  setWarehouseForm({
-                    ...warehouseForm,
-                    capacity: Number(event.target.value),
-                  })
-                }
-              />
-            </label>
-          </div>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={() => setShowWarehouseForm(false)}
-            >
-              Cancelar
-            </button>
-            <button className="button-primary" disabled={pending}>
-              <Check size={16} />
-              {editingWarehouse ? "Guardar cambios" : "Guardar depósito"}
-            </button>
-          </div>
-        </form>
+      {/* Modal de Alta / Edición de Depósito */}
+      {canManage && (
+        <WarehouseFormModal
+          isOpen={showWarehouseForm}
+          initialData={editingWarehouse}
+          onClose={() => {
+            setShowWarehouseForm(false);
+            setEditingWarehouse(null);
+          }}
+          onSuccess={async () => {
+            await loadWarehouses();
+            load();
+          }}
+        />
       )}
 
       {/* Modal de confirmación de eliminación de depósito */}
@@ -695,7 +357,10 @@ export default function StockPage() {
           <WarehouseCard
             key={warehouse.id}
             warehouse={warehouse}
-            isSelected={selectedWarehouse?.id === warehouse.id}
+            isSelected={
+              detail?.deposit.id === warehouse.id ||
+              (Boolean(warehouseId) && selectedWarehouse?.id === warehouse.id)
+            }
             canManage={canManage}
             onSelect={() => openWarehouse(warehouse)}
             onEdit={() => startEdit(warehouse)}
@@ -703,33 +368,6 @@ export default function StockPage() {
           />
         ))}
       </section>
-
-      {selectedWarehouse && (
-        <div className="stock-deposit-summary">
-          <div>
-            <span className="eyebrow">Filtro de depósito activo</span>
-            <h2>{selectedWarehouse.name}</h2>
-            <p>
-              {selectedWarehouse.address} · Responsable:{" "}
-              {selectedWarehouse.manager}
-            </p>
-          </div>
-          <div>
-            <b>{selectedWarehouse.stockTotal ?? 0}</b>
-            <span>unidades almacenadas</span>
-          </div>
-          <div>
-            <b>{selectedWarehouse.capacity || "∞"}</b>
-            <span>capacidad</span>
-          </div>
-          <button
-            className="button-secondary"
-            onClick={() => setWarehouseId("")}
-          >
-            Ver todos los depósitos
-          </button>
-        </div>
-      )}
 
       {/* Filtros de la tabla de stock */}
       <div className="stock-toolbar">
@@ -766,7 +404,7 @@ export default function StockPage() {
           options={[
             { value: "all", label: "Todo el stock" },
             { value: "available", label: "Disponible" },
-            { value: "low", label: "Stock bajo" },
+            { value: "low", label: "Bajo mínimo" },
             { value: "out", label: "Sin stock" },
           ]}
           ariaLabel="Filtrar por estado"

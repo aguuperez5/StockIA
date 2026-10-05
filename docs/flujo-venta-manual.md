@@ -1,15 +1,15 @@
 # Flujo de una venta manual — StockIA (SB-003)
 
-> **Nota de vigencia (auditoría Sprint 1):** este documento describe el flujo con el frontend legado `frontend/src` (mock en memoria, IVA 21% solo visual, totales calculados en el cliente). El frontend canónico actual es `frontend/client/src` + `integration.controller.js`: los totales y tramos de `PriceRule` se calculan en el servidor, cada línea de venta lleva su propio `warehouseId`, no hay IVA, y las pantallas leen la API real. Lo que sigue se conserva como registro histórico del análisis original.
+> **Nota de vigencia (Sprint 2 - HU-13):** el frontend canónico actual es `frontend/client/src` + `integration.controller.js`. Además de la selección manual, se integra la **carga asistida por imagen** (`POST /api/sales/scan`): la captura fotográfica analiza códigos de barras y OCR, deduplica corroboraciones y precarga automáticamente el carrito con los productos y cantidades sugeridas (con recorte visual por stock disponible del depósito activo). **Las líneas precargadas son 100% editables y la venta NUNCA se confirma sola**: requiere siempre la revisión y confirmación manual del vendedor. Lo que sigue describe la evolución histórica y el flujo de confirmación.
 >
-> Comportamiento **real** implementado en el código a la fecha de este análisis. No describe cómo debería funcionar una venta, sino cómo funciona hoy, incluyendo lo que todavía es mock, lo que no está conectado y las inconsistencias detectadas entre frontend, backend y otra documentación.
+> Comportamiento **real** implementado en el código.
 
-## 1. Dónde se inicia una venta manual
+## 1. Dónde se inicia una venta manual y asistida
 
-La pantalla es [NewSale.jsx](../frontend/src/pages/sales/NewSale.jsx) (`/panel/nueva-venta`). El formulario tiene dos formas de cargar productos:
+La pantalla principal de ventas en el frontend activo es el modal `NewSaleModal.tsx` (`/ventas`). El flujo ofrece dos formas complementarias de cargar productos:
 
-- **Detección por IA** (panel "DETECCIÓN DE PRODUCTOS (IA)"): permite adjuntar una foto, pero solo simula una detección — `onFile` guarda la imagen como preview local y, 600ms después, marca `detected = true` mostrando un mensaje de "Detección simulada lista". **No hay llamada a ningún servicio de reconocimiento de imágenes ni carga real de ítems a partir de la foto.**
-- **Selección manual** (panel "SELECCIÓN MANUAL DE PRODUCTOS"): un buscador filtra `products` (del contexto) por nombre o SKU y agrega el producto elegido al carrito (`cart`) vía `addToCart`. Esta es la única vía que efectivamente carga ítems a la venta — SB-003 es justamente el análisis de este camino.
+- **Carga asistida por imagen (IA / Visión - HU-13)**: mediante `PhotoCapture.tsx` y el endpoint `POST /api/sales/scan`, el vendedor fotografía o sube una imagen de los productos. El pipeline analiza códigos con zxing-cpp y OCR de respaldo, calcula cantidades por posición física sin duplicar por lectura de texto, y **precarga automáticamente el carrito** con los productos del catálogo local y las cantidades detectadas. Si la cantidad detectada supera el stock disponible en el depósito de la venta, se ajusta al tope de stock notificando al usuario. Las líneas con lecturas ambiguas o `reviewRequired` se destacan visualmente para revisión. Las lecturas no registradas en el catálogo local ofrecen un acceso rápido para crearlas (rol administrador). **La venta permanece en borrador editable y nunca se confirma automáticamente.**
+- **Selección manual**: el vendedor busca y agrega productos por nombre o SKU desde el catálogo, o modifica las cantidades y líneas precargadas por la cámara.
 
 ## 2. Qué datos pide el formulario
 

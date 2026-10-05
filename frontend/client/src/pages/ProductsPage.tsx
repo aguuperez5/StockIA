@@ -8,7 +8,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -29,11 +28,11 @@ import {
   StockBadge,
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
+import { ProductModal } from "@/components/products/ProductModal";
 import { productService, type Product } from "@/services/products";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
 export default function ProductsPage() {
-  const [, setLocation] = useLocation();
   const { user } = useStockAuth();
   const canManage = user?.appRole === "administrador";
   const [items, setItems] = useState<Product[]>([]);
@@ -43,6 +42,8 @@ export default function ProductsPage() {
   const [stockFilter, setStockFilter] = useState("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const reqVersion = useRef(0);
   const reactivate = async (item: Product) => {
     try {
@@ -130,6 +131,15 @@ export default function ProductsPage() {
     const timer = window.setTimeout(load, 220);
     return () => window.clearTimeout(timer);
   }, [search, category, showInactive]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("new=1")) {
+      setCreateModalOpen(true);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+
   return (
     <>
       <PageHeader
@@ -140,7 +150,7 @@ export default function ProductsPage() {
           canManage ? (
             <button
               className="button-primary"
-              onClick={() => setLocation("/products/new")}
+              onClick={() => setCreateModalOpen(true)}
             >
               <PackagePlus size={17} />
               Nuevo producto
@@ -288,10 +298,9 @@ export default function ProductsPage() {
                             <span className="row-actions">
                               <button
                                 className="icon-button"
-                                onClick={() =>
-                                  setLocation(`/products/${item.id}/edit`)
-                                }
+                                onClick={() => setEditingProduct(item)}
                                 aria-label={`Editar ${item.name}`}
+                                title="Editar producto"
                               >
                                 <Edit3 size={16} />
                               </button>
@@ -368,6 +377,21 @@ export default function ProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {(createModalOpen || editingProduct) && (
+        <ProductModal
+          editId={editingProduct ? editingProduct.id : null}
+          onClose={() => {
+            setCreateModalOpen(false);
+            setEditingProduct(null);
+          }}
+          onSuccess={() => {
+            setCreateModalOpen(false);
+            setEditingProduct(null);
+            load();
+          }}
+        />
+      )}
     </>
   );
 }

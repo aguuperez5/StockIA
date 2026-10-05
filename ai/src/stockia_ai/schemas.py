@@ -18,6 +18,8 @@ class IdentifierEvidence(BaseModel):
     source: Literal["barcode", "ocr"]
     checksum_valid: bool
     score: float | None = None
+    occurrences: int = 1
+    quantity: int = 1
 
 
 class TextEvidence(BaseModel):
@@ -29,6 +31,7 @@ class Consensus(BaseModel):
     status: Literal["corroborated", "needs_review", "ambiguous", "no_detection"]
     candidate_values: list[str] = Field(default_factory=list)
     corroborated_values: list[str] = Field(default_factory=list)
+    quantities: dict[str, int] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
 
 
