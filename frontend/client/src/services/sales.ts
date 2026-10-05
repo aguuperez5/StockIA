@@ -66,6 +66,30 @@ export const saleService = {
         ? { photoData: photo.data, photoMimeType: photo.mimeType }
         : {}),
     }),
+  scan: (photo: { data: string; mimeType: string }) =>
+    post<{
+      simulated: boolean;
+      status?: string;
+      requestId?: string;
+      warnings?: string[];
+      consensus?: {
+        status: string;
+        candidate_values?: string[];
+        corroborated_values?: string[];
+        quantities?: Record<string, number>;
+      };
+      identifiers?: Array<{
+        value: string;
+        source: "barcode" | "ocr";
+        checksum_valid: boolean;
+        occurrences?: number;
+      }>;
+      detections?: Array<any>;
+      items: Array<any>;
+    }>("/sales/scan", {
+      photoData: photo.data,
+      photoMimeType: photo.mimeType,
+    }),
   receipt: (id: string | number) => get<Receipt>(`/sales/${id}`),
   dashboard: () =>
     get<{

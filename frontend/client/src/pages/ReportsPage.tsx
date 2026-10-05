@@ -1,28 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   Download,
-  PackageCheck,
-  Store,
+  Filter,
   X,
 } from "lucide-react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { ChartEmpty } from "@/components/DashboardCharts";
 import { ReportExecutiveKpis } from "@/components/reports/ReportExecutiveKpis";
+import { ReportSalesChart } from "@/components/reports/ReportSalesChart";
+import { ReportDecisionGrids } from "@/components/reports/ReportDecisionGrids";
+import { WarehouseReportModal } from "@/components/reports/WarehouseReportModal";
 import {
   ErrorPanel,
   LoadingPanel,
   PageHeader,
-  day,
-  money,
 } from "@/components/StockUI";
 import { reportService } from "@/services/backlog";
 
@@ -43,9 +33,22 @@ function downloadCsv(rows: string[][], filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function formatLocalYMD(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function ReportsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [activePreset, setActivePreset] = useState<
+    "today" | "7d" | "30d" | "thisMonth" | "all"
+  >("all");
+  const [selectedWarehouse, setSelectedWarehouse] = useState<
+    NonNullable<ReportData["warehouseBreakdown"]>[number] | null
+  >(null);
   const [data, setData] = useState<ReportData | null>(null);
   const [error, setError] = useState("");
   const requestVersion = useRef(0);
@@ -65,12 +68,47 @@ export default function ReportsPage() {
         }
       });
   };
+
   useEffect(() => {
     load();
     return () => {
       requestVersion.current += 1;
     };
   }, [from, to]);
+
+  const applyPreset = (preset: "today" | "7d" | "30d" | "thisMonth" | "all") => {
+    setActivePreset(preset);
+    const now = new Date();
+    const toStr = formatLocalYMD(now);
+    if (preset === "today") {
+      setFrom(toStr);
+      setTo(toStr);
+    } else if (preset === "7d") {
+      const d = new Date();
+      d.setDate(d.getDate() - 6);
+      setFrom(formatLocalYMD(d));
+      setTo(toStr);
+    } else if (preset === "30d") {
+      const d = new Date();
+      d.setDate(d.getDate() - 29);
+      setFrom(formatLocalYMD(d));
+      setTo(toStr);
+    } else if (preset === "thisMonth") {
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      setFrom(`${year}-${month}-01`);
+      setTo(toStr);
+    } else {
+      setFrom("");
+      setTo("");
+    }
+  };
+
+  const handleManualDateChange = (type: "from" | "to", value: string) => {
+    setActivePreset("all");
+    if (type === "from") setFrom(value);
+    else setTo(value);
+  };
 
   const exportCsv = () => {
     if (!data) return;
@@ -142,7 +180,7 @@ export default function ReportsPage() {
         String(s.referenceValueCents / 100),
       ]) ?? []),
     ];
-    downloadCsv(rows, `decision-report-${from || "inicio"}_${to || "hoy"}.csv`);
+    downloadCsv(rows, `informe-stockia-${from || "inicio"}_${to || "hoy"}.csv`);
   };
 
   return (
@@ -150,46 +188,89 @@ export default function ReportsPage() {
       <PageHeader
         eyebrow="Inteligencia comercial y logística"
         title="Reportes y toma de decisiones"
-        description="Analizá el rendimiento de tus depósitos, optimizá las compras y detectá mercadería parada para tomar decisiones informadas."
+        description="Analizá el rendimiento de tus depósitos, optimizá las compras y detectá mercadería parada para tomar decisiones estratégicas."
         action={
           data && (
             <button className="button-secondary" onClick={exportCsv}>
-              <Download size={16} /> Exportar informe estratégico (CSV)
+              <Download size={15} /> Exportar informe estratégico (CSV)
             </button>
           )
         }
       />
 
-      <section className="filter-bar">
-        <div className="filter-date-group" title="Período analizado">
-          <CalendarDays size={15} />
+      {/* Barra de Filtros Rápida y Rango de Fechas */}
+      <section className="reports-toolbar">
+        <div className="reports-presets-group">
+          <span className="presets-label">
+            <Filter size={13} /> Período:
+          </span>
+          <button
+            type="button"
+            className={`preset-pill ${activePreset === "today" ? "active" : ""}`}
+            onClick={() => applyPreset("today")}
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            className={`preset-pill ${activePreset === "7d" ? "active" : ""}`}
+            onClick={() => applyPreset("7d")}
+          >
+            Últimos 7 días
+          </button>
+          <button
+            type="button"
+            className={`preset-pill ${activePreset === "thisMonth" ? "active" : ""}`}
+            onClick={() => applyPreset("thisMonth")}
+          >
+            Este mes
+          </button>
+          <button
+            type="button"
+            className={`preset-pill ${activePreset === "30d" ? "active" : ""}`}
+            onClick={() => applyPreset("30d")}
+          >
+            Últimos 30 días
+          </button>
+          <button
+            type="button"
+            className={`preset-pill ${activePreset === "all" && !from && !to ? "active" : ""}`}
+            onClick={() => applyPreset("all")}
+          >
+            Todo el historial
+          </button>
+        </div>
+
+        <div className="reports-date-group">
+          <CalendarDays size={14} className="date-icon" />
           <input
             type="date"
             value={from}
-            onChange={e => setFrom(e.target.value)}
+            onChange={e => handleManualDateChange("from", e.target.value)}
             aria-label="Fecha desde"
           />
           <span className="date-sep">a</span>
           <input
             type="date"
             value={to}
-            onChange={e => setTo(e.target.value)}
+            onChange={e => handleManualDateChange("to", e.target.value)}
             aria-label="Fecha hasta"
           />
+          {(from || to) && (
+            <button
+              className="button-secondary filter-clear button-xs"
+              onClick={() => {
+                setFrom("");
+                setTo("");
+                setActivePreset("all");
+              }}
+              type="button"
+              title="Restablecer fechas"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
-        {(from || to) && (
-          <button
-            className="button-secondary filter-clear"
-            onClick={() => {
-              setFrom("");
-              setTo("");
-            }}
-            type="button"
-          >
-            <X size={14} />
-            Limpiar fechas
-          </button>
-        )}
       </section>
 
       {error && <ErrorPanel message={error} retry={load} />}
@@ -200,318 +281,25 @@ export default function ReportsPage() {
           {/* Métricas Ejecutivas */}
           <ReportExecutiveKpis data={data} />
 
-          {/* Gráfico de evolución de facturación */}
-          <article className="chart-card chart-card-sales">
-            <div className="chart-card-header">
-              <div>
-                <p className="eyebrow">Dinámica de ingresos</p>
-                <h2>Evolución de ventas por día</h2>
-                <p className="chart-subtitle">
-                  Comportamiento diario de la facturación durante el período
-                  seleccionado.
-                </p>
-              </div>
-            </div>
-            <div className="chart-area">
-              {data.dailySales.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={data.dailySales}
-                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      vertical={false}
-                      stroke="var(--line-soft)"
-                      strokeDasharray="4 4"
-                    />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={value => day(value)}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
-                      tickMargin={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "var(--muted-ink)", fontSize: 12 }}
-                      tickFormatter={value =>
-                        value === 0 ? "$0" : `$${Math.round(value / 1000)}k`
-                      }
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      formatter={(value: number) => money(value)}
-                      labelFormatter={value => day(value)}
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--line)",
-                        borderRadius: "8px",
-                        color: "var(--ink)",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="totalCents"
-                      stroke="var(--chart-1)"
-                      strokeWidth={2.4}
-                      dot={{ r: 3 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <ChartEmpty text="No se registran ventas en este período para graficar." />
-              )}
-            </div>
-          </article>
+          {/* Gráfico de Evolución de Ventas Panorámico */}
+          <ReportSalesChart data={data} from={from} to={to} />
 
-          {/* Tablas de decisión estratégica */}
-          <div className="decision-sections-grid">
-            {/* 1. Plan de reposición urgente */}
-            <section className="table-card decision-table-card">
-              <div className="table-card-heading">
-                <div>
-                  <h3>Plan de reposición urgente (Decisión de compra)</h3>
-                  <span>
-                    Artículos bajo el stock mínimo que requieren reorden
-                    inmediata
-                  </span>
-                </div>
-                {data.replenishment && data.replenishment.totalItems > 0 && (
-                  <span className="decision-badge critical-badge">
-                    {data.replenishment.totalItems} producto
-                    {data.replenishment.totalItems === 1 ? "" : "s"} a reponer
-                  </span>
-                )}
-              </div>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Producto</th>
-                      <th scope="col">Stock / Mín.</th>
-                      <th scope="col">A comprar</th>
-                      <th scope="col" title="Valor estimado a precio de lista">
-                        Valor est. lista
-                      </th>
-                      <th scope="col">Prioridad</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.replenishment &&
-                    data.replenishment.items.length > 0 ? (
-                      data.replenishment.items.map(item => (
-                        <tr key={item.productId}>
-                          <td>
-                            <b>{item.productName}</b>
-                            <small>
-                              {item.sku} · {item.category}
-                            </small>
-                          </td>
-                          <td>
-                            <b>{item.currentStock}</b>{" "}
-                            <small style={{ display: "inline" }}>
-                              / {item.threshold} u.
-                            </small>
-                          </td>
-                          <td className="highlight-number">
-                            <b>+{item.unitsNeeded} un.</b>
-                          </td>
-                          <td>{money(item.referenceValueCents)}</td>
-                          <td>
-                            <span
-                              className={`priority-pill ${item.priority === "CRÍTICA" ? "pill-critical" : "pill-high"}`}
-                            >
-                              {item.priority}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="empty-table-cell">
-                          <PackageCheck size={20} color="var(--brand)" />
-                          <span>
-                            ¡Excelente! Todo el stock actual se encuentra por
-                            encima del mínimo sugerido.
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+          {/* Tablas de decisión estratégica (Todos los módulos siempre visibles) */}
+          <ReportDecisionGrids
+            data={data}
+            onSelectWarehouse={setSelectedWarehouse}
+          />
 
-            {/* 2. Desglose de ventas por depósito (Decisión logística) */}
-            <section className="table-card decision-table-card">
-              <div className="table-card-heading">
-                <div>
-                  <h3>Rendimiento por depósito (Decisión logística)</h3>
-                  <span>
-                    Identificá qué sucursales traccionan más para rebalancear
-                    inventario
-                  </span>
-                </div>
-              </div>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Depósito / Sucursal</th>
-                      <th scope="col">Comprobantes</th>
-                      <th scope="col">Facturado</th>
-                      <th scope="col">% Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.warehouseBreakdown &&
-                    data.warehouseBreakdown.length > 0 ? (
-                      data.warehouseBreakdown.map(warehouse => (
-                        <tr key={warehouse.id}>
-                          <td>
-                            <div className="warehouse-name-cell">
-                              <Store size={15} />
-                              <b>{warehouse.name}</b>
-                            </div>
-                          </td>
-                          <td>{warehouse.count} ventas</td>
-                          <td>
-                            <b>{money(warehouse.totalCents)}</b>
-                          </td>
-                          <td>
-                            <div className="share-progress-wrapper">
-                              <span>{warehouse.percentage}%</span>
-                              <div className="share-progress-bar">
-                                <div
-                                  style={{ width: `${warehouse.percentage}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="empty-table-cell">
-                          <span>
-                            No hay ventas registradas por depósito en este
-                            período.
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
-          <div className="decision-sections-grid">
-            {/* 3. Top productos por facturación */}
-            <section className="table-card decision-table-card">
-              <div className="table-card-heading">
-                <div>
-                  <h3>Top productos por ingresos (Mayor contribución)</h3>
-                  <span>
-                    Los productos que más dinero generan en tu facturación
-                  </span>
-                </div>
-              </div>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Producto</th>
-                      <th scope="col">Vendidos</th>
-                      <th scope="col">Facturación</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.topRevenue && data.topRevenue.length > 0
-                      ? data.topRevenue.map(p => (
-                          <tr key={p.productId}>
-                            <td>
-                              <b>{p.productName}</b>
-                            </td>
-                            <td>{p.units} un.</td>
-                            <td>
-                              <b>{money(p.revenueCents)}</b>
-                            </td>
-                          </tr>
-                        ))
-                      : data.bestSellers.map(b => (
-                          <tr key={b.productId}>
-                            <td>
-                              <b>{b.productName}</b>
-                            </td>
-                            <td>{b.units} un.</td>
-                            <td>-</td>
-                          </tr>
-                        ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* 4. Mercadería sin rotación */}
-            <section className="table-card decision-table-card">
-              <div className="table-card-heading">
-                <div>
-                  <h3>Stock inmovilizado (Sugerencia de promoción)</h3>
-                  <span>
-                    Productos con stock parado sin ventas en el período
-                  </span>
-                </div>
-              </div>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Producto</th>
-                      <th scope="col">Stock parado</th>
-                      <th scope="col" title="Valor a precio de lista">Valor lista</th>
-                      <th scope="col">Sugerencia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.stagnantStock &&
-                    data.stagnantStock.items.length > 0 ? (
-                      data.stagnantStock.items.map(st => (
-                        <tr key={st.id}>
-                          <td>
-                            <b>{st.name}</b>
-                            <small>
-                              {st.sku} · {st.category}
-                            </small>
-                          </td>
-                          <td>
-                            <b>{st.stock}</b> un.
-                          </td>
-                          <td>{money(st.referenceValueCents)}</td>
-                          <td>
-                            <span className="suggestion-tag">
-                              Oferta / Combo
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="empty-table-cell">
-                          <span>
-                            No hay productos con stock y sin ventas en este
-                            período.
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
+          {/* Modal de Reporte Detallado de Depósito */}
+          {selectedWarehouse && (
+            <WarehouseReportModal
+              warehouse={selectedWarehouse}
+              from={from}
+              to={to}
+              totalCompanySalesCents={data.sales.totalCents}
+              onClose={() => setSelectedWarehouse(null)}
+            />
+          )}
         </>
       )}
     </div>

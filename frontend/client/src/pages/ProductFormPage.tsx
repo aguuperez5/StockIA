@@ -7,8 +7,9 @@ import {
   Save,
   Trash2,
   Upload,
+  Warehouse as WarehouseIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import {
@@ -18,6 +19,7 @@ import {
   PageHeader,
   SubmitButton,
 } from "@/components/StockUI";
+import { ModernSelect } from "@/components/ModernSelect";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService } from "@/services/products";
 import { priceRuleService } from "@/services/backlog";
@@ -43,52 +45,8 @@ const blank: FormData = {
   imageUrl: "",
 };
 
-export const parseMoney = (value: string) => {
-  const clean = String(value).trim();
-  return Number(
-    clean.includes(",") ? clean.replace(/\./g, "").replace(",", ".") : clean
-  );
-};
-
-function resizeImageToDataUrl(
-  fileOrBlob: Blob,
-  maxWidth = 800,
-  maxHeight = 800,
-  quality = 0.82
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(img.src);
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () =>
-        reject(new Error("No se pudo procesar la imagen seleccionada."));
-      img.src = reader.result as string;
-    };
-    reader.onerror = () =>
-      reject(new Error("No se pudo leer el archivo de imagen."));
-    reader.readAsDataURL(fileOrBlob);
-  });
-}
+import { parseMoney, resizeImageToDataUrl } from "@/components/products/productFormUtils";
+export { parseMoney, resizeImageToDataUrl };
 
 let cachedCategories: string[] = [];
 let cachedWarehouses: Warehouse[] = [];
@@ -135,9 +93,23 @@ export default function ProductFormPage() {
       .then(result => {
         cachedWarehouses = result.items;
         setWarehouses(result.items);
+        if (!editId) {
+          setForm(current => ({
+            ...current,
+            warehouseId:
+              current.warehouseId || (result.items[0]?.id ? String(result.items[0].id) : ""),
+          }));
+        }
       })
       .catch((reason: Error) => setPageError(reason.message));
-  }, []);
+  }, [editId]);
+
+  const warehouseOptions = useMemo(() => {
+    return warehouses.map(w => ({
+      value: String(w.id),
+      label: `${w.name} · ${w.type}`,
+    }));
+  }, [warehouses]);
   useEffect(() => {
     if (!editId) return;
     productService
@@ -543,8 +515,8 @@ export default function ProductFormPage() {
               <BadgeDollarSign size={18} />
             </span>
             <div>
-              <h2>Precios por cantidad</h2>
-              <p>Opcional: definí descuentos por volumen.</p>
+              <h2>Precio mayorista</h2>
+              <p>Opcional: definí precios con descuento por cantidad o volumen.</p>
             </div>
           </div>
           {priceRules.map((rule, index) => (
@@ -632,22 +604,27 @@ export default function ProductFormPage() {
                   error={errors.warehouseId}
                   className="full"
                 >
-                  <select
+                  <ModernSelect
                     value={form.warehouseId}
-                    onChange={e => update("warehouseId", e.target.value)}
-                    disabled={Number(form.initialStock) === 0}
-                  >
-                    <option value="">Seleccioná un depósito</option>
-                    {warehouses.map(warehouse => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name} · {warehouse.type}
-                      </option>
-                    ))}
-                  </select>
-                  {!warehouses.length && (
+                    onChange={value => update("warehouseId", value)}
+                    options={warehouseOptions}
+                    placeholder="Seleccioná un depósito"
+                    icon={<WarehouseIcon size={15} />}
+                    className="w-full"
+                    minWidth="100%"
+                    side="bottom"
+                    avoidCollisions={false}
+                    matchTriggerWidth={true}
+                  />
+                  {warehouses.length > 0 ? (
                     <small className="field-hint">
-                      Primero necesitás registrar un depósito para asignar stock
-                      inicial.
+                      {Number(form.initialStock) > 0
+                        ? `Se registrarán ${form.initialStock} unidades en este depósito al crear el producto.`
+                        : "Depósito asignado al producto (ingresará con 0 u. iniciales)."}
+                    </small>
+                  ) : (
+                    <small className="field-hint">
+                      Primero necesitás registrar al menos un depósito en "Stock y depósitos".
                     </small>
                   )}
                 </Field>

@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { ChevronRight, Mail, Phone, Plus, Search, User } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import {
 } from "@/components/StockUI";
 import { customerService, type Customer } from "@/services/backlog";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { ClientDetailModal } from "@/components/clients/ClientDetailModal";
+import { ClientCreateModal } from "@/components/clients/ClientCreateModal";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9\s\-()]{7,25}$/;
@@ -50,22 +52,16 @@ function validateCustomer(form: {
 }
 
 export function ClientsPage() {
-  const [, setLocation] = useLocation();
   const { user } = useStockAuth();
   const canManageClients =
     user?.appRole === "administrador" || user?.appRole === "caja";
   const [items, setItems] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const reqVersion = useRef(0);
-  const [form, setForm] = useState({
-    name: "",
-    contact: "",
-    email: "",
-    phone: "",
-  });
   const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const load = (term = "") => {
     const currentVersion = ++reqVersion.current;
     customerService
@@ -77,77 +73,37 @@ export function ClientsPage() {
         if (currentVersion === reqVersion.current) setError(e.message);
       });
   };
+
   useEffect(() => {
     void load();
   }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => void load(search), 220);
     return () => window.clearTimeout(timer);
   }, [search]);
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const next = validateCustomer(form);
-    setFormErrors(next);
-    if (Object.keys(next).length) return;
-    setPending(true);
-    try {
-      await customerService.create(form);
-      setForm({ name: "", contact: "", email: "", phone: "" });
-      toast.success("Cliente registrado correctamente.");
-      load(search);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setPending(false);
-    }
-  };
+
   return (
     <>
       <PageHeader
         eyebrow="Relación comercial"
         title="Clientes"
-        description="Registrá contactos y consultá sus hábitos de compra."
+        description="Registrá contactos, consultá sus hábitos de compra e historial."
+        action={
+          canManageClients ? (
+            <button
+              className="button-primary"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={16} />
+              Nuevo cliente
+            </button>
+          ) : undefined
+        }
       />
-      {error && <ErrorPanel message={error} />}
-      {canManageClients && (
-        <form className="form-card form-card-pad" onSubmit={create}>
-          <div className="form-grid two">
-            {(["name", "contact", "email", "phone"] as const).map(key => (
-              <label className="field" key={key}>
-                <span>
-                  {key === "name"
-                    ? "Nombre"
-                    : key === "contact"
-                      ? "Contacto"
-                      : key === "email"
-                        ? "Email"
-                        : "Teléfono"}
-                </span>
-                <input
-                  value={form[key]}
-                  onChange={e => setForm({ ...form, [key]: e.target.value })}
-                  placeholder={
-                    key === "name"
-                      ? "Ej. Ana Gómez"
-                      : key === "contact"
-                        ? "Ej. telegram:@ana"
-                        : key === "email"
-                          ? "Ej. cliente@gmail.com"
-                          : "Ej. +54 9 11 1234-5678"
-                  }
-                />
-                {formErrors[key] && (
-                  <small className="field-error">{formErrors[key]}</small>
-                )}
-              </label>
-            ))}
-          </div>
-          <button className="button-primary" disabled={pending}>
-            {pending ? "Agregando…" : "Agregar cliente"}
-          </button>
-        </form>
-      )}
-      <section className="filter-bar">
+      {error && <ErrorPanel message={error} retry={() => load(search)} />}
+
+      <section className="filter-bar client-filter-bar">
         <label className="search-control">
           <Search size={17} />
           <input
@@ -157,19 +113,62 @@ export function ClientsPage() {
             aria-label="Buscar clientes"
           />
         </label>
+        <span className="client-count-chip">
+          {items.length} {items.length === 1 ? "cliente" : "clientes"}
+        </span>
       </section>
+
       {items.length ? (
-        <div className="data-table" role="list">
+        <div className="client-list-container" role="list">
           {items.map(item => (
             <button
-              className="data-table-row"
+              type="button"
+              className="client-card-item"
               key={item.id}
               role="listitem"
-              onClick={() => setLocation(`/clients/${item.id}`)}
+              onClick={() => setSelectedCustomerId(item.id)}
+              aria-label={`Ver detalles de ${item.name}`}
             >
-              <b>{item.name}</b>
-              <span>{item.contact}</span>
-              <span>{item.email ?? item.phone ?? "Sin datos adicionales"}</span>
+              <div className="client-card-avatar">
+                <span>{item.name.slice(0, 2).toUpperCase()}</span>
+              </div>
+
+              <div className="client-card-main">
+                <div className="client-card-title-line">
+                  <b className="client-card-name">{item.name}</b>
+                  <span className="client-id-pill">ID #{item.id}</span>
+                </div>
+                <div className="client-card-meta">
+                  <span className="client-contact-tag">
+                    <User size={12} />
+                    {item.contact}
+                  </span>
+                </div>
+              </div>
+
+              <div className="client-card-channels">
+                {item.email && (
+                  <span className="client-channel-item" title={item.email}>
+                    <Mail size={12} />
+                    <span>{item.email}</span>
+                  </span>
+                )}
+                {item.phone && (
+                  <span className="client-channel-item" title={item.phone}>
+                    <Phone size={12} />
+                    <span>{item.phone}</span>
+                  </span>
+                )}
+                {!item.email && !item.phone && (
+                  <span className="client-channel-empty">
+                    Sin teléfono ni email adicional
+                  </span>
+                )}
+              </div>
+
+              <div className="client-card-select-arrow" aria-hidden="true">
+                <ChevronRight size={18} />
+              </div>
             </button>
           ))}
         </div>
@@ -181,8 +180,30 @@ export function ClientsPage() {
           detail={
             search
               ? "Probá con otro nombre o contacto."
-              : "El primer cliente se puede registrar desde el formulario."
+              : "El primer cliente se puede registrar presionando 'Nuevo cliente'."
           }
+        />
+      )}
+
+      {/* Modal de Detalle y Edición de Cliente */}
+      <ClientDetailModal
+        customerId={selectedCustomerId}
+        isOpen={Boolean(selectedCustomerId)}
+        onClose={() => setSelectedCustomerId(null)}
+        canManage={canManageClients}
+        onClientUpdated={() => load(search)}
+        onClientDeleted={() => {
+          setSelectedCustomerId(null);
+          load(search);
+        }}
+      />
+
+      {/* Modal de Registro de Nuevo Cliente */}
+      {canManageClients && (
+        <ClientCreateModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => load(search)}
         />
       )}
     </>

@@ -71,6 +71,7 @@ model Deposit {
   address  String   @default("")
   manager  String   @default("")
   capacity Int      @default(0)
+  imageUrl String?
   createdAt DateTime @default(now())
 
   stocks         Stock[]

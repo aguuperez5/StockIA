@@ -56,9 +56,13 @@ export type Transfer = {
   status: string;
   createdAt: string;
   itemCount?: number;
+  totalUnits?: number;
   originName?: string;
+  originLocation?: string;
   destinationName?: string;
-  photoData?: boolean;
+  destinationLocation?: string;
+  photoData?: boolean | string;
+  photoMimeType?: string;
 };
 export const priceRuleService = {
   list: (id: string | number) =>
@@ -120,12 +124,14 @@ export const transferService = {
     ),
   get: (id: string | number) =>
     get<{
-      transfer: Transfer & { photoData?: string; photoMimeType?: string };
+      transfer: Transfer;
       items: Array<{
         productId: number;
         productName: string;
         sku: string;
         quantity: number;
+        category?: string;
+        priceCents?: number;
       }>;
     }>(`/transfers/${id}`),
   create: (input: {
@@ -141,20 +147,30 @@ export const transferService = {
         : {}),
     }),
 };
+export type CustomerDetail = {
+  customer: Customer;
+  frequent: Array<{
+    productId: number;
+    productName: string;
+    units: number;
+  }>;
+  sales?: Array<{
+    id: number;
+    receiptNumber: string;
+    totalCents: number;
+    createdAt: string;
+  }>;
+  totalPurchasesCents?: number;
+  purchasesCount?: number;
+};
+
 export const customerService = {
   list: (search = "") =>
     get<{ items: Customer[] }>(
       `/customers?search=${encodeURIComponent(search)}`
     ),
   get: (id: string | number) =>
-    get<{
-      customer: Customer;
-      frequent: Array<{
-        productId: number;
-        productName: string;
-        units: number;
-      }>;
-    }>(`/customers/${id}`),
+    get<CustomerDetail>(`/customers/${id}`),
   create: (input: Omit<Customer, "id" | "createdAt" | "updatedAt">) =>
     post<{ id: number; message: string }>("/customers", input),
   update: (

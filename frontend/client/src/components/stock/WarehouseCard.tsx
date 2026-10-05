@@ -18,12 +18,29 @@ export function WarehouseCard({
   onEdit,
   onDelete,
 }: WarehouseCardProps) {
+  const hasCover = Boolean(warehouse.imageUrl);
+
   return (
     <article
-      className={`warehouse-card ${isSelected ? "warehouse-card-selected" : ""}`}
+      className={`warehouse-card ${isSelected ? "warehouse-card-selected" : ""} ${hasCover ? "has-cover-image" : ""}`}
       onClick={onSelect}
     >
-      <div className="warehouse-card-actions">
+      {hasCover && (
+        <div className="warehouse-card-cover-banner">
+          <img
+            src={warehouse.imageUrl!}
+            alt={`Portada de ${warehouse.name}`}
+            className="warehouse-cover-photo"
+            onError={e => {
+              // Si falla la carga de la imagen remota, oculta la portada para usar el diseño por defecto
+              (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+            }}
+          />
+          <div className="warehouse-cover-shade" />
+        </div>
+      )}
+
+      <div className={`warehouse-card-actions ${hasCover ? "on-cover" : ""}`}>
         {canManage && (
           <>
             <button

@@ -12,11 +12,11 @@ This directory turns the product-identification notebook into a local, replaceab
 | Consensus | Compare independent barcode/OCR readings; emit `corroborated`, `needs_review`, `ambiguous`, or `no_detection`. |
 | Catalog matcher (backend) | Resolve identifiers against active `Product.code` values and rank OCR-name candidates. Its `matchScore` is heuristic, not a calibrated probability. |
 
-The orchestrator is a deterministic pipeline, not a collection of autonomous LLMs. Product recognition has explicit inputs and auditable evidence; an LLM tool loop would add cost and uncertainty without improving barcode checks. Suggestions are never added to the cart or sold automatically.
+The orchestrator is a deterministic pipeline, not a collection of autonomous LLMs. Product recognition has explicit inputs and auditable evidence; an LLM tool loop would add cost and uncertainty without improving barcode checks. Detected products and suggested quantities are preloaded into the editable cart for operator review, capped by available stock in the active warehouse. Sales are never confirmed automatically and always require explicit human confirmation.
 
 ## Flow and contract
 
-`PhotoCapture` sends the existing JPEG evidence to Express. Express authenticates the user, enforces its request-size limit, and forwards only the image to `POST /v1/analyze` as multipart field `image`. The Python service checks the optional shared token and total multipart cap before parsing/spooling, then validates format, image byte size, and pixel count. It returns evidence, diagnostics, request ID, and per-agent timings, never the image. Express resolves evidence to catalog rows and stock by warehouse. The seller reviews a suggestion and explicitly adds it; the sale endpoint revalidates price and stock.
+`PhotoCapture` sends the existing JPEG evidence to Express (`POST /api/sales/scan` or `POST /api/recognition/analyze`). Express authenticates the user, enforces its request-size limit, and forwards only the image to `POST /v1/analyze` as multipart field `image`. The Python service checks the optional shared token and total multipart cap before parsing/spooling, then validates format, image byte size, and pixel count. It returns evidence, diagnostics, request ID, and per-agent timings, never the image. Express resolves evidence to catalog rows, suggested quantities, and stock by warehouse. The seller reviews the preloaded lines, can adjust quantities or remove items, and explicitly confirms the sale; the sale endpoint revalidates price and stock.
 
 Run locally from the repository root:
 
