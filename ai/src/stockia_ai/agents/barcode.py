@@ -31,12 +31,20 @@ class BarcodeAgent:
             return [], ["barcode_inference_failed"]
 
         evidence: list[IdentifierEvidence] = []
-        seen: set[tuple[str, str]] = set()
+        counts: dict[tuple[str, str], int] = {}
+        first_seen: list[tuple[str, str]] = []
         for raw_value, symbology in raw_codes:
             value = normalize_gtin(raw_value)
-            if not value or (value, symbology) in seen:
+            if not value:
                 continue
-            seen.add((value, symbology))
+            key = (value, symbology)
+            if key not in counts:
+                counts[key] = 0
+                first_seen.append(key)
+            counts[key] += 1
+
+        for value, symbology in first_seen:
+            count = counts[(value, symbology)]
             symbol_key = re.sub(r"[^A-Z0-9]", "", str(symbology).upper().rsplit(".", 1)[-1])
             expected_format = {
                 "EAN13": "EAN-13",
@@ -54,6 +62,8 @@ class BarcodeAgent:
                     format=format_name if format_name != "unknown" else symbology,
                     source="barcode",
                     checksum_valid=valid,
+                    occurrences=count,
+                    quantity=count,
                 )
             )
         return evidence, []

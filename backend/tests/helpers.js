@@ -32,3 +32,16 @@ export async function createProduct(overrides = {}) {
     }
   });
 }
+
+export async function createUser(overrides = {}) {
+  return prisma.user.create({
+    data: {
+      name: 'Usuario Test',
+      email: `user-${Math.random().toString(36).slice(2, 8)}@stockia.com`,
+      password: 'password123',
+      appRole: 'caja',
+      ...overrides,
+    },
+  });
+}
+

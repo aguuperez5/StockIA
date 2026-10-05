@@ -34,15 +34,20 @@ Sistema inteligente de reconocimiento visual de productos para automatizar punto
 ### Metodología Ágil y Entregas de Sprint
 - 📄 [Sprint 0 — Visión, Alcance, DoD y Calidad QA](docs/sprint-0.md)
 - 📄 [Sprint 1 — Informe de Entrega, Pivot Tecnológico y Retrospectiva](docs/sprint-1-informe.md)
-- 📋 [Historias de Usuario (HU-01 a HU-11)](docs/historias-de-usuario.md)
-- 🧪 [Plan de Pruebas — alcance, casos y auditoría de cobertura](docs/plan-de-pruebas.md)
-- 📝 [Sprint Backlog — Descomposición de Tareas (SB-001 a SB-055)](docs/sprint-1-backlog.md)
+- 📄 [Sprint 2 — Informe de Entrega, Visión y Cierre de Arquitectura](docs/sprint-2-informe.md)
+- 📋 [Historias de Usuario (HU-01 a HU-16)](docs/historias-de-usuario.md)
+- 📝 [Sprint 1 Backlog — Descomposición de Tareas (SB-001 a SB-055)](docs/sprint-1-backlog.md)
+- 📝 [Sprint 2 Backlog — Descomposición de Tareas (SB-056 a SB-085)](docs/sprint-2-backlog.md)
+- 🧪 [Plan de Pruebas SPACEDIRT — Alcance, Casos y Matriz ISO 29119-3](docs/plan-de-pruebas.md)
+- 📊 [Matriz de Ejecución de Pruebas de QA — Sprint 2](docs/sprint-2-pruebas-ejecucion.md)
+- 🐛 [Registro de Defectos y Ciclo de Vida (Bug Tracker) — Sprint 2](docs/sprint-2-defectos.md)
 
-### Arquitectura Técnica y Reglas de Negocio
+### Arquitectura Técnica y Estándares de Ingeniería
+- 📐 [Estándar de Codificación y Checklist de Code Review](docs/estandar-de-codificacion.md)
 - 🗄️ [Modelo de Datos y Diagrama Entidad-Relación (DER)](docs/data-model.md)
-- 📦 [Reglas de Negocio de Stock y Multi-Sucursal](docs/stock-rules.md)
+- 📦 [Reglas de Negocio de Stock, Concurrencia y Multi-Sucursal](docs/stock-rules.md)
 - 🏷️ [Reglas de Precios Dinámicos por Volumen](docs/pricing.md)
-- 🛒 [Flujo Transaccional de Venta Manual](docs/flujo-venta-manual.md)
+- 🛒 [Flujo Transaccional de Venta Asistida](docs/flujo-venta-manual.md)
 - 🔌 [Contrato de Integración y Endpoints de API Backend](docs/backend-integration.md)
 - ⚙️ [Instructivo de Instalación y Puesta en Marcha](docs/installation.md)
 

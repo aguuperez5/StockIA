@@ -45,6 +45,49 @@ Entrada esperada por `POST /api/sales`:
 Efecto (todo dentro de una única transacción):
 1. Valida stock suficiente para cada ítem en el depósito indicado.
 2. Crea `Sale` + `SaleItem[]`.
-3. Por cada ítem: decrementa `Stock.quantity` del producto en ese depósito y crea un `StockMovement` tipo `OUT` con `reason: "Venta #<id>"`.
+3. Por cada ítem: decrementa `Stock.quantity` del producto en ese depósito y crea un `StockMovement` con `reason: "Venta #<id>"`.
 
 Si el stock es insuficiente para cualquier ítem, no se crea la venta ni se modifica ningún stock.
+
+## Transferencias entre depósitos (Sprint 2 - HU-14 / SB-072, SB-073, SB-081)
+
+Toda transferencia se procesa mediante `StockTransferService` (`backend/services/stock-transfer.service.js`, función `transferStock`):
+- **Atomicidad absoluta**: Origen y destino, validaciones de existencia, decremento de origen, incremento de destino, creación de `Transfer` y de `StockMovement` corren dentro de `prisma.$transaction`. Si cualquier producto o paso falla, nada se persiste.
+- **Movimientos con signo (+/-)**: Se generan exactamente dos filas `StockMovement` por producto transferido:
+  - Una con `quantity: -cantidad` y `depositId: originWarehouseId` (salida del origen).
+  - Otra con `quantity: +cantidad` y `depositId: destinationWarehouseId` (entrada al destino).
+  - Cada movimiento está asociado a un **único** `depositId`, garantizando la trazabilidad estricta sin ambigüedades.
+- **Validación de depósitos**: Se valida que `originWarehouseId !== destinationWarehouseId` y que ambos depósitos existan.
+
+## Control de concurrencia y sobregiros (HU-14)
+
+Para prevenir condiciones de carrera y sobregiros en ventas o transferencias concurrentes sobre el mismo stock disponible:
+
+1. **Descuento condicional atómico**:
+   Tanto en `transferStock` como en `createSaleCompat`, el decremento se ejecuta condicionado a la disponibilidad en una única sentencia atómica:
+   ```js
+   const updateResult = await tx.stock.updateMany({
+     where: {
+       productId,
+       depositId: originId,
+       quantity: { gte: quantity },
+     },
+     data: {
+       quantity: { decrement: quantity },
+     },
+   });
+   if (updateResult.count === 0) {
+     throw Object.assign(new Error(`Stock insuficiente para "${product.name}".`), { status: 400 });
+   }
+   ```
+   **Justificación técnica**: En PostgreSQL bajo aislamiento `Read Committed`, la sentencia `UPDATE ... WHERE quantity >= qty` adquiere un bloqueo exclusivo sobre la fila. Si transacciones concurrentes compiten por el mismo stock, la segunda espera a que la primera confirme. Al tomar el bloqueo, PostgreSQL re-evalúa la cláusula `WHERE` sobre los datos confirmados más recientes. Si el remanente no alcanza para satisfacer `quantity: { gte: quantity }`, la sentencia afecta `0` filas (`updateResult.count === 0`), arrojando inmediatamente un error `400` limpio y consistente. No requiere locks manuales ni incurre en riesgo de deadlock.
+
+2. **Manejo del constraint CHECK 23514**:
+   Cualquier violación del CHECK de base de datos (`quantity >= 0`, código PostgreSQL `23514`) es capturada y mapeada a un HTTP `400 Bad Request` claro ("Stock insuficiente para completar la operación."), evitando en cualquier circunstancia respuestas `500` con trazas internas.
+
+3. **Pruebas de concurrencia**:
+   Cubierto en `backend/tests/transfer-concurrency.test.js`:
+   - Dos transferencias paralelas que exceden el saldo disponible: exactamente una tiene éxito (201) y la otra es rechazada (400), conservando el saldo final exacto.
+   - N transferencias simultáneas: la suma total de existencias se mantiene constante y el stock jamás desciende por debajo de cero.
+   - Dos ventas concurrentes sobre el mismo producto: exclusión mutua verificada sin sobregiros.
+   - Atomicidad ante fallas parciales: ninguna operación inconclusa deja movimientos huérfanos.

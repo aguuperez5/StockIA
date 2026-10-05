@@ -13,6 +13,14 @@ export type Warehouse = {
   createdAt: string;
 };
 
+export type PriceRuleItem = {
+  id?: number;
+  productId?: number;
+  minQuantity: number;
+  priceCents: number;
+  price?: number;
+};
+
 export type InventoryItem = {
   inventoryId: number;
   quantity: number;
@@ -25,6 +33,8 @@ export type InventoryItem = {
   lowStockThreshold: number;
   warehouseId: number;
   warehouseName: string;
+  priceRules?: PriceRuleItem[];
+  level?: "sin_stock" | "critico" | "bajo" | "saludable";
 };
 
 export const warehouseService = {
@@ -73,9 +83,16 @@ export const warehouseService = {
 };
 
 export const inventoryService = {
-  list: (warehouseId?: string | number) =>
-    get<{ items: InventoryItem[] }>(
-      warehouseId ? `/inventory?warehouseId=${warehouseId}` : "/inventory"
+  list: (warehouseId?: string | number, lowStock?: boolean) => {
+    const params = new URLSearchParams();
+    if (warehouseId) params.set("warehouseId", String(warehouseId));
+    if (lowStock) params.set("lowStock", "true");
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<{ items: InventoryItem[] }>(`/inventory${q}`);
+  },
+  listLowStock: (warehouseId?: string | number) =>
+    get<{ items: InventoryItem[]; count: number }>(
+      warehouseId ? `/inventory/low-stock?warehouseId=${warehouseId}` : "/inventory/low-stock"
     ),
   update: (inventoryId: number, quantity: number, note: string) =>
     patch<{ message: string }>(`/inventory/${inventoryId}`, { quantity, note }),

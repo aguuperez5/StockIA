@@ -28,6 +28,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EmptyState, LoadingPanel, money } from "@/components/StockUI";
 import PhotoCapture, { type DetectedProduct } from "@/components/PhotoCapture";
+import { preloadCartFromDetections } from "@/lib/cartPreload";
+import { calculateLinePricing, unitPriceForQuantity } from "@/lib/pricing";
+import { ProductModal } from "@/components/products/ProductModal";
 import {
   inventoryService,
   warehouseService,
@@ -35,8 +38,9 @@ import {
   type Warehouse,
 } from "@/services/inventory";
 import { saleService } from "@/services/sales";
-import { customerService, type Customer } from "@/services/backlog";
+import { customerService, type Customer, type RecognitionDetection } from "@/services/backlog";
 import { SaleCartLine, type CartLine } from "@/components/sales/SaleCartLine";
+import { useStockAuth } from "@/contexts/StockAuthContext";
 
 export interface NewSaleModalProps {
   isOpen?: boolean;
@@ -54,6 +58,9 @@ export function NewSaleModal({
   onClose,
   onSuccess,
 }: NewSaleModalProps) {
+  const { user } = useStockAuth();
+  const canCreateProduct = user?.appRole === "administrador";
+
   const [allInventory, setAllInventory] = useState<InventoryItem[]>([]);
   const [available, setAvailable] = useState<InventoryItem[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -70,6 +77,7 @@ export function NewSaleModal({
 
   // Estado para el panel de análisis y verificación de stock
   const [analyzedProducts, setAnalyzedProducts] = useState<DetectedProduct[] | null>(null);
+  const [createProductSku, setCreateProductSku] = useState<string | null>(null);
   const [switchWarehouseConfirm, setSwitchWarehouseConfirm] = useState<{
     item: InventoryItem;
     targetWarehouseName: string;
@@ -152,16 +160,36 @@ export function NewSaleModal({
         line => line.inventoryId === item.inventoryId
       );
       if (present) {
-        return current.map(line =>
-          line.inventoryId === item.inventoryId
-            ? {
-                ...line,
-                cartQuantity: Math.min(line.quantity, line.cartQuantity + 1),
-              }
-            : line
-        );
+        return current.map(line => {
+          if (line.inventoryId !== item.inventoryId) return line;
+          const nextQty = Math.min(line.quantity, line.cartQuantity + 1);
+          const pricing = calculateLinePricing(
+            line.priceCents,
+            line.priceRules,
+            nextQty
+          );
+          return {
+            ...line,
+            cartQuantity: nextQty,
+            effectiveUnitPriceCents: pricing.unitPriceCents,
+            appliedRuleLabel: pricing.appliedRuleLabel,
+          };
+        });
       }
-      return [...current, { ...item, cartQuantity: 1 }];
+      const initialPricing = calculateLinePricing(
+        item.priceCents,
+        item.priceRules,
+        1
+      );
+      return [
+        ...current,
+        {
+          ...item,
+          cartQuantity: 1,
+          effectiveUnitPriceCents: initialPricing.unitPriceCents,
+          appliedRuleLabel: initialPricing.appliedRuleLabel,
+        },
+      ];
     });
   };
 
@@ -169,7 +197,19 @@ export function NewSaleModal({
   const confirmSwitchWarehouse = () => {
     if (!switchWarehouseConfirm) return;
     const { item } = switchWarehouseConfirm;
-    setCart([{ ...item, cartQuantity: 1 }]);
+    const initialPricing = calculateLinePricing(
+      item.priceCents,
+      item.priceRules,
+      1
+    );
+    setCart([
+      {
+        ...item,
+        cartQuantity: 1,
+        effectiveUnitPriceCents: initialPricing.unitPriceCents,
+        appliedRuleLabel: initialPricing.appliedRuleLabel,
+      },
+    ]);
     setSwitchWarehouseConfirm(null);
     toast.info(
       `Se cambió el depósito a "${item.warehouseName}" y se reinició la venta.`
@@ -179,23 +219,36 @@ export function NewSaleModal({
   // Modificar cantidad o quitar línea
   const change = (inventoryId: number, next: number) =>
     setCart(current =>
-      current.flatMap(line =>
-        line.inventoryId === inventoryId
-          ? next <= 0
-            ? []
-            : [{ ...line, cartQuantity: Math.min(line.quantity, next) }]
-          : [line]
-      )
+      current.flatMap(line => {
+        if (line.inventoryId !== inventoryId) return [line];
+        if (next <= 0) return [];
+        const nextQty = Math.min(line.quantity, next);
+        const pricing = calculateLinePricing(
+          line.priceCents,
+          line.priceRules,
+          nextQty
+        );
+        return [
+          {
+            ...line,
+            cartQuantity: nextQty,
+            effectiveUnitPriceCents: pricing.unitPriceCents,
+            appliedRuleLabel: pricing.appliedRuleLabel,
+          },
+        ];
+      })
     );
 
-  const computedTotal = cart.reduce(
-    (sum, line) => sum + line.priceCents * line.cartQuantity,
-    0
-  );
+  const computedTotal = cart.reduce((sum, line) => {
+    const effectivePrice =
+      line.effectiveUnitPriceCents ??
+      unitPriceForQuantity(line.priceCents, line.priceRules, line.cartQuantity);
+    return sum + effectivePrice * line.cartQuantity;
+  }, 0);
 
   const totalCartUnits = cart.reduce((sum, line) => sum + line.cartQuantity, 0);
 
-  // Manejo de productos detectados por el análisis
+  // Manejo de productos detectados por el análisis y precarga en el carrito
   const handleDetected = (items: DetectedProduct[]) => {
     setAnalyzedProducts(items);
     if (!items.length) {
@@ -203,6 +256,43 @@ export function NewSaleModal({
       return;
     }
     toast.success(`Se analizaron ${items.length} producto(s) en el catálogo.`);
+  };
+
+  const handleAnalysisComplete = (result: {
+    status?: string;
+    items: DetectedProduct[];
+    detections?: RecognitionDetection[];
+  }) => {
+    setAnalyzedProducts(result.items);
+    if (!result.items.length) return;
+
+    // Precargar carrito con productos locales detectados y sus cantidades
+    const preload = preloadCartFromDetections({
+      detectedItems: result.items,
+      availableInventory: available,
+      currentWarehouseId: activeWarehouseId,
+      isAmbiguous: result.status === "ambiguous",
+    });
+
+    if (preload.cart.length > 0) {
+      setCart(preload.cart);
+      toast.success(
+        `Se precargaron ${preload.cart.length} producto(s) en el comprobante con sus cantidades sugeridas.`
+      );
+    }
+
+    // Informar recortes por falta de stock
+    for (const tr of preload.trimmed) {
+      toast.info(
+        `Stock de "${tr.productName}" limitado a ${tr.available} u. disponibles (solicitado: ${tr.requested}).`
+      );
+    }
+
+    if (preload.hasDifferentWarehouses && !activeWarehouseId) {
+      toast.warning(
+        "Se detectaron existencias en depósitos distintos. La venta se fijó en un único depósito; podés cambiarlo si es necesario."
+      );
+    }
   };
 
   const addProductFromWarehouse = (productId: number, warehouseId: number) => {
@@ -396,8 +486,12 @@ export function NewSaleModal({
 
                   <div className="sale-vision-capture-wrapper">
                     <PhotoCapture
+                      scanMode="sales"
                       onPhoto={(data, mimeType) => setPhoto({ data, mimeType })}
                       onDetected={handleDetected}
+                      onAnalysisComplete={handleAnalysisComplete}
+                      canCreateProduct={canCreateProduct}
+                      onCreateProduct={code => setCreateProductSku(code)}
                     />
                   </div>
                 </div>
@@ -809,6 +903,18 @@ export function NewSaleModal({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        {/* ALTA DE PRODUCTO CON SKU PRECARGADO DESDE RECONOCIMIENTO */}
+        {createProductSku && (
+          <ProductModal
+            editId={null}
+            initialSku={createProductSku}
+            onClose={() => setCreateProductSku(null)}
+            onSuccess={() => {
+              setCreateProductSku(null);
+              load();
+            }}
+          />
+        )}
       </div>
     </div>
   );

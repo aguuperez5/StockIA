@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
-import { appRole, clearSession, createSession, publicUser, setSession } from '../middleware.js';
+import { appRole, clearSession, createSession, publicUser, resetLoginAttempts, setSession } from '../middleware.js';
 import { analyzeProductImage } from '../services/ai-recognition.client.js';
 import { canonicalGtin, findRecognitionCatalogCandidates, rankRecognitionProducts } from '../services/catalog-match.agent.js';
+import { transferStock } from '../services/stock-transfer.service.js';
 import { buildRecognitionDetections } from '../services/recognition-detections.js';
 
 const moneyToCents = n => Math.round(Number(n) * 100);
@@ -42,7 +43,10 @@ export async function login(req, res) {
   const email = req.body?.email?.trim().toLowerCase(); const password = req.body?.password;
   const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
   if (!user || !(await bcrypt.compare(password || '', user.password))) return res.status(401).json({ message: 'Email o contraseña incorrectos.' });
-  setSession(res, createSession(user.id)); return res.json({ message: 'Sesión iniciada.', user: publicUser(user) });
+  resetLoginAttempts(email);
+  if (req.ip) resetLoginAttempts(req.ip);
+  setSession(res, createSession(user.id));
+  return res.json({ message: 'Sesión iniciada.', user: publicUser(user) });
 }
 export async function me(req, res) { return res.json({ user: publicUser(req.user) }); }
 export async function logout(req, res) { clearSession(res); return res.json({ message: 'Sesión cerrada.' }); }
@@ -248,6 +252,15 @@ export async function deleteWarehouse(req, res) {
     res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Depósito no encontrado.' : e.message });
   }
 }
+
+export function computeStockLevel(quantity, threshold) {
+  if (quantity <= 0) return 'sin_stock';
+  if (threshold > 1 && quantity <= Math.floor(threshold / 2)) {
+    return 'critico';
+  }
+  return 'bajo';
+}
+
 export async function listInventory(req, res) {
   try {
     const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined;
@@ -258,11 +271,17 @@ export async function listInventory(req, res) {
         ...(warehouseId ? { depositId: warehouseId } : {}),
         product: { active: true }
       },
-      include: { product: true, deposit: true },
+      include: { product: { include: { priceRules: true } }, deposit: true },
       orderBy: [{ product: { name: 'asc' } }, { deposit: { name: 'asc' } }]
     });
+
+    const isLowStock = req.query.lowStock === 'true';
+    const resultStocks = isLowStock
+      ? stocks.filter(s => s.quantity <= s.product.lowStockThreshold)
+      : stocks;
+
     res.json({
-      items: stocks.map(s => ({
+      items: resultStocks.map(s => ({
         inventoryId: s.id,
         quantity: s.quantity,
         updatedAt: s.updatedAt,
@@ -273,11 +292,65 @@ export async function listInventory(req, res) {
         priceCents: moneyToCents(s.product.price),
         lowStockThreshold: s.product.lowStockThreshold,
         warehouseId: s.depositId,
-        warehouseName: s.deposit.name
+        warehouseName: s.deposit.name,
+        level: computeStockLevel(s.quantity, s.product.lowStockThreshold),
+        priceRules: (s.product.priceRules || []).map(r => ({
+          id: r.id,
+          productId: r.productId,
+          minQuantity: r.minQuantity,
+          priceCents: moneyToCents(r.price),
+          price: Number(r.price),
+        })),
       }))
     });
   } catch (e) {
     res.status(500).json({ message: 'No pudimos obtener el inventario.', details: e.message });
+  }
+}
+
+export async function listLowStock(req, res) {
+  try {
+    const warehouseId = req.query.warehouseId ? Number(req.query.warehouseId) : undefined;
+    if (warehouseId !== undefined && !Number.isInteger(warehouseId)) {
+      return res.status(400).json({ message: 'El ID del depósito no es válido.' });
+    }
+
+    const stocks = await prisma.stock.findMany({
+      where: {
+        ...(warehouseId ? { depositId: warehouseId } : {}),
+        product: { active: true },
+      },
+      include: { product: { include: { priceRules: true } }, deposit: true },
+      orderBy: [{ quantity: 'asc' }, { product: { name: 'asc' } }],
+    });
+
+    const lowStockPositions = stocks
+      .filter(s => s.quantity <= s.product.lowStockThreshold)
+      .map(s => ({
+        inventoryId: s.id,
+        quantity: s.quantity,
+        updatedAt: s.updatedAt,
+        productId: s.productId,
+        productName: s.product.name,
+        sku: s.product.code,
+        category: s.product.category || '',
+        priceCents: moneyToCents(s.product.price),
+        lowStockThreshold: s.product.lowStockThreshold,
+        warehouseId: s.depositId,
+        warehouseName: s.deposit.name,
+        level: computeStockLevel(s.quantity, s.product.lowStockThreshold),
+        priceRules: (s.product.priceRules || []).map(r => ({
+          id: r.id,
+          productId: r.productId,
+          minQuantity: r.minQuantity,
+          priceCents: moneyToCents(r.price),
+          price: Number(r.price),
+        })),
+      }));
+
+    res.json({ items: lowStockPositions, count: lowStockPositions.length });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos obtener las alertas de stock bajo.', details: e.message });
   }
 }
 export async function updateInventory(req, res) { const id = Number(req.params.id); const quantity = Number(req.body.quantity); if (!Number.isInteger(quantity) || quantity < 0) return res.status(400).json({ message: 'La cantidad debe ser un entero mayor o igual a cero.' }); try { await prisma.$transaction(async tx => { const stock = await tx.stock.findUnique({ where: { id } }); if (!stock) throw Object.assign(new Error('Posición de inventario no encontrada.'), { status: 404 }); const delta = quantity - stock.quantity; if (delta === 0) return; await tx.stock.update({ where: { id }, data: { quantity } }); await tx.stockMovement.create({ data: { productId: stock.productId, depositId: stock.depositId, quantity: delta, reason: req.body.note || 'Ajuste manual' } }); }); res.json({ message: 'Inventario actualizado correctamente.' }); } catch (e) { res.status(e.status || 500).json({ message: e.message }); } }
@@ -323,19 +396,39 @@ export async function createSaleCompat(req, res) {
         const stock = await tx.stock.findUnique({ where: { productId_depositId: { productId: group.productId, depositId: group.depositId } } });
         if (!stock || stock.quantity < group.quantity) throw Object.assign(new Error(`Stock insuficiente para "${product.name}": disponible ${stock?.quantity || 0}, solicitado ${group.quantity}`), { status: 400 });
         const rule = [...product.priceRules].filter(r => r.minQuantity <= group.quantity).sort((a,b)=>b.minQuantity-a.minQuantity)[0];
-        lineItems.push({ productId: product.id, quantity: group.quantity, price: Number(rule?.price ?? product.price) });
+        lineItems.push({ productId: product.id, quantity: group.quantity, price: Number(rule?.price ?? product.price), productName: product.name });
       }
       const total = lineItems.reduce((n,i)=>n+i.price*i.quantity,0);
       const saleDepositId = groups[0].depositId;
-      const sale = await tx.sale.create({ data: { depositId: saleDepositId, customerId, userId: req.user.id, total, ...photo, items: { create: lineItems } }, include: { items: { include: { product: true } }, deposit: true } });
+      const sale = await tx.sale.create({ data: { depositId: saleDepositId, customerId, userId: req.user.id, total, ...photo, items: { create: lineItems.map(l => ({ productId: l.productId, quantity: l.quantity, price: l.price })) } }, include: { items: { include: { product: true } }, deposit: true } });
       for (const line of lineItems) {
-        await tx.stock.update({ where: { productId_depositId: { productId: line.productId, depositId: saleDepositId } }, data: { quantity: { decrement: line.quantity } } });
+        const updateResult = await tx.stock.updateMany({
+          where: {
+            productId: line.productId,
+            depositId: saleDepositId,
+            quantity: { gte: line.quantity },
+          },
+          data: {
+            quantity: { decrement: line.quantity },
+          },
+        });
+        if (updateResult.count === 0) {
+          throw Object.assign(
+            new Error(`Stock insuficiente para "${line.productName}".`),
+            { status: 400 }
+          );
+        }
         await tx.stockMovement.create({ data: { productId: line.productId, depositId: saleDepositId, saleId: sale.id, quantity: -line.quantity, reason: `Venta #${sale.id}` } });
       }
       return sale;
     });
     res.status(201).json({ message: 'Venta confirmada con éxito.', sale: { id: result.id, receiptNumber: receiptNumber(result.id), totalCents: moneyToCents(result.total), photoData: result.photoData, photoMimeType: result.photoMimeType } });
-  } catch (e) { res.status(e.status || 500).json({ message: e.message }); }
+  } catch (e) {
+    if (e.code === '23514' || String(e.message).includes('23514')) {
+      return res.status(400).json({ message: 'Stock insuficiente para completar la venta.' });
+    }
+    res.status(e.status || 500).json({ message: e.message });
+  }
 }
 export async function listSales(req, res) {
   try {
@@ -410,34 +503,34 @@ export async function dashboard(req, res) {
 }
 export async function createTransfer(req, res) {
   const originId = Number(req.body?.originWarehouseId), destinationId = Number(req.body?.destinationWarehouseId), items = req.body?.items;
-  if (!Number.isInteger(originId) || !Number.isInteger(destinationId) || originId === destinationId || !Array.isArray(items) || !items.length) return res.status(400).json({ message: 'Completá origen, destino y al menos un artículo.' });
+  if (!Number.isInteger(originId) || !Number.isInteger(destinationId) || originId === destinationId || !Array.isArray(items) || !items.length) {
+    return res.status(400).json({ message: 'Completá origen, destino y al menos un artículo.' });
+  }
   try {
     const photo = photoFields(req.body);
-    const grouped = new Map();
-    for (const item of items) {
-      const productId = Number(item.productId), quantity = Number(item.quantity);
-      if (!Number.isInteger(productId) || !Number.isInteger(quantity) || quantity <= 0) throw Object.assign(new Error('Cada artículo requiere producto y cantidad válidos.'), { status: 400 });
-      grouped.set(productId, (grouped.get(productId) || 0) + quantity);
-    }
-    const t = await prisma.$transaction(async tx => {
-      const [origin, destination] = await Promise.all([tx.deposit.findUnique({ where: { id: originId } }), tx.deposit.findUnique({ where: { id: destinationId } })]);
-      if (!origin || !destination) throw Object.assign(new Error('Uno de los depósitos no existe.'), { status: 400 });
-      for (const [productId, quantity] of grouped) {
-        const product = await tx.product.findUnique({ where: { id: productId } });
-        if (!product) throw Object.assign(new Error('Uno de los productos no existe.'), { status: 404 });
-        const stock = await tx.stock.findUnique({ where: { productId_depositId: { productId, depositId: originId } } });
-        if (!stock || stock.quantity < quantity) throw Object.assign(new Error(`Stock insuficiente para "${product.name}".`), { status: 400 });
-      }
-      const tr = await tx.transfer.create({ data: { originWarehouseId: originId, destinationWarehouseId: destinationId, userId: req.user?.id, ...photo, items: { create: [...grouped].map(([productId, quantity]) => ({ productId, quantity })) } } });
-      for (const [productId, quantity] of grouped) {
-        await tx.stock.update({ where: { productId_depositId: { productId, depositId: originId } }, data: { quantity: { decrement: quantity } } });
-        await tx.stock.upsert({ where: { productId_depositId: { productId, depositId: destinationId } }, update: { quantity: { increment: quantity } }, create: { productId, depositId: destinationId, quantity } });
-        await tx.stockMovement.createMany({ data: [{ productId, depositId: originId, quantity: -quantity, reason: `Transferencia ${tr.id}` }, { productId, depositId: destinationId, quantity, reason: `Transferencia ${tr.id}` }] });
-      }
-      return tr;
+    const t = await transferStock({
+      originId,
+      destinationId,
+      items,
+      userId: req.user?.id,
+      photo,
     });
-    return res.status(201).json({ transfer: { id: t.id, receiptNumber: transferReceipt(t.id), originWarehouseId: t.originWarehouseId, destinationWarehouseId: t.destinationWarehouseId, status: t.status, createdAt: t.createdAt, photoData: t.photoData, photoMimeType: t.photoMimeType }, message: 'Transferencia registrada.' });
-  } catch (e) { return res.status(e.status || 500).json({ message: e.message }); }
+    return res.status(201).json({
+      transfer: {
+        id: t.id,
+        receiptNumber: transferReceipt(t.id),
+        originWarehouseId: t.originWarehouseId,
+        destinationWarehouseId: t.destinationWarehouseId,
+        status: t.status,
+        createdAt: t.createdAt,
+        photoData: t.photoData,
+        photoMimeType: t.photoMimeType,
+      },
+      message: 'Transferencia registrada.',
+    });
+  } catch (e) {
+    return res.status(e.status || 500).json({ message: e.message });
+  }
 }
 export async function listTransfers(req, res) {
   const query = req.query || {};
@@ -701,86 +794,105 @@ export async function reports(req, res) {
 }
 export async function team(req,res){const users=await prisma.user.findMany({orderBy:{name:'asc'}});res.json({items:users.map(u=>({id:u.id,fullName:u.name,email:u.email,appRole:appRole(u)}))});}
 export async function updateRole(req,res){const next=String(req.body.appRole||'caja');if(!['administrador','caja','deposito'].includes(next))return res.status(400).json({message:'Rol inválido.'});await prisma.user.update({where:{id:Number(req.params.id)},data:{role:next==='administrador'?'ADMIN':'USER',appRole:next}});res.json({message:'Rol actualizado correctamente.'});}
-export async function recognition(req,res){
-  try{
-    const q=String(req.body.query||'').trim();
-    const photo=photoFields(req.body);
-    if(!q && !photo.photoData) {
-      return res.status(400).json({message:'Ingresá un término de búsqueda o capturá una foto para analizar.'});
+async function processRecognitionImage(photo) {
+  const analysis = await analyzeProductImage(photo);
+  console.info(
+    "[OCR]",
+    JSON.stringify({
+      requestId: analysis.request_id,
+      state:
+        analysis.timings_ms?.ocr === undefined
+          ? "skipped"
+          : analysis.agents?.ocr?.state,
+      texts: analysis.text_evidence.map(({ text, score }) => ({ text, score })),
+      codes: analysis.identifiers
+        .filter(item => item.source === "ocr")
+        .map(({ value, checksum_valid }) => ({
+          value,
+          checksumValid: checksum_valid,
+        })),
+      warnings: (analysis.warnings || []).filter(warning =>
+        warning.startsWith("ocr_"),
+      ),
+    }),
+  );
+  const [catalog, detections] = await Promise.all([
+    findRecognitionCatalogCandidates(prisma, analysis),
+    buildRecognitionDetections(analysis),
+  ]);
+  const items = rankRecognitionProducts(catalog);
+  const localCodes = new Set(items.map(item => canonicalGtin(item.sku)));
+  return {
+    simulated: false,
+    status: analysis.status,
+    requestId: analysis.request_id,
+    pipelineVersion: analysis.pipeline_version,
+    quality: analysis.quality,
+    consensus: analysis.consensus,
+    identifiers: analysis.identifiers,
+    agents: analysis.agents,
+    warnings: analysis.warnings,
+    detections: detections.map(detection => ({
+      ...detection,
+      inLocalCatalog: localCodes.has(canonicalGtin(detection.value)),
+    })),
+    items,
+  };
+}
+
+export async function salesScan(req, res) {
+  try {
+    const photo = photoFields(req.body);
+    if (!photo.photoData) {
+      return res.status(400).json({ message: 'Se requiere una imagen para el escaneo de venta.' });
+    }
+    const result = await processRecognitionImage(photo);
+    return res.json(result);
+  } catch (e) {
+    return res.status(e.statusCode || e.status || 500).json({ message: e.message || 'No se pudo analizar la solicitud.' });
+  }
+}
+
+export async function recognition(req, res) {
+  try {
+    const q = String(req.body.query || '').trim();
+    const photo = photoFields(req.body);
+    if (!q && !photo.photoData) {
+      return res.status(400).json({ message: 'Ingresá un término de búsqueda o capturá una foto para analizar.' });
     }
 
     if (photo.photoData) {
-      const analysis = await analyzeProductImage(photo);
-      console.info(
-        "[OCR]",
-        JSON.stringify({
-          requestId: analysis.request_id,
-          state:
-            analysis.timings_ms?.ocr === undefined
-              ? "skipped"
-              : analysis.agents?.ocr?.state,
-          texts: analysis.text_evidence.map(({ text, score }) => ({ text, score })),
-          codes: analysis.identifiers
-            .filter(item => item.source === "ocr")
-            .map(({ value, checksum_valid }) => ({
-              value,
-              checksumValid: checksum_valid,
-            })),
-          warnings: (analysis.warnings || []).filter(warning =>
-            warning.startsWith("ocr_"),
-          ),
-        }),
-      );
-      const [catalog, detections] = await Promise.all([
-        findRecognitionCatalogCandidates(prisma, analysis),
-        buildRecognitionDetections(analysis),
-      ]);
-      const items = rankRecognitionProducts(catalog);
-      const localCodes = new Set(items.map(item => canonicalGtin(item.sku)));
-      return res.json({
-        simulated: false,
-        status: analysis.status,
-        requestId: analysis.request_id,
-        pipelineVersion: analysis.pipeline_version,
-        quality: analysis.quality,
-        consensus: analysis.consensus,
-        identifiers: analysis.identifiers,
-        agents: analysis.agents,
-        warnings: analysis.warnings,
-        detections: detections.map(detection => ({
-          ...detection,
-          inLocalCatalog: localCodes.has(canonicalGtin(detection.value)),
-        })),
-        items,
-      });
+      const result = await processRecognitionImage(photo);
+      return res.json(result);
     }
 
-    const products=await prisma.product.findMany({
-      where:{active:true,OR:[{name:{contains:q,mode:'insensitive'}},{code:{contains:q,mode:'insensitive'}}]},
-      include:{
-        stocks:{
-          include:{deposit:true}
+    const products = await prisma.product.findMany({
+      where: { active: true, OR: [{ name: { contains: q, mode: 'insensitive' } }, { code: { contains: q, mode: 'insensitive' } }] },
+      include: {
+        stocks: {
+          include: { deposit: true }
         }
       },
-      take:8
+      take: 8
     });
     res.json({
-      simulated:false,
-      status:'catalog_search',
-      items:products.map(p=>({
-        id:p.id,
-        name:p.name,
-        sku:p.code,
-        priceCents:moneyToCents(p.price),
-        stocks:p.stocks.map(s=>({
-          warehouseId:s.depositId,
-          warehouseName:s.deposit.name,
-          quantity:s.quantity
+      simulated: false,
+      status: 'catalog_search',
+      items: products.map(p => ({
+        id: p.id,
+        name: p.name,
+        sku: p.code,
+        priceCents: moneyToCents(p.price),
+        suggestedQuantity: 1,
+        stocks: p.stocks.map(s => ({
+          warehouseId: s.depositId,
+          warehouseName: s.deposit.name,
+          quantity: s.quantity
         }))
       }))
     });
-  }catch(e){
-    res.status(e.statusCode||e.status||500).json({message:e.message||'No se pudo analizar la solicitud.'});
+  } catch (e) {
+    res.status(e.statusCode || e.status || 500).json({ message: e.message || 'No se pudo analizar la solicitud.' });
   }
 }
 export async function listTelegram(req,res){const items=await prisma.telegramOffer.findMany({orderBy:{createdAt:'desc'}});res.json({items});}

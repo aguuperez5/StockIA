@@ -21,6 +21,7 @@ router.post('/warehouses', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUS
 router.put('/warehouses/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.updateWarehouse);
 router.delete('/warehouses/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.deleteWarehouse);
 router.get('/inventory', requireAuth, c.listInventory);
+router.get('/inventory/low-stock', requireAuth, c.listLowStock);
 router.patch('/inventory/:id', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.WAREHOUSE), c.updateInventory);
 
 router.get('/price-rules/:id', requireAuth, c.listPriceRules);
@@ -28,6 +29,7 @@ router.put('/price-rules/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.savePr
 
 router.get('/sales', requireAuth, c.listSales);
 router.post('/sales', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.createSaleCompat);
+router.post('/sales/scan', requireAuth, requireAppRole(ROLE.ADMIN, ROLE.SALES), c.salesScan);
 router.get('/sales/:id', requireAuth, c.getSale);
 router.get('/dashboard', requireAuth, c.dashboard);
 

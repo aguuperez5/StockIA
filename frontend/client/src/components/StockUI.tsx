@@ -1,5 +1,6 @@
 import { AlertCircle, Box, LoaderCircle } from "lucide-react";
 import type { ReactNode } from "react";
+import { getStockBadgeInfo } from "@/lib/stockLevel";
 
 export const money = (cents: number) =>
   new Intl.NumberFormat("es-AR", {
@@ -136,13 +137,10 @@ export function StockBadge({
   quantity: number;
   threshold: number;
 }) {
-  const critical = quantity === 0;
-  const low = quantity > 0 && quantity <= threshold;
+  const info = getStockBadgeInfo(quantity, threshold);
   return (
-    <span
-      className={`stock-badge ${critical ? "stock-critical" : low ? "stock-low" : "stock-good"}`}
-    >
-      {critical ? "Sin stock" : low ? "Stock bajo" : "Disponible"}
+    <span className={`stock-badge ${info.badgeClass}`}>
+      {info.label}
     </span>
   );
 }

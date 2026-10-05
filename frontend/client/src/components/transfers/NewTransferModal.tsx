@@ -558,10 +558,34 @@ export function NewTransferModal({
                   <PhotoCapture
                     onPhoto={(data, mimeType) => setPhoto({ data, mimeType })}
                     onDetected={detected => {
-                      detected.forEach(p => {
-                        const match = originCandidates.find(i => i.productId === p.id);
-                        if (match) addItem(match);
+                      if (!origin) {
+                        toast.info("Elegí primero el depósito de origen para cargar los productos con stock.");
+                        return;
+                      }
+                      let added = 0;
+                      setSelected(prev => {
+                        const next = { ...prev };
+                        detected.forEach(p => {
+                          const match = originCandidates.find(i => i.productId === p.id);
+                          if (match && match.quantity > 0) {
+                            const detectedQty = Math.max(1, p.suggestedQuantity ?? 1);
+                            const currentQty = prev[p.id] ?? 0;
+                            const targetQty = currentQty + detectedQty;
+                            const finalQty = Math.min(match.quantity, targetQty);
+                            if (targetQty > match.quantity) {
+                              toast.info(
+                                `Stock en origen de "${match.productName}" limitado a ${match.quantity} unidad(es).`
+                              );
+                            }
+                            next[p.id] = finalQty;
+                            added++;
+                          }
+                        });
+                        return next;
                       });
+                      if (added > 0) {
+                        toast.success(`Se agregaron ${added} producto(s) desde la foto con sus cantidades.`);
+                      }
                     }}
                   />
                   {photo && (

@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeftRight,
   Check,
   Edit3,
@@ -78,10 +78,14 @@ export default function StockPage() {
   const load = () => {
     setLoading(true);
     setError("");
-    Promise.all([
-      inventoryService.list(warehouseId || undefined),
-      warehouseService.list(),
-    ])
+    const inventoryPromise =
+      stockFilter === "low"
+        ? inventoryService
+            .listLowStock(warehouseId || undefined)
+            .then(res => ({ items: res.items }))
+        : inventoryService.list(warehouseId || undefined);
+
+    Promise.all([inventoryPromise, warehouseService.list()])
       .then(([inventory, deposits]) => {
         setItems(inventory.items);
         setWarehouses(deposits.items);
@@ -91,7 +95,7 @@ export default function StockPage() {
   };
   useEffect(() => {
     void load();
-  }, [warehouseId]);
+  }, [warehouseId, stockFilter]);
 
   const openAdjustment = (item: InventoryItem) => {
     setSelected(item);
@@ -229,9 +233,7 @@ export default function StockPage() {
         const matchesStock =
           stockFilter === "all" ||
           (stockFilter === "out" && item.quantity === 0) ||
-          (stockFilter === "low" &&
-            item.quantity > 0 &&
-            item.quantity <= item.lowStockThreshold) ||
+          (stockFilter === "low" && item.quantity <= item.lowStockThreshold) ||
           (stockFilter === "available" &&
             item.quantity > item.lowStockThreshold);
         const matchesMin =
@@ -402,7 +404,7 @@ export default function StockPage() {
           options={[
             { value: "all", label: "Todo el stock" },
             { value: "available", label: "Disponible" },
-            { value: "low", label: "Stock bajo" },
+            { value: "low", label: "Bajo mínimo" },
             { value: "out", label: "Sin stock" },
           ]}
           ariaLabel="Filtrar por estado"

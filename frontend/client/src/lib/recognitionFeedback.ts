@@ -12,6 +12,51 @@ export function recognitionMethodLabel(method: RecognitionMatchMethod): string {
   }[method];
 }
 
+export function confidenceLevelInfo(
+  method?: RecognitionMatchMethod,
+  isAmbiguous?: boolean
+): { label: string; detail: string; level: "high" | "medium" | "low" | "ambiguous" } {
+  if (isAmbiguous) {
+    return {
+      label: "Ambiguo",
+      detail: "Múltiples códigos detectados o evidencia en conflicto",
+      level: "ambiguous",
+    };
+  }
+  switch (method) {
+    case "barcode_ocr":
+      return {
+        label: "Confianza alta",
+        detail: "Barcode + OCR corroborados independientemente",
+        level: "high",
+      };
+    case "barcode":
+      return {
+        label: "Confianza media",
+        detail: "Solo barcode (sin corroboración de número impreso)",
+        level: "medium",
+      };
+    case "ocr_code":
+      return {
+        label: "Confianza baja",
+        detail: "Solo OCR de número impreso (requiere verificación)",
+        level: "low",
+      };
+    case "ocr_name":
+      return {
+        label: "Confianza baja",
+        detail: "Coincidencia por nombre en texto (requiere verificación)",
+        level: "low",
+      };
+    default:
+      return {
+        label: "Bajo revisión",
+        detail: "Verificá el producto antes de agregarlo",
+        level: "low",
+      };
+  }
+}
+
 export function productCatalogLookupText(lookup: ProductCatalogLookup): string {
   if (lookup.status === "found") {
     return `Open Food Facts: ${lookup.product.name || "producto registrado sin nombre"}${lookup.product.brand ? ` · ${lookup.product.brand}` : ""}`;

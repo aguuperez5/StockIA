@@ -103,8 +103,48 @@ class AgentTests(unittest.TestCase):
         result = pipeline.analyze(encoded.tobytes(), "image/jpeg", "test-request")
         self.assertEqual(result.status, "corroborated")
         self.assertEqual(result.consensus.corroborated_values, ["7791000000109"])
+        self.assertEqual(result.consensus.quantities.get("7791000000109"), 1)
         self.assertIn("barcode", result.timings_ms)
         self.assertIn("ocr", result.timings_ms)
+
+    def test_barcode_counts_multiple_appearances(self):
+        # Dos lecturas del mismo código en posiciones distintas
+        agent = BarcodeAgent(FakeBarcodeReader([
+            ("7791000000109", "EAN-13"),
+            ("7791000000109", "EAN-13"),
+            ("7791000000116", "EAN-13"),
+        ]))
+        evidence, warnings = agent.analyze(np.zeros((100, 100, 3), dtype=np.uint8))
+        self.assertEqual(warnings, [])
+        counts = {item.value: item.occurrences for item in evidence}
+        self.assertEqual(counts["7791000000109"], 2)
+        self.assertEqual(counts["7791000000116"], 1)
+
+    def test_consensus_avoids_double_counting_with_corroborated_ocr(self):
+        # 1 barcode + 1 OCR del mismo código -> cantidad 1 (el OCR corrobora, no duplica)
+        agent = ConsensusAgent()
+        barcode = IdentifierEvidence(value="7791000000109", format="EAN-13", source="barcode", checksum_valid=True, occurrences=1)
+        ocr = IdentifierEvidence(value="7791000000109", format="EAN-13", source="ocr", checksum_valid=True, score=0.98, occurrences=1)
+        result = agent.analyze([barcode, ocr])
+        self.assertEqual(result.status, "corroborated")
+        self.assertEqual(result.quantities.get("7791000000109"), 1)
+
+    def test_consensus_counts_multiple_barcodes_with_single_ocr(self):
+        # 2 barcodes + 1 OCR -> cantidad 2
+        agent = ConsensusAgent()
+        barcode = IdentifierEvidence(value="7791000000109", format="EAN-13", source="barcode", checksum_valid=True, occurrences=2)
+        ocr = IdentifierEvidence(value="7791000000109", format="EAN-13", source="ocr", checksum_valid=True, score=0.98, occurrences=1)
+        result = agent.analyze([barcode, ocr])
+        self.assertEqual(result.status, "corroborated")
+        self.assertEqual(result.quantities.get("7791000000109"), 2)
+
+    def test_consensus_counts_distinct_ocr_reads_when_no_barcode(self):
+        # Solo OCR con 2 lecturas distintas del mismo código -> cantidad 2
+        agent = ConsensusAgent()
+        ocr = IdentifierEvidence(value="7791000000109", format="EAN-13", source="ocr", checksum_valid=True, occurrences=2)
+        result = agent.analyze([ocr])
+        self.assertEqual(result.status, "needs_review")
+        self.assertEqual(result.quantities.get("7791000000109"), 2)
 
 
 if __name__ == "__main__":

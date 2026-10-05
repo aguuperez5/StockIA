@@ -51,13 +51,20 @@ let cachedWarehouses: Warehouse[] = [];
 
 interface ProductModalProps {
   editId?: string | number | null;
+  initialSku?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function ProductModal({ editId, onClose, onSuccess }: ProductModalProps) {
+export function ProductModal({ editId, initialSku, onClose, onSuccess }: ProductModalProps) {
   const isEdit = Boolean(editId);
-  const [form, setForm] = useState<FormData>(getBlankForm);
+  const [form, setForm] = useState<FormData>(() => {
+    const blank = getBlankForm();
+    if (!editId && initialSku) {
+      blank.sku = initialSku;
+    }
+    return blank;
+  });
   const [warehouses, setWarehouses] = useState<Warehouse[]>(cachedWarehouses);
   const [knownCategories, setKnownCategories] = useState<string[]>(cachedCategories);
   const [errors, setErrors] = useState<Record<string, string>>({});

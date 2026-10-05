@@ -28,10 +28,18 @@ export async function buildRecognitionDetections(
     const detection = grouped.get(key) || {
       value: evidence.value,
       sources: new Set(),
+      barcodeCount: 0,
+      ocrCount: 0,
     };
     // Preserve the barcode representation when OCR provides a padded alias.
     if (evidence.source === "barcode") detection.value = evidence.value;
     detection.sources.add(evidence.source);
+    const occ = Number(evidence.occurrences || evidence.quantity || 1) || 1;
+    if (evidence.source === "barcode") {
+      detection.barcodeCount += occ;
+    } else if (evidence.source === "ocr") {
+      detection.ocrCount += occ;
+    }
     grouped.set(key, detection);
   }
   // Every scan requests fresh metadata for each unique valid identifier,
@@ -44,6 +52,16 @@ export async function buildRecognitionDetections(
       } catch {
         catalogLookup = { provider: "openfoodfacts", status: "unavailable" };
       }
+      const consensusQty =
+        analysis.consensus?.quantities?.[detection.value] ??
+        analysis.consensus?.quantities?.[canonicalGtin(detection.value)];
+      const suggestedQuantity =
+        consensusQty !== undefined
+          ? consensusQty
+          : detection.barcodeCount > 0
+            ? detection.barcodeCount
+            : Math.max(1, detection.ocrCount);
+
       return {
         value: detection.value,
         sources: [...detection.sources].sort(),
@@ -55,6 +73,7 @@ export async function buildRecognitionDetections(
               : "ocr_code",
         reviewRequired:
           detection.sources.size < 2 || analysis.status === "ambiguous",
+        suggestedQuantity,
         catalogLookup,
       };
     }),

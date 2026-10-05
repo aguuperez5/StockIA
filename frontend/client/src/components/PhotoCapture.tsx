@@ -13,6 +13,7 @@ import {
   recognitionService,
   type RecognitionDetection,
 } from "@/services/backlog";
+import { saleService } from "@/services/sales";
 import { recognitionFeedback } from "@/lib/recognitionFeedback";
 import RecognitionReadings from "./RecognitionReadings";
 
@@ -24,6 +25,7 @@ export type DetectedProduct = {
   matchScore?: number;
   matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
   reviewRequired?: boolean;
+  suggestedQuantity?: number;
   stocks?: Array<{
     warehouseId: number;
     warehouseName: string;
@@ -34,15 +36,29 @@ export type DetectedProduct = {
 export default function PhotoCapture({
   onDetected,
   onPhoto,
+  scanMode = "recognition",
+  canCreateProduct = false,
+  onCreateProduct,
+  onAnalysisComplete,
 }: {
   onDetected: (items: DetectedProduct[]) => void;
   onPhoto?: (data: string, mimeType: string) => void;
+  scanMode?: "sales" | "recognition";
+  canCreateProduct?: boolean;
+  onCreateProduct?: (code: string) => void;
+  onAnalysisComplete?: (result: {
+    status?: string;
+    items: DetectedProduct[];
+    detections?: RecognitionDetection[];
+  }) => void;
 }) {
   const [preview, setPreview] = useState("");
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [analysisStatus, setAnalysisStatus] = useState<string>("");
+
   const [detections, setDetections] = useState<RecognitionDetection[]>([]);
   const evidenceRef = useRef<{ data: string; mimeType: string } | undefined>(
     undefined
@@ -151,12 +167,24 @@ export default function PhotoCapture({
     setError("");
     setFeedback("");
     setDetections([]);
+    setAnalysisStatus("");
     try {
-      const result = await recognitionService.analyze(trimmed, photo);
+      let result;
+      if (scanMode === "sales" && photo && !trimmed) {
+        result = await saleService.scan(photo);
+      } else {
+        result = await recognitionService.analyze(trimmed, photo);
+      }
       if (request !== requestRef.current) return;
+      setAnalysisStatus(result.status || "");
       onDetected(result.items);
       setDetections(result.detections ?? []);
       setFeedback(recognitionFeedback(result));
+      onAnalysisComplete?.({
+        status: result.status,
+        items: result.items,
+        detections: result.detections,
+      });
     } catch (e) {
       if (request !== requestRef.current) return;
       onDetected([]);
@@ -232,7 +260,12 @@ export default function PhotoCapture({
 
       {detections.length > 0 && (
         <div style={{ marginBottom: "14px" }}>
-          <RecognitionReadings detections={detections} />
+          <RecognitionReadings
+            detections={detections}
+            isAmbiguous={analysisStatus === "ambiguous"}
+            canCreateProduct={canCreateProduct}
+            onCreateProduct={onCreateProduct}
+          />
         </div>
       )}
 
