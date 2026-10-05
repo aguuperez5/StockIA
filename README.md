@@ -92,7 +92,7 @@ La aplicación web estará disponible en `http://localhost:3000`.
 cd backend/services/reconocimiento-tags
 python -m venv venv
 # Activar entorno virtual:
-# Windows: .\venv\Scripts\activate | Linux/Mac: source venv/bin/activate
+# Windows PowerShell: .\venv\Scripts\activate | bash: source venv/Scripts/activate
 pip install -r requirements.txt
 python api.py
 
