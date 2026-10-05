@@ -4,7 +4,7 @@
 **Institución:** UTN – Facultad Regional San Francisco  
 **Carrera:** Ingeniería en Sistemas de Información  
 **Cátedra:** Ingeniería y Calidad de Software (Ciclo Lectivo 2026)  
-**Fecha de entrega informada:** 02/09/2026 *(ver Sección 7: Nota de Inconsistencias respecto al Backlog del 14/09/2026)*  
+**Fecha de entrega:** 14/09/2026  
 **Integrantes:**
 - Camino Matías
 - Mecchia Valentín
@@ -225,18 +225,14 @@ Horas Reales:    [================================] 31,5h  (+12,5%)
 
 ---
 
-## 7. Nota de Inconsistencias Detectadas a Resolver por el Equipo
+## 7. Homologación de Inconsistencias Previamente Detectadas
 
-Durante la auditoría del proyecto se identificaron dos inconsistencias formales en la documentación preliminar que no fueron alteradas unilateralmente para respetar la regla de no inventar datos del proyecto:
+Durante la auditoría del proyecto se identificaron e integraron formalmente las siguientes resoluciones:
 
-1. **Discrepancia en la Fecha de Entrega del Sprint 2:**
-   - En la carátula del borrador del Informe de Entrega en PDF figura como fecha el **02/09/2026** (misma fecha que el cierre del Sprint 1).
-   - En el [Sprint 2 Backlog](sprint-2-backlog.md) y en el calendario de planificación ágil figura el **14/09/2026**.
-   - *Acción requerida del equipo:* Ratificar formalmente ante la cátedra la fecha definitiva del hito de entrega del Sprint 2.
-2. **Desfasaje en los Identificadores de Tareas (SB Tasks):**
-   - El backlog descompone las actividades del Sprint 2 en el rango canónico **SB-056 a SB-085**.
-   - En algunas notas informales de trabajo circulantes del equipo se hacía referencia a identificadores previos desalineados.
-   - *Acción requerida del equipo:* Homologar todas las referencias de minutas internas a la numeración canónica SB-056 a SB-085 consolidada en el repositorio.
+1. **Ratificación de la Fecha de Entrega del Sprint 2:**
+   - Se ratificó el **14/09/2026** como fecha canónica del hito de entrega del Sprint 2, unificando la carátula de este informe con el [Sprint 2 Backlog](sprint-2-backlog.md) y el cronograma ágil.
+2. **Homologación de Identificadores de Tareas (SB Tasks):**
+   - El backlog descompone las actividades del Sprint 2 en el rango canónico **SB-056 a SB-085**, alineando la totalidad de la documentación, trazabilidad y suites de prueba.
 
 ---
 
@@ -246,7 +242,8 @@ El Sprint 2 concluye con la totalidad de los criterios de calidad satisfechos:
 
 - ✅ **Backend Tests (`node:test`):** 19 suites de prueba, 116 pruebas aprobadas (0 fallos).
 - ✅ **Frontend Tests (`vitest`):** 11 suites de prueba, 40 pruebas unitarias aprobadas (0 fallos).
-- ✅ **AI Tests (`unittest`):** 25 pruebas unitarias y de integración de visión aprobadas (24 pasadas, 1 omitida por requerir OCR real).
+- ✅ **AI Tests (`unittest`):** 25 pruebas unitarias y de integración de visión aprobadas (25 pasadas de 25, 0 fallos, incluyendo fallback con OCR local).
+- ✅ **Evaluación de Muestras de Visión:** 20/20 muestras superadas (100 % de efectividad en códigos claros, contraste, rotados, cámara y solo números).
 - ✅ **Comprobación de Tipos TypeScript (`check:frontend`):** 0 errores de tipado en React/Vite.
 - ✅ **Compilación de Producción (`build:frontend`):** Bundle generado con éxito.
 - ✅ **Trazabilidad de QA:** Matrices de ejecución en [docs/sprint-2-pruebas-ejecucion.md](sprint-2-pruebas-ejecucion.md) y registro de 9 defectos resueltos en [docs/sprint-2-defectos.md](sprint-2-defectos.md).

@@ -101,7 +101,50 @@ npm start         # Modo estándar
 
 La API REST quedará escuchando en `http://localhost:3001/api`.
 
+### 3.6. Configuración del Servicio de Inteligencia Artificial (Visión / OCR / AprilTags)
+
+Para habilitar el reconocimiento inteligente de productos por código de barras, OCR o AprilTags:
+
+#### Opción A: Servicio de Visión Python (`ai/` - FastAPI + ZXing + ONNX OCR)
+1. **Crear y activar el entorno virtual Python (3.11 o 3.12):**
+   ```bash
+   python -m venv ai/.venv
+   # Windows PowerShell:
+   .\ai\.venv\Scripts\Activate.ps1
+   # Linux/macOS:
+   source ai/.venv/bin/activate
+   ```
+2. **Instalar dependencias:**
+   ```bash
+   pip install -e "ai[ocr-local,test]"
+   ```
+3. **Iniciar el microservicio:**
+   ```bash
+   python -m uvicorn stockia_ai.app:app --app-dir ai/src --host 127.0.0.1 --port 8010
+   ```
+4. **Configurar la variable en `backend/.env`:**
+   ```env
+   AI_SERVICE_URL=http://127.0.0.1:8010
+   ```
+
+#### Opción B: Microservicio determinista AprilTags (`backend/services/reconocimiento-tags`)
+1. **Activar el entorno virtual e instalar dependencias:**
+   ```bash
+   cd backend/services/reconocimiento-tags
+   pip install -r requirements.txt
+   ```
+2. **Iniciar el servidor:**
+   ```bash
+   python api.py
+   ```
+   Quedará escuchando en `http://127.0.0.1:8000`.
+3. **Configurar en `backend/.env`:**
+   ```env
+   AI_SERVICE_URL=http://127.0.0.1:8000
+   ```
+
 ---
+
 
 ## 4. Configuración y Puesta en Marcha del Frontend
 

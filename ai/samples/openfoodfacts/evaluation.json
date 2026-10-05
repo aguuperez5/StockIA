@@ -10,15 +10,15 @@
       "detail": "zxing-cpp"
     },
     "ocr": {
-      "state": "degraded",
-      "detail": "OCR local no disponible"
+      "state": "ready",
+      "detail": "RapidOCR / ONNX Runtime CPU"
     },
     "consensus": {
       "state": "ready",
       "detail": "reglas deterministas; sin escritura de inventario"
     }
   },
-  "passed": 17,
+  "passed": 20,
   "total": 20,
   "results": [
     {
@@ -29,13 +29,10 @@
       "actual": [
         "3017620422003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 70.13,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 2683.96,
+      "warnings": []
     },
     {
       "image": "3017620422003-girado.png",
@@ -45,13 +42,10 @@
       "actual": [
         "3017620422003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 14.41,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 952.7,
+      "warnings": []
     },
     {
       "image": "3017620422003-contraste.png",
@@ -61,13 +55,10 @@
       "actual": [
         "3017620422003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 9.9,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 940.48,
+      "warnings": []
     },
     {
       "image": "3017620422003-bajo.png",
@@ -79,11 +70,10 @@
       ],
       "status": "needs_review",
       "passed": true,
-      "elapsed_ms": 4.78,
+      "elapsed_ms": 2305.35,
       "warnings": [
         "identifier_not_independently_corroborated",
-        "low_resolution",
-        "ocr_engine_unavailable"
+        "low_resolution"
       ]
     },
     {
@@ -94,25 +84,24 @@
       "actual": [
         "3017620422003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 7.1,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 2451.94,
+      "warnings": []
     },
     {
       "image": "3017620422003-solo-numeros.png",
       "expected": [
         "3017620422003"
       ],
-      "actual": [],
-      "status": "no_detection",
-      "passed": false,
-      "elapsed_ms": 5.13,
+      "actual": [
+        "3017620422003"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 4227.2,
       "warnings": [
-        "ocr_engine_unavailable",
+        "identifier_not_independently_corroborated",
         "overexposed"
       ]
     },
@@ -124,13 +113,10 @@
       "actual": [
         "5449000000996"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 12.89,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 2116.59,
+      "warnings": []
     },
     {
       "image": "5449000000996-girado.png",
@@ -140,13 +126,10 @@
       "actual": [
         "5449000000996"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 15.4,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 1318.06,
+      "warnings": []
     },
     {
       "image": "5449000000996-contraste.png",
@@ -156,13 +139,10 @@
       "actual": [
         "5449000000996"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 12.0,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 1048.09,
+      "warnings": []
     },
     {
       "image": "5449000000996-bajo.png",
@@ -174,11 +154,10 @@
       ],
       "status": "needs_review",
       "passed": true,
-      "elapsed_ms": 4.89,
+      "elapsed_ms": 1568.41,
       "warnings": [
         "identifier_not_independently_corroborated",
-        "low_resolution",
-        "ocr_engine_unavailable"
+        "low_resolution"
       ]
     },
     {
@@ -189,25 +168,24 @@
       "actual": [
         "5449000000996"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 5.18,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 1128.81,
+      "warnings": []
     },
     {
       "image": "5449000000996-solo-numeros.png",
       "expected": [
         "5449000000996"
       ],
-      "actual": [],
-      "status": "no_detection",
-      "passed": false,
-      "elapsed_ms": 7.81,
+      "actual": [
+        "5449000000996"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 1699.63,
       "warnings": [
-        "ocr_engine_unavailable",
+        "identifier_not_independently_corroborated",
         "overexposed"
       ]
     },
@@ -219,13 +197,10 @@
       "actual": [
         "3274080005003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 14.91,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 1770.36,
+      "warnings": []
     },
     {
       "image": "3274080005003-girado.png",
@@ -235,13 +210,10 @@
       "actual": [
         "3274080005003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 18.71,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 609.73,
+      "warnings": []
     },
     {
       "image": "3274080005003-contraste.png",
@@ -251,13 +223,10 @@
       "actual": [
         "3274080005003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 14.54,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 1013.71,
+      "warnings": []
     },
     {
       "image": "3274080005003-bajo.png",
@@ -269,11 +238,10 @@
       ],
       "status": "needs_review",
       "passed": true,
-      "elapsed_ms": 5.59,
+      "elapsed_ms": 1699.94,
       "warnings": [
         "identifier_not_independently_corroborated",
-        "low_resolution",
-        "ocr_engine_unavailable"
+        "low_resolution"
       ]
     },
     {
@@ -284,25 +252,24 @@
       "actual": [
         "3274080005003"
       ],
-      "status": "needs_review",
+      "status": "corroborated",
       "passed": true,
-      "elapsed_ms": 4.64,
-      "warnings": [
-        "identifier_not_independently_corroborated",
-        "ocr_engine_unavailable"
-      ]
+      "elapsed_ms": 950.0,
+      "warnings": []
     },
     {
       "image": "3274080005003-solo-numeros.png",
       "expected": [
         "3274080005003"
       ],
-      "actual": [],
-      "status": "no_detection",
-      "passed": false,
-      "elapsed_ms": 8.17,
+      "actual": [
+        "3274080005003"
+      ],
+      "status": "needs_review",
+      "passed": true,
+      "elapsed_ms": 1736.61,
       "warnings": [
-        "ocr_engine_unavailable",
+        "identifier_not_independently_corroborated",
         "overexposed"
       ]
     },
@@ -312,9 +279,8 @@
       "actual": [],
       "status": "no_detection",
       "passed": true,
-      "elapsed_ms": 5.11,
+      "elapsed_ms": 1181.93,
       "warnings": [
-        "ocr_engine_unavailable",
         "overexposed",
         "possible_blur"
       ]
@@ -333,10 +299,9 @@
       ],
       "status": "ambiguous",
       "passed": true,
-      "elapsed_ms": 29.37,
+      "elapsed_ms": 780.5,
       "warnings": [
-        "conflicting_or_multiple_identifiers",
-        "ocr_engine_unavailable"
+        "conflicting_or_multiple_identifiers"
       ]
     }
   ],

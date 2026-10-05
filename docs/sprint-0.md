@@ -218,6 +218,8 @@ En el Sprint 0 se prototiparon las pantallas principales del sistema, enfocándo
 9. **Consulta de clientes o historial de compras:** Listado de ventas y clientes registrados.
 10. **Estadísticas:** Reportes de rendimiento comercial y movimientos de stock.
 
+> Para consultar las especificaciones visuales detalladas, layouts y wireframes de las pantallas incorporadas en el Sprint 2 (Login, Captura/Venta, Transferencias y Alertas), consultar el documento [docs/disenos-ui.md](disenos-ui.md).
+
 ---
 
 ## 11. Con qué calidad: Definition of Done y estrategia QA

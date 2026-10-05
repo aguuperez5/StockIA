@@ -49,6 +49,7 @@ Sistema inteligente de reconocimiento visual de productos para automatizar punto
 - 🏷️ [Reglas de Precios Dinámicos por Volumen](docs/pricing.md)
 - 🛒 [Flujo Transaccional de Venta Asistida](docs/flujo-venta-manual.md)
 - 🔌 [Contrato de Integración y Endpoints de API Backend](docs/backend-integration.md)
+- 🎨 [Especificación y Wireframes de Interfaces UI (SB-061)](docs/disenos-ui.md)
 - ⚙️ [Instructivo de Instalación y Puesta en Marcha](docs/installation.md)
 
 ---

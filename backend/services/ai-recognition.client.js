@@ -33,19 +33,43 @@ function readImage(photoData, declaredMimeType) {
 }
 
 export async function analyzeProductImage({ photoData, photoMimeType }) {
-  // Ahora apuntamos por defecto al puerto 8000 donde corre FastAPI
-  const serviceUrl = (process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000').trim().replace(/\/+$/, "");
+  const rawServiceUrl = process.env.AI_SERVICE_URL?.trim();
+  if (!rawServiceUrl) {
+    throw new AIRecognitionError(
+      'El servicio de reconocimiento de imágenes no está configurado (falta AI_SERVICE_URL).',
+      503,
+    );
+  }
+  const serviceUrl = rawServiceUrl.replace(/\/+$/, "");
+  const token = process.env.AI_SERVICE_TOKEN?.trim();
 
   const { bytes, mimeType } = readImage(photoData, photoMimeType);
+  const isAprilTags = serviceUrl.includes(':8000') || serviceUrl.endsWith('/api');
+
   const form = new FormData();
-  form.append("archivo", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
+  if (isAprilTags) {
+    form.append("archivo", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
+  } else {
+    form.append("image", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
+  }
+
+  const endpoint = isAprilTags
+    ? `${serviceUrl}/api/detectar?incluir_imagen=false`
+    : `${serviceUrl}/v1/analyze`;
+
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const controller = new AbortController();
   const timeoutMs = Math.max(1_000, Number(process.env.AI_SERVICE_TIMEOUT_MS) || 15_000);
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const response = await fetch(`${serviceUrl}/api/detectar?incluir_imagen=false`, {
+    const response = await fetch(endpoint, {
       method: "POST",
+      headers,
       body: form,
       signal: controller.signal,
     });
@@ -56,20 +80,27 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
         502,
       );
     }
-    
-    // Result esperado: { status: 'success', tags: [ { id: 1, center: [x,y] } ] }
-    if (!result || result.status !== 'success' || !Array.isArray(result.tags)) {
+
+    if (isAprilTags) {
+      if (!result || result.status !== 'success' || !Array.isArray(result.tags)) {
+        throw new AIRecognitionError("El servicio de reconocimiento devolvió una respuesta inválida.", 502);
+      }
+      return result;
+    }
+
+    if (!result || typeof result !== "object" || !Array.isArray(result.identifiers) || !Array.isArray(result.text_evidence)) {
       throw new AIRecognitionError("El servicio de reconocimiento devolvió una respuesta inválida.", 502);
     }
-    
     return result;
   } catch (error) {
-    console.error("Error en analyzeProductImage:", error);
     if (error instanceof AIRecognitionError) throw error;
     if (error?.name === "AbortError") {
       throw new AIRecognitionError("El análisis de imagen excedió el tiempo límite.", 504);
     }
-    throw new AIRecognitionError("No se pudo conectar con el servicio de tags (FastAPI). URL: " + serviceUrl, 503);
+    throw new AIRecognitionError(
+      `No se pudo conectar con el servicio de tags (FastAPI). URL: ${serviceUrl}`,
+      503,
+    );
   } finally {
     clearTimeout(timeout);
   }

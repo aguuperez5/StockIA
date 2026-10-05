@@ -36,7 +36,7 @@ class PipelineSamplesTests(unittest.TestCase):
         analysis = self.pipeline.analyze(data, "image/png", "test-claro")
         gtins = [i.value for i in analysis.identifiers if i.checksum_valid]
         self.assertIn("3017620422003", gtins)
-        self.assertIn(analysis.status, {"matched", "needs_review"})
+        self.assertIn(analysis.status, {"matched", "needs_review", "corroborated"})
 
     def test_direct_barcode_detection_contraste(self):
         """Detección directa por código de barras con contraste variado (-contraste)."""
