@@ -86,6 +86,7 @@ export const recognitionService = {
         name: string;
         sku: string;
         priceCents: number;
+        quantity?: number;
         matchScore?: number;
         matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
         reviewRequired?: boolean;

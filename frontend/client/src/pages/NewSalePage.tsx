@@ -129,7 +129,7 @@ export default function NewSalePage() {
   }, [available, query, selectedWarehouseFilter, categoryFilter]);
 
   // Agregar un artículo del catálogo al carrito
-  const add = (item: InventoryItem) => {
+  const add = (item: InventoryItem, quantityToAdd = 1) => {
     if (activeWarehouseId && activeWarehouseId !== item.warehouseId) {
       setSwitchWarehouseConfirm({
         item,
@@ -147,12 +147,12 @@ export default function NewSalePage() {
           line.inventoryId === item.inventoryId
             ? {
                 ...line,
-                cartQuantity: Math.min(line.quantity, line.cartQuantity + 1),
+                cartQuantity: Math.min(line.quantity, line.cartQuantity + quantityToAdd),
               }
             : line
         );
       }
-      return [...current, { ...item, cartQuantity: 1 }];
+      return [...current, { ...item, cartQuantity: Math.min(item.quantity, quantityToAdd) }];
     });
   };
 
@@ -191,11 +191,12 @@ export default function NewSalePage() {
       toast.info("No se encontraron productos coincidentes en el catálogo.");
       return;
     }
-    toast.success(`Se analizaron ${items.length} producto(s) en el catálogo.`);
+    const totalQty = items.reduce((acc, it) => acc + (it.quantity || 1), 0);
+    toast.success(`Se detectaron ${totalQty} unidad(es) de ${items.length} producto(s) en la imagen.`);
   };
 
   // Agregar un producto analizado seleccionando un depósito específico
-  const addProductFromWarehouse = (productId: number, warehouseId: number) => {
+  const addProductFromWarehouse = (productId: number, warehouseId: number, quantityToAdd = 1) => {
     const invItem = available.find(
       inv => inv.productId === productId && inv.warehouseId === warehouseId
     );
@@ -205,10 +206,10 @@ export default function NewSalePage() {
       );
       return;
     }
-    add(invItem);
+    add(invItem, quantityToAdd);
     if (activeWarehouseId === null || activeWarehouseId === warehouseId) {
       toast.success(
-        `"${invItem.productName}" agregado desde ${invItem.warehouseName}.`
+        `"${invItem.productName}" (+${quantityToAdd} u.) agregado desde ${invItem.warehouseName}.`
       );
     }
   };
@@ -387,6 +388,21 @@ export default function NewSalePage() {
                           <span className="analysis-product-sku">
                             SKU: {prod.sku}
                           </span>
+                          {prod.quantity && prod.quantity > 1 && (
+                            <span
+                              style={{
+                                background: "#3b82f6",
+                                color: "#ffffff",
+                                padding: "2px 8px",
+                                borderRadius: "12px",
+                                fontSize: "0.75rem",
+                                fontWeight: "bold",
+                                marginLeft: "8px",
+                              }}
+                            >
+                              Detectados: {prod.quantity} u.
+                            </span>
+                          )}
                         </div>
                         <div className="analysis-product-meta">
                           {prod.priceCents ? (
@@ -457,7 +473,7 @@ export default function NewSalePage() {
                                     disabled={!hasStock}
                                     onClick={() =>
                                       stockInfo.inventoryItem &&
-                                      add(stockInfo.inventoryItem)
+                                      add(stockInfo.inventoryItem, prod.quantity || 1)
                                     }
                                     title={`Cambiar venta a ${stockInfo.warehouseName}`}
                                   >
@@ -471,14 +487,15 @@ export default function NewSalePage() {
                                     onClick={() =>
                                       addProductFromWarehouse(
                                         prod.id,
-                                        stockInfo.warehouseId
+                                        stockInfo.warehouseId,
+                                        prod.quantity || 1
                                       )
                                     }
                                   >
                                     <Plus size={12} />{" "}
                                     {isCurrentActive
-                                      ? "Agregar"
-                                      : "Seleccionar"}
+                                      ? `Agregar (${prod.quantity || 1})`
+                                      : `Seleccionar (${prod.quantity || 1})`}
                                   </button>
                                 )}
                               </div>

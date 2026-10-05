@@ -604,47 +604,42 @@ export async function recognition(req,res){
 
     if (photo.photoData) {
       const analysis = await analyzeProductImage(photo);
-      console.info(
-        "[OCR]",
-        JSON.stringify({
-          requestId: analysis.request_id,
-          state:
-            analysis.timings_ms?.ocr === undefined
-              ? "skipped"
-              : analysis.agents?.ocr?.state,
-          texts: analysis.text_evidence.map(({ text, score }) => ({ text, score })),
-          codes: analysis.identifiers
-            .filter(item => item.source === "ocr")
-            .map(({ value, checksum_valid }) => ({
-              value,
-              checksumValid: checksum_valid,
-            })),
-          warnings: (analysis.warnings || []).filter(warning =>
-            warning.startsWith("ocr_"),
-          ),
-        }),
-      );
-      const [catalog, detections] = await Promise.all([
-        findRecognitionCatalogCandidates(prisma, analysis),
-        buildRecognitionDetections(analysis),
-      ]);
-      const items = rankRecognitionProducts(catalog);
-      const localCodes = new Set(items.map(item => canonicalGtin(item.sku)));
+      // analysis.tags = [ { id: 1, center: [x,y] }, ... ]
+      const tagIds = analysis.tags.map(t => t.id);
+      
+      const products = await prisma.product.findMany({
+        where: { active: true, id: { in: tagIds } },
+        include: { stocks: { include: { deposit: true } } }
+      });
+      
+      // Creamos una lista de "items" contando cuántas veces aparece cada tag
+      const itemsMap = new Map();
+      for (const tagId of tagIds) {
+        const p = products.find(prod => prod.id === tagId);
+        if (p) {
+          if (!itemsMap.has(p.id)) {
+            itemsMap.set(p.id, {
+              id: p.id,
+              name: p.name,
+              sku: p.code,
+              priceCents: moneyToCents(p.price),
+              quantity: 0, // Nueva propiedad para la cantidad detectada
+              stocks: p.stocks.map(s => ({
+                warehouseId: s.depositId,
+                warehouseName: s.deposit.name,
+                quantity: s.quantity
+              }))
+            });
+          }
+          itemsMap.get(p.id).quantity += 1;
+        }
+      }
+      
       return res.json({
         simulated: false,
-        status: analysis.status,
-        requestId: analysis.request_id,
-        pipelineVersion: analysis.pipeline_version,
-        quality: analysis.quality,
-        consensus: analysis.consensus,
-        identifiers: analysis.identifiers,
-        agents: analysis.agents,
-        warnings: analysis.warnings,
-        detections: detections.map(detection => ({
-          ...detection,
-          inLocalCatalog: localCodes.has(canonicalGtin(detection.value)),
-        })),
-        items,
+        status: 'success',
+        tags_detected: analysis.tags,
+        items: Array.from(itemsMap.values())
       });
     }
 

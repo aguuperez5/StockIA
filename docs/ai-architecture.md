@@ -4,6 +4,9 @@
 
 The repository had a product-recognition UI and `/api/recognition/analyze`, but the route only searched product text and returned hard-coded confidence values. The only vision implementation was `ai/StockIA_PoC_Identificacion_Productos.ipynb`. Its benchmark is synthetic and the PaddleOCR path was stubbed, so production accuracy is unknown.
 
+> [!NOTE]
+> **Actualización de Arquitectura:** El pipeline anterior basado en OCR (PaddleOCR/RapidOCR) y códigos de barras (zxing-cpp) ha sido reemplazado por el microservicio determinista de **AprilTags (`tag36h11`)** ubicado en `backend/services/reconocimiento-tags/`. Ver detalles y especificaciones completas en [`docs/reconocimiento-apriltags.md`](reconocimiento-apriltags.md). Lo siguiente se mantiene como referencia técnica del diseño anterior.
+
 The new design converts the notebook into an optional Python perception service. It is intentionally separate from the Express/Prisma business layer.
 
 ## Request path

@@ -1,4 +1,4 @@
-const MAX_IMAGE_BYTES = 3_500_000;
+const MAX_IMAGE_BYTES = 15_000_000;
 const SUPPORTED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export class AIRecognitionError extends Error {
@@ -33,29 +33,19 @@ function readImage(photoData, declaredMimeType) {
 }
 
 export async function analyzeProductImage({ photoData, photoMimeType }) {
-  const serviceUrl = process.env.AI_SERVICE_URL?.trim().replace(/\/+$/, "");
-  if (!serviceUrl) {
-    throw new AIRecognitionError(
-      "El reconocimiento visual no está configurado. Buscá el producto por nombre o SKU.",
-      503,
-    );
-  }
+  // Ahora apuntamos por defecto al puerto 8000 donde corre FastAPI
+  const serviceUrl = (process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000').trim().replace(/\/+$/, "");
 
   const { bytes, mimeType } = readImage(photoData, photoMimeType);
   const form = new FormData();
-  form.append("image", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
-  const headers = {};
-  if (process.env.AI_SERVICE_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.AI_SERVICE_TOKEN}`;
-  }
+  form.append("archivo", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
 
   const controller = new AbortController();
   const timeoutMs = Math.max(1_000, Number(process.env.AI_SERVICE_TIMEOUT_MS) || 15_000);
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${serviceUrl}/v1/analyze`, {
+    const response = await fetch(`${serviceUrl}/api/detectar?incluir_imagen=false`, {
       method: "POST",
-      headers,
       body: form,
       signal: controller.signal,
     });
@@ -66,16 +56,20 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
         502,
       );
     }
-    if (!result || !Array.isArray(result.identifiers) || !Array.isArray(result.text_evidence)) {
+    
+    // Result esperado: { status: 'success', tags: [ { id: 1, center: [x,y] } ] }
+    if (!result || result.status !== 'success' || !Array.isArray(result.tags)) {
       throw new AIRecognitionError("El servicio de reconocimiento devolvió una respuesta inválida.", 502);
     }
+    
     return result;
   } catch (error) {
+    console.error("Error en analyzeProductImage:", error);
     if (error instanceof AIRecognitionError) throw error;
     if (error?.name === "AbortError") {
       throw new AIRecognitionError("El análisis de imagen excedió el tiempo límite.", 504);
     }
-    throw new AIRecognitionError("No se pudo conectar con el servicio de reconocimiento.", 503);
+    throw new AIRecognitionError("No se pudo conectar con el servicio de tags (FastAPI). URL: " + serviceUrl, 503);
   } finally {
     clearTimeout(timeout);
   }

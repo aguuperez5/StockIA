@@ -12,6 +12,7 @@ export type DetectedProduct = {
   name: string;
   sku: string;
   priceCents?: number;
+  quantity?: number;
   matchScore?: number;
   matchMethod?: "barcode_ocr" | "barcode" | "ocr_code" | "ocr_name";
   reviewRequired?: boolean;
@@ -144,8 +145,8 @@ export default function PhotoCapture({
   const file = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0];
     if (!selected) return;
-    if (!selected.type.startsWith("image/") || selected.size > 3_000_000) {
-      setError("Elegí una imagen de hasta 3 MB.");
+    if (!selected.type.startsWith("image/")) {
+      setError("El archivo seleccionado debe ser una imagen.");
       return;
     }
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
