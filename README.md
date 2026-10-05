@@ -81,3 +81,13 @@ npm run dev
 ```
 
 La aplicación web estará disponible en `http://localhost:3000`.
+
+### 3. Reconocimiento de Tags April
+```bash
+cd backend/services/reconocimiento-tags
+python -m venv venv
+# Activar entorno virtual:
+# Windows: .\venv\Scripts\activate | Linux/Mac: source venv/bin/activate
+pip install -r requirements.txt
+python api.py
+
