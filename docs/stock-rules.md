@@ -18,18 +18,18 @@ Si cualquier paso falla, la transacción completa se revierte — no puede queda
 
 ## Operaciones permitidas
 
-`MovementType`: `IN` (entrada), `OUT` (salida), `ADJUST` (ajuste manual con cualquier signo declarado por el usuario). Extensible a `TRANSFER_IN`/`TRANSFER_OUT`/`RETURN` en sprints futuros sin cambios estructurales.
+Los movimientos en `StockMovement` se registran con signo algebraico explícito según el tipo de operación:
+- **Entradas y reposiciones**: `quantity > 0` (incrementan `Stock.quantity`).
+- **Ventas y transferencias de salida**: `quantity < 0` (decrementan `Stock.quantity`, previa validación de disponibilidad).
+- **Ajustes manuales**: `quantity` con signo positivo o negativo según corresponda.
 
-- `IN` / `ADJUST` incrementan `Stock.quantity`.
-- `OUT` decrementa `Stock.quantity`, previa validación de disponibilidad.
+Cada movimiento está asociado a un único `depositId` y puede incluir un `reason` descriptivo.
 
 ## Cómo se evita stock negativo
 
 Doble capa:
-1. **Aplicación**: antes de decrementar, se lee el stock existente y se rechaza la operación (`400`) si `quantity solicitada > disponible`. Esto corre dentro de la transacción para evitar condiciones de carrera entre la lectura y la escritura.
-2. **Base de datos**: constraint `CHECK (quantity >= 0)` en la tabla `stock` (migración [20260825001217_stock_quantity_non_negative](../backend/prisma/migrations/20260825001217_stock_quantity_non_negative/migration.sql)). Es la última línea de defensa si algún flujo futuro (o un `UPDATE` manual) intentara saltarse la validación de aplicación. Verificado manualmente insertando una fila con `quantity = -5` vía SQL crudo: la base la rechaza.
-
-También existe `CHECK (quantity > 0)` en `stock_movements`: la cantidad de un movimiento siempre se registra en valor absoluto, el signo lo determina `type`.
+1. **Aplicación**: antes de decrementar, se valida atómicamente la disponibilidad y se rechaza la operación (`400`) si la cantidad solicitada supera el stock disponible en el depósito. Esto corre dentro de la transacción Prisma para evitar condiciones de carrera.
+2. **Base de datos**: constraint `CHECK (quantity >= 0)` en la tabla `stock` (migración [20260825001217_stock_quantity_non_negative](../backend/prisma/migrations/20260825001217_stock_quantity_non_negative/migration.sql)). Es la última línea de defensa si algún flujo futuro intentara saltarse la validación de aplicación. Verificado insertando una fila con `quantity = -5` vía SQL crudo: la base la rechaza con código PostgreSQL `23514`.
 
 ## Contrato para una venta (SB-046)
 
