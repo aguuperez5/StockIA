@@ -829,6 +829,16 @@ h3 {
   background: var(--danger-soft);
   color: var(--danger);
 }
+.icon-button.warning:hover {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.22);
+  color: #f59e0b;
+}
+.icon-button.out-of-stock:hover {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.22);
+  color: #ef4444;
+}
 .row-actions {
   display: inline-flex;
   gap: 7px;

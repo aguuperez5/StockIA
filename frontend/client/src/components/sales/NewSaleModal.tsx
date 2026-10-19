@@ -77,6 +77,7 @@ export function NewSaleModal({
 
   // Estado para el panel de análisis y verificación de stock
   const [analyzedProducts, setAnalyzedProducts] = useState<DetectedProduct[] | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<string>("");
   const [createProductSku, setCreateProductSku] = useState<string | null>(null);
   const [switchWarehouseConfirm, setSwitchWarehouseConfirm] = useState<{
     item: InventoryItem;
@@ -264,6 +265,7 @@ export function NewSaleModal({
     detections?: RecognitionDetection[];
   }) => {
     setAnalyzedProducts(result.items);
+    setAnalysisStatus(result.status || "");
     if (!result.items.length) return;
 
     // Precargar carrito con productos locales detectados y sus cantidades
@@ -310,6 +312,50 @@ export function NewSaleModal({
       toast.success(
         `"${invItem.productName}" agregado desde ${invItem.warehouseName}.`
       );
+    }
+  };
+
+  const toggleProductInCart = (prod: DetectedProduct) => {
+    const inCart = cart.some(line => line.productId === prod.id);
+    if (inCart) {
+      setCart(prev => prev.filter(line => line.productId !== prod.id));
+      toast.info(`"${prod.name}" quitado del comprobante.`);
+    } else {
+      const inventoryItem = available.find(
+        i =>
+          i.productId === prod.id &&
+          (activeWarehouseId !== null ? i.warehouseId === activeWarehouseId : true) &&
+          i.quantity > 0
+      );
+      if (!inventoryItem) {
+        toast.error(`No hay existencias disponibles de "${prod.name}" en el depósito de venta.`);
+        return;
+      }
+      const requestedQty = Math.max(1, prod.suggestedQuantity ?? 1);
+      const finalQty = Math.min(inventoryItem.quantity, requestedQty);
+      const pricing = calculateLinePricing(
+        inventoryItem.priceCents,
+        inventoryItem.priceRules,
+        finalQty
+      );
+      setCart(prev => [
+        ...prev,
+        {
+          productId: inventoryItem.productId,
+          warehouseId: inventoryItem.warehouseId,
+          productName: inventoryItem.productName,
+          sku: inventoryItem.sku,
+          category: inventoryItem.category,
+          warehouseName: inventoryItem.warehouseName,
+          priceCents: inventoryItem.priceCents,
+          availableStock: inventoryItem.quantity,
+          cartQuantity: finalQty,
+          priceRules: inventoryItem.priceRules,
+          effectiveUnitPriceCents: pricing.unitPriceCents,
+          appliedRuleLabel: pricing.appliedRuleLabel,
+        },
+      ]);
+      toast.success(`"${prod.name}" agregado con ${finalQty} u.`);
     }
   };
 
@@ -495,6 +541,92 @@ export function NewSaleModal({
                     />
                   </div>
                 </div>
+
+                {/* 1.1 PANEL SELECTOR DE AMBIGÜEDAD (MÚLTIPLES PRODUCTOS DETECTADOS) */}
+                {analysisStatus === "ambiguous" && analyzedProducts && analyzedProducts.length > 0 && (
+                  <div
+                    className="ambiguous-selector-panel"
+                    style={{
+                      marginTop: "16px",
+                      padding: "16px",
+                      borderRadius: "10px",
+                      backgroundColor: "rgba(59, 130, 246, 0.05)",
+                      border: "1px solid rgba(59, 130, 246, 0.25)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Sparkles size={18} style={{ color: "var(--color-primary, #2563eb)" }} />
+                        <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>
+                          Múltiples productos detectados (Ambigüedad)
+                        </h4>
+                      </div>
+                      <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary, #64748b)" }}>
+                        Marcá los que deseás incluir en la venta
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+                        gap: "10px",
+                      }}
+                    >
+                      {analyzedProducts.map(prod => {
+                        const isInCart = cart.some(line => line.productId === prod.id);
+                        return (
+                          <div
+                            key={prod.id}
+                            onClick={() => toggleProductInCart(prod)}
+                            role="button"
+                            tabIndex={0}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "10px 12px",
+                              borderRadius: "8px",
+                              border: isInCart ? "1.5px solid #2563eb" : "1px solid rgba(0, 0, 0, 0.12)",
+                              backgroundColor: isInCart ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface, #ffffff)",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isInCart}
+                              readOnly
+                              style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                            />
+                            <div style={{ overflow: "hidden", flex: 1 }}>
+                              <b
+                                style={{
+                                  display: "block",
+                                  fontSize: "0.85rem",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                {prod.name}
+                              </b>
+                              <small style={{ color: "var(--color-text-secondary, #64748b)", fontSize: "0.75rem" }}>
+                                SKU: {prod.sku} {prod.suggestedQuantity ? `· x${prod.suggestedQuantity} u.` : ""}
+                              </small>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* 2. PANEL DE RESULTADOS DE ANÁLISIS Y VERIFICACIÓN DE STOCK POR DEPÓSITO */}
                 {analysisDetails && (

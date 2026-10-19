@@ -30,12 +30,20 @@ export interface NewTransferModalProps {
   isOpen?: boolean;
   onClose: () => void;
   onSuccess?: (createdTransfer: Transfer) => void;
+  initialDestinationWarehouseId?: number | string;
+  initialOriginWarehouseId?: number | string;
+  initialProductId?: number;
+  initialQuantity?: number;
 }
 
 export function NewTransferModal({
   isOpen = true,
   onClose,
   onSuccess,
+  initialDestinationWarehouseId,
+  initialOriginWarehouseId,
+  initialProductId,
+  initialQuantity,
 }: NewTransferModalProps) {
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -43,6 +51,7 @@ export function NewTransferModal({
 
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [notes, setNotes] = useState("");
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [productSearch, setProductSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todas");
@@ -50,6 +59,37 @@ export function NewTransferModal({
   const [showPhotoSection, setShowPhotoSection] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (initialDestinationWarehouseId) {
+      setDestination(String(initialDestinationWarehouseId));
+    }
+    if (initialOriginWarehouseId) {
+      setOrigin(String(initialOriginWarehouseId));
+    }
+  }, [initialDestinationWarehouseId, initialOriginWarehouseId]);
+
+  useEffect(() => {
+    if (!initialProductId || !inventory.length) return;
+    const destIdStr = initialDestinationWarehouseId
+      ? String(initialDestinationWarehouseId)
+      : destination;
+
+    const candidate = inventory.find(
+      i =>
+        i.productId === initialProductId &&
+        i.quantity > 0 &&
+        (!destIdStr || String(i.warehouseId) !== destIdStr)
+    );
+
+    if (candidate) {
+      setOrigin(String(candidate.warehouseId));
+      const requestedQty = initialQuantity || Math.min(candidate.quantity, 5);
+      setSelected({
+        [initialProductId]: Math.min(candidate.quantity, requestedQty),
+      });
+    }
+  }, [initialProductId, initialDestinationWarehouseId, destination, inventory, initialQuantity]);
 
   // Carga inicial de depósitos e inventario
   useEffect(() => {
@@ -604,10 +644,75 @@ export function NewTransferModal({
                 </div>
               )}
             </div>
+
+            {/* SECCIÓN 5: OBSERVACIONES / MOTIVO (OPCIONAL) */}
+            <div className="transfer-notes-section" style={{ marginTop: "16px", marginBottom: "8px" }}>
+              <label
+                htmlFor="transfer-notes"
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: "var(--color-text, inherit)",
+                }}
+              >
+                Observaciones / Motivo (opcional):
+              </label>
+              <textarea
+                id="transfer-notes"
+                className="input-control"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Ej. Reposición de fin de semana para sucursal comercial..."
+                rows={2}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--color-border, rgba(0, 0, 0, 0.15))",
+                  fontSize: "0.875rem",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
           </div>
 
           {/* Pie del modal con acciones */}
           <footer className="modal-footer new-transfer-modal-footer">
+            {/* Banner destacado: Total de unidades a mover */}
+            {chosenItems.length > 0 && (
+              <div
+                className="transfer-total-banner"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  padding: "10px 14px",
+                  backgroundColor: "rgba(59, 130, 246, 0.08)",
+                  border: "1px solid rgba(59, 130, 246, 0.25)",
+                  borderRadius: "8px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Boxes size={18} style={{ color: "var(--color-primary, #2563eb)" }} />
+                  <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+                    Total de unidades a mover:{" "}
+                    <strong style={{ color: "var(--color-primary, #2563eb)", fontSize: "1.05rem" }}>
+                      {totalUnits} artículo{totalUnits === 1 ? "" : "s"}
+                    </strong>{" "}
+                    ({chosenItems.length} producto{chosenItems.length === 1 ? "" : "s"})
+                  </span>
+                </div>
+                <span style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #64748b)" }}>
+                  {originObj?.name || "Origen"} → {destObj?.name || "Destino"}
+                </span>
+              </div>
+            )}
+
             <div className="footer-summary-text">
               {chosenItems.length > 0 ? (
                 <span>

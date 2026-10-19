@@ -22,6 +22,7 @@ import { ModernSelect } from "@/components/ModernSelect";
 import { WarehouseCard } from "@/components/stock/WarehouseCard";
 import { WarehouseFormModal } from "@/components/stock/WarehouseFormModal";
 import { WarehouseDetailModal } from "@/components/stock/WarehouseDetailModal";
+import { NewTransferModal } from "@/components/transfers/NewTransferModal";
 import {
   inventoryService,
   type InventoryItem,
@@ -69,12 +70,33 @@ export default function StockPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
+  const [transferModalState, setTransferModalState] = useState<{
+    isOpen: boolean;
+    destinationWarehouseId?: number | string;
+    productId?: number;
+    quantity?: number;
+  }>({ isOpen: false });
+
+  // Deep linking: leer parámetros iniciales de la URL (ej. ?filter=low o ?warehouseId=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const filterParam = params.get("filter");
+    const warehouseParam = params.get("warehouseId");
+
+    if (filterParam && ["all", "available", "low", "out"].includes(filterParam)) {
+      setStockFilter(filterParam);
+    }
+    if (warehouseParam) {
+      setWarehouseId(warehouseParam);
+    }
+  }, []);
 
   const loadWarehouses = () =>
     warehouseService
       .list()
       .then(result => setWarehouses(result.items))
       .catch((reason: Error) => setError(reason.message));
+
   const load = () => {
     setLoading(true);
     setError("");
@@ -93,9 +115,20 @@ export default function StockPage() {
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
   };
+
   useEffect(() => {
     void load();
   }, [warehouseId, stockFilter]);
+
+  const openQuickTransfer = (item: InventoryItem) => {
+    const needed = Math.max(1, item.lowStockThreshold - item.quantity);
+    setTransferModalState({
+      isOpen: true,
+      destinationWarehouseId: item.warehouseId,
+      productId: item.productId,
+      quantity: needed,
+    });
+  };
 
   const openAdjustment = (item: InventoryItem) => {
     setSelected(item);
@@ -518,14 +551,71 @@ export default function StockPage() {
                             >
                               <Edit3 size={16} />
                             </button>
-                            <button
-                              className="icon-button"
-                              onClick={() => openMove(item)}
-                              aria-label={`Transferir ${item.productName}`}
-                              title="Transferir entre depósitos"
-                            >
-                              <ArrowLeftRight size={16} />
-                            </button>
+                            {(() => {
+                              const isOutOfStock = item.quantity === 0;
+                              const isLowStock =
+                                item.quantity <= item.lowStockThreshold;
+                              const isReplenish = isOutOfStock || isLowStock;
+
+                              const title = isOutOfStock
+                                ? `⚠️ Sin stock: Pedir transferencia / reposición para "${item.productName}" hacia ${item.warehouseName}`
+                                : isLowStock
+                                ? `⚠️ Stock bajo (${item.quantity} u.): Pedir transferencia / reposición para "${item.productName}" hacia ${item.warehouseName}`
+                                : "Transferir entre depósitos";
+
+                              return (
+                                <button
+                                  className={`icon-button ${
+                                    isOutOfStock
+                                      ? "out-of-stock"
+                                      : isLowStock
+                                      ? "warning"
+                                      : ""
+                                  }`}
+                                  style={{
+                                    position: "relative",
+                                    ...(isOutOfStock
+                                      ? {
+                                          color: "#ef4444",
+                                          borderColor: "rgba(239, 68, 68, 0.4)",
+                                          backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                        }
+                                      : isLowStock
+                                      ? {
+                                          color: "#f59e0b",
+                                          borderColor: "rgba(245, 158, 11, 0.4)",
+                                          backgroundColor: "rgba(245, 158, 11, 0.1)",
+                                        }
+                                      : {}),
+                                  }}
+                                  onClick={() =>
+                                    isReplenish
+                                      ? openQuickTransfer(item)
+                                      : openMove(item)
+                                  }
+                                  aria-label={title}
+                                  title={title}
+                                >
+                                  <ArrowLeftRight size={16} />
+                                  {isReplenish && (
+                                    <span
+                                      style={{
+                                        position: "absolute",
+                                        top: "-2px",
+                                        right: "-2px",
+                                        width: "7px",
+                                        height: "7px",
+                                        borderRadius: "50%",
+                                        backgroundColor: isOutOfStock
+                                          ? "#ef4444"
+                                          : "#f59e0b",
+                                        boxShadow: "0 0 0 1.5px var(--surface, #1e293b)",
+                                      }}
+                                    />
+                                  )}
+                                </button>
+                              );
+                            })()}
                           </span>
                         )}
                       </td>
@@ -670,6 +760,21 @@ export default function StockPage() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Modal de transferencia rápida completa */}
+      {transferModalState.isOpen && (
+        <NewTransferModal
+          isOpen={transferModalState.isOpen}
+          onClose={() => setTransferModalState({ isOpen: false })}
+          onSuccess={() => {
+            setTransferModalState({ isOpen: false });
+            load();
+          }}
+          initialDestinationWarehouseId={transferModalState.destinationWarehouseId}
+          initialProductId={transferModalState.productId}
+          initialQuantity={transferModalState.quantity}
+        />
       )}
     </div>
   );

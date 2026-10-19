@@ -99,7 +99,7 @@ export default function Home() {
                 </div>
                 <button
                   className="text-button"
-                  onClick={() => setLocation("/stock")}
+                  onClick={() => setLocation("/stock?filter=low")}
                 >
                   Ver todo <ArrowUpRight size={15} />
                 </button>
