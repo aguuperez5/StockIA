@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { getNextAvailableAprilTagId } from '../services/apriltag.service.js';
 
 // Serializa un producto incluyendo, si viene, el stock por depósito como
 // mapa { depositId: quantity } para que el frontend lo consuma directo.
@@ -7,6 +8,7 @@ function serializeProduct(p) {
   const { stocks, ...rest } = p;
   return {
     ...rest,
+    apriltagId: p.apriltagId ?? null,
     price: Number(p.price),
     stock: Array.isArray(stocks)
       ? Object.fromEntries(stocks.map((s) => [String(s.depositId), s.quantity]))
@@ -78,6 +80,8 @@ export const createProduct = async (req, res) => {
       return res.status(400).json({ error: 'El precio debe ser un número mayor a 0' });
     }
 
+    const nextTagId = await getNextAvailableAprilTagId(prisma);
+
     const newProduct = await prisma.product.create({
       data: {
         name: String(name).trim(),
@@ -85,6 +89,7 @@ export const createProduct = async (req, res) => {
         price: priceNum,
         category: category?.trim() || null,
         imageUrl: imageUrl?.trim() || null,
+        apriltagId: nextTagId,
       },
     });
 

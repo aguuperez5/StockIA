@@ -38,8 +38,8 @@ Se reemplazó el sistema de OCR y código de barras por un microservicio en Pyth
                  │ 4. Respuesta JSON con lista de tags detectados
                  ▼
 [ Backend Express - Prisma Client ]
-        ├── Consulta: prisma.product.findMany({ where: { id: { in: tagIds } } })
-        ├── Agrupa conteo por ID (ej. 2 tags con ID 217 => quantity: 2)
+        ├── Consulta: prisma.product.findMany({ where: { active: true, apriltagId: { in: tagIds } } })
+        ├── Agrupa conteo por ID (ej. 2 tags con ID 0 => quantity: 2)
         └── Adjunta disponibilidad de stock por depósito (Central, Norte, Sur)
                  │
                  │ 5. Items consolidados + cantidades

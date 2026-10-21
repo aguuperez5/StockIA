@@ -1,10 +1,11 @@
 import base64
 import os
 import cv2
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from detector import DetectorProductosAprilTag
+from generador_tags import generar_tag_imagen
 
 app = FastAPI(
     title="AprilTag Detection API",
@@ -28,6 +29,22 @@ def health_check():
         "status": "online",
         "detector": "AprilTag tag36h11"
     }
+
+@app.get("/api/tags/{tag_id}/image")
+def obtener_imagen_tag(tag_id: int, size: int = Query(300, ge=50, le=1200)):
+    if tag_id < 0 or tag_id > 586:
+        raise HTTPException(status_code=400, detail="El ID del AprilTag debe estar entre 0 y 586.")
+    
+    tag_mat = generar_tag_imagen(tag_id, tamaño_px=size, borde_bits=1)
+    ok, buffer = cv2.imencode(".png", tag_mat)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Error al codificar imagen del tag.")
+    
+    return Response(
+        content=buffer.tobytes(),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"}
+    )
 
 @app.post("/api/detectar")
 async def detectar_productos(

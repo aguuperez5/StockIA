@@ -14,6 +14,7 @@ router.get('/products/:id', requireAuth, c.getProductCompat);
 router.post('/products', requireAuth, requireAppRole(ROLE.ADMIN), c.createProductCompat);
 router.put('/products/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.updateProductCompat);
 router.delete('/products/:id', requireAuth, requireAppRole(ROLE.ADMIN), c.deleteProductCompat);
+router.get('/apriltags/:tagId/image', c.getAprilTagImage);
 
 router.get('/warehouses', requireAuth, c.listWarehouses);
 router.get('/warehouses/:id/summary', requireAuth, c.warehouseSummary);

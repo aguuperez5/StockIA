@@ -21,6 +21,7 @@ import { ModernSelect } from "@/components/ModernSelect";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService } from "@/services/products";
 import { priceRuleService } from "@/services/backlog";
+import { AprilTagBadge } from "./AprilTagBadge";
 
 type FormData = {
   name: string;
@@ -74,6 +75,7 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
   const [priceRules, setPriceRules] = useState<
     Array<{ minQuantity: string; price: string }>
   >([]);
+  const [apriltagId, setApriltagId] = useState<number | null>(null);
 
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -127,6 +129,7 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
     if (!editId) {
       setForm(getBlankForm());
       setPriceRules([]);
+      setApriltagId(null);
       setLoading(false);
       return;
     }
@@ -134,7 +137,7 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
     setLoading(true);
     productService
       .get(editId)
-      .then(({ item }) =>
+      .then(({ item }) => {
         setForm({
           name: item.name,
           sku: item.sku,
@@ -144,8 +147,9 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
           initialStock: "0",
           warehouseId: "",
           imageUrl: item.imageUrl ?? "",
-        })
-      )
+        });
+        setApriltagId(item.apriltagId ?? null);
+      })
       .catch((reason: Error) => setPageError(reason.message))
       .finally(() => setLoading(false));
 
@@ -421,6 +425,28 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
                   <p>Información que identifica el artículo en tu operación.</p>
                 </div>
               </div>
+
+              {isEdit && (
+                <div className="mb-4 p-3 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/80 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <AprilTagBadge
+                      tagId={apriltagId}
+                      productName={form.name}
+                      sku={form.sku}
+                      size="lg"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                        Código AprilTag Asignado
+                      </div>
+                      <div className="text-[11px] text-neutral-500">
+                        Familia tag36h11 (marcador fiducial para escaneo rápido con cámara)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="form-grid two">
                 <Field label="Nombre del producto" error={errors.name}>
                   <input
