@@ -654,7 +654,7 @@ export function NewTransferModal({
                   marginBottom: "6px",
                   fontSize: "0.85rem",
                   fontWeight: 600,
-                  color: "var(--color-text, inherit)",
+                  color: "var(--ink)",
                 }}
               >
                 Observaciones / Motivo (opcional):
@@ -691,23 +691,23 @@ export function NewTransferModal({
                   justifyContent: "space-between",
                   width: "100%",
                   padding: "10px 14px",
-                  backgroundColor: "rgba(59, 130, 246, 0.08)",
-                  border: "1px solid rgba(59, 130, 246, 0.25)",
+                  backgroundColor: "var(--brand-soft)",
+                  border: "1px solid var(--line)",
                   borderRadius: "8px",
                   marginBottom: "12px",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Boxes size={18} style={{ color: "var(--color-primary, #2563eb)" }} />
+                  <Boxes size={18} style={{ color: "var(--brand)" }} />
                   <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
                     Total de unidades a mover:{" "}
-                    <strong style={{ color: "var(--color-primary, #2563eb)", fontSize: "1.05rem" }}>
+                    <strong style={{ color: "var(--brand-text)", fontSize: "1.05rem" }}>
                       {totalUnits} artículo{totalUnits === 1 ? "" : "s"}
                     </strong>{" "}
                     ({chosenItems.length} producto{chosenItems.length === 1 ? "" : "s"})
                   </span>
                 </div>
-                <span style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #64748b)" }}>
+                <span style={{ fontSize: "0.82rem", color: "var(--muted-ink)" }}>
                   {originObj?.name || "Origen"} → {destObj?.name || "Destino"}
                 </span>
               </div>

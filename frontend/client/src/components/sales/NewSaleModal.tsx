@@ -542,8 +542,8 @@ export function NewSaleModal({
                       marginTop: "16px",
                       padding: "16px",
                       borderRadius: "10px",
-                      backgroundColor: "rgba(59, 130, 246, 0.05)",
-                      border: "1px solid rgba(59, 130, 246, 0.25)",
+                      backgroundColor: "var(--scanner-soft)",
+                      border: "1px solid var(--scanner-border)",
                     }}
                   >
                     <div
@@ -555,12 +555,12 @@ export function NewSaleModal({
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Sparkles size={18} style={{ color: "var(--color-primary, #2563eb)" }} />
+                        <Sparkles size={18} style={{ color: "var(--scanner)" }} />
                         <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>
                           Múltiples productos detectados (Ambigüedad)
                         </h4>
                       </div>
-                      <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary, #64748b)" }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--muted-ink)" }}>
                         Marcá los que deseás incluir en la venta
                       </span>
                     </div>
@@ -585,8 +585,8 @@ export function NewSaleModal({
                               gap: "10px",
                               padding: "10px 12px",
                               borderRadius: "8px",
-                              border: isInCart ? "1.5px solid #2563eb" : "1px solid rgba(0, 0, 0, 0.12)",
-                              backgroundColor: isInCart ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface, #ffffff)",
+                              border: isInCart ? "1.5px solid var(--brand)" : "1px solid var(--line)",
+                              backgroundColor: isInCart ? "var(--brand-soft)" : "var(--surface)",
                               cursor: "pointer",
                               transition: "all 0.15s ease",
                             }}
@@ -609,7 +609,7 @@ export function NewSaleModal({
                               >
                                 {prod.name}
                               </b>
-                              <small style={{ color: "var(--color-text-secondary, #64748b)", fontSize: "0.75rem" }}>
+                              <small style={{ color: "var(--muted-ink)", fontSize: "0.75rem" }}>
                                 SKU: {prod.sku} {prod.suggestedQuantity ? `· x${prod.suggestedQuantity} u.` : ""}
                               </small>
                             </div>

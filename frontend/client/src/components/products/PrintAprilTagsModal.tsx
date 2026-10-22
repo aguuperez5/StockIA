@@ -384,7 +384,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                   type="button"
                   disabled={totalStickers === 0}
                   onClick={handlePrint}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-white rounded-lg shadow-sm hover:bg-brand-strong transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-white rounded-lg shadow-sm hover:bg-brand-hover transition-colors cursor-pointer"
                 >
                   <Printer size={16} />
                   <span>Imprimir / Guardar PDF</span>
@@ -412,7 +412,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                   type="button"
                   disabled={totalStickers === 0}
                   onClick={handlePrint}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-white rounded-lg shadow-sm hover:bg-brand-strong transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-white rounded-lg shadow-sm hover:bg-brand-hover transition-colors cursor-pointer"
                 >
                   <Printer size={16} />
                   <span>Imprimir ({totalStickers})</span>

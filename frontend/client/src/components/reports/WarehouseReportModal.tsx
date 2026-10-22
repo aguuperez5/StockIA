@@ -614,9 +614,9 @@ export function WarehouseReportModal({
                                   <b
                                     style={{
                                       color: isZero
-                                        ? "var(--danger-ink)"
+                                        ? "var(--status-critical-text)"
                                         : isLow
-                                        ? "var(--warning-ink)"
+                                        ? "var(--status-warn-text)"
                                         : "inherit",
                                     }}
                                   >

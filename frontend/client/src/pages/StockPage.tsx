@@ -687,9 +687,9 @@ export default function StockPage() {
                                         height: "7px",
                                         borderRadius: "50%",
                                         backgroundColor: isOutOfStock
-                                          ? "#ef4444"
-                                          : "#f59e0b",
-                                        boxShadow: "0 0 0 1.5px var(--surface, #1e293b)",
+                                          ? "var(--status-critical)"
+                                          : "var(--status-warn)",
+                                        boxShadow: "0 0 0 1.5px var(--surface)",
                                       }}
                                     />
                                   )}

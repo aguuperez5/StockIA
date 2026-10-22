@@ -225,7 +225,7 @@ export default function DashboardCharts({
                   </defs>
                   <CartesianGrid
                     vertical={false}
-                    stroke="var(--line-soft)"
+                    stroke="var(--line-subtle)"
                     strokeDasharray="4 4"
                   />
                   <XAxis
@@ -272,7 +272,7 @@ export default function DashboardCharts({
                 >
                   <CartesianGrid
                     vertical={false}
-                    stroke="var(--line-soft)"
+                    stroke="var(--line-subtle)"
                     strokeDasharray="4 4"
                   />
                   <XAxis
@@ -403,7 +403,7 @@ export default function DashboardCharts({
               >
                 <CartesianGrid
                   horizontal={false}
-                  stroke="var(--line-soft)"
+                  stroke="var(--line-subtle)"
                   strokeDasharray="4 4"
                 />
                 <XAxis

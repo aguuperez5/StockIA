@@ -188,7 +188,7 @@ export function ReportSalesChart({ data, from = "", to = "" }: ReportSalesChartP
                 </defs>
                 <CartesianGrid
                   vertical={false}
-                  stroke="var(--line-soft)"
+                  stroke="var(--line-subtle)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
@@ -245,7 +245,7 @@ export function ReportSalesChart({ data, from = "", to = "" }: ReportSalesChartP
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke="var(--line-soft)"
+                  stroke="var(--line-subtle)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
