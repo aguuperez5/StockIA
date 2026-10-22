@@ -482,7 +482,7 @@ export default function ProductsPage() {
                 void confirmDelete();
               }}
               disabled={deleting}
-              className="bg-red-700 hover:bg-red-800"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {deleting ? "Dando de baja…" : "Dar de baja"}
             </AlertDialogAction>

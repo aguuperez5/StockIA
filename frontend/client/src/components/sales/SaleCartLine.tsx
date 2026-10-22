@@ -44,7 +44,7 @@ export function SaleCartLine({ line, onChangeQuantity }: SaleCartLineProps) {
           {line.appliedRuleLabel && (
             <span
               className="analysis-match-evidence"
-              style={{ fontSize: "10px", padding: "1px 5px", background: "rgba(21, 150, 102, 0.12)", color: "#159666", borderRadius: "4px" }}
+              style={{ fontSize: "10px", padding: "1px 5px", background: "var(--status-ok-bg)", color: "var(--status-ok-text)", borderRadius: "4px" }}
             >
               {line.appliedRuleLabel}
             </span>

@@ -427,7 +427,7 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
               </div>
 
               {isEdit && (
-                <div className="mb-4 p-3 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/80 rounded-lg flex items-center justify-between">
+                <div className="mb-4 p-3 bg-surface-sunken border border-line rounded-lg flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <AprilTagBadge
                       tagId={apriltagId}
@@ -436,10 +436,10 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
                       size="lg"
                     />
                     <div>
-                      <div className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                      <div className="text-xs font-semibold text-ink">
                         Código AprilTag Asignado
                       </div>
-                      <div className="text-[11px] text-neutral-500">
+                      <div className="text-[11px] text-muted-ink">
                         Familia tag36h11 (marcador fiducial para escaneo rápido con cámara)
                       </div>
                     </div>

@@ -44,16 +44,16 @@ export default function RecognitionReadings({
                     fontWeight: 600,
                     background:
                       confidence.level === "high"
-                        ? "rgba(21, 150, 102, 0.15)"
+                        ? "var(--status-ok-bg)"
                         : confidence.level === "medium"
-                          ? "rgba(37, 99, 235, 0.15)"
-                          : "rgba(216, 137, 54, 0.15)",
+                          ? "var(--scanner-soft)"
+                          : "var(--status-warn-bg)",
                     color:
                       confidence.level === "high"
-                        ? "#159666"
+                        ? "var(--status-ok-text)"
                         : confidence.level === "medium"
-                          ? "#2563eb"
-                          : "#d88936",
+                          ? "var(--scanner-text)"
+                          : "var(--status-warn-text)",
                   }}
                   title={confidence.detail}
                 >

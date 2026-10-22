@@ -691,7 +691,7 @@ export function ClientDetailModal({
                 handleDelete();
               }}
               disabled={isDeleting}
-              className="bg-red-700 hover:bg-red-800 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {isDeleting ? "Eliminando..." : "Confirmar eliminación"}
             </AlertDialogAction>

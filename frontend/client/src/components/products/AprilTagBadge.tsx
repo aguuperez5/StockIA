@@ -45,7 +45,7 @@ export const AprilTagBadge: React.FC<AprilTagBadgeProps> = ({
       <button
         type="button"
         onClick={() => showPreviewOnClick && setModalOpen(true)}
-        className={`inline-flex items-center rounded-md font-mono font-medium border border-[var(--scanner-border)] bg-[var(--scanner-soft)] text-[var(--scanner)] shadow-xs hover:border-[var(--scanner)] hover:shadow-[0_0_12px_rgba(0,240,255,0.35)] transition-all cursor-pointer group ${badgeSizeClass}`}
+        className={`inline-flex items-center rounded-md font-mono font-medium border border-[var(--scanner-border)] bg-[var(--scanner-soft)] text-[var(--scanner-text)] shadow-xs hover:border-[var(--scanner)] hover:shadow-[var(--scanner-glow)] transition-all cursor-pointer group ${badgeSizeClass}`}
         title={`AprilTag ${formattedId} (familia tag36h11). Clic para ampliar.`}
       >
         <img
@@ -68,7 +68,7 @@ export const AprilTagBadge: React.FC<AprilTagBadgeProps> = ({
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs animate-in fade-in"
           onClick={() => setModalOpen(false)}
         >
           <div
@@ -84,27 +84,27 @@ export const AprilTagBadge: React.FC<AprilTagBadgeProps> = ({
               <X size={18} />
             </button>
 
-            <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-300 mb-2">
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-ink mb-2">
               <QrCode size={16} />
               <span>AprilTag tag36h11</span>
             </div>
 
-            <h3 className="text-xl font-bold font-mono text-neutral-900 dark:text-white mb-1">
+            <h3 className="text-xl font-bold font-mono text-ink mb-1">
               ID {formattedId}
             </h3>
 
             {productName && (
-              <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 mb-0.5">
+              <p className="text-sm font-medium text-ink mb-0.5">
                 {productName}
               </p>
             )}
             {sku && (
-              <p className="text-xs font-mono text-neutral-600 dark:text-neutral-400 mb-4">
+              <p className="text-xs font-mono text-muted-ink mb-4">
                 SKU: {sku}
               </p>
             )}
 
-            <div className="inline-block p-4 bg-white border border-neutral-300 dark:border-neutral-700 rounded-lg shadow-inner mb-4">
+            <div className="inline-block p-4 bg-surface-sunken border border-line rounded-lg shadow-inner mb-4">
               <img
                 src={largeImgUrl}
                 alt={`AprilTag ${formattedId}`}
@@ -115,7 +115,7 @@ export const AprilTagBadge: React.FC<AprilTagBadgeProps> = ({
               />
             </div>
 
-            <p className="text-xs text-neutral-600 dark:text-neutral-400">
+            <p className="text-xs text-muted-ink">
               Marcador fiducial calibrado para lectura rápida por cámara con OpenCV.
             </p>
           </div>

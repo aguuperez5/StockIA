@@ -112,7 +112,7 @@ export function ReportDecisionGrids({
               ) : (
                 <tr>
                   <td colSpan={5} className="empty-table-cell">
-                    <CheckCircle2 size={24} color="#159666" />
+                    <CheckCircle2 size={24} color="var(--status-ok)" />
                     <span>
                       ¡Excelente! Todo el stock actual se encuentra por encima
                       del mínimo sugerido.

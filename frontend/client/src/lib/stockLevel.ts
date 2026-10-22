@@ -33,22 +33,22 @@ export const STOCK_LEVELS: Record<
   sin_stock: {
     label: "Sin stock",
     badgeClass: "stock-critical",
-    color: "#d45b55",
+    color: "var(--status-critical)",
   },
   critico: {
     label: "Crítico",
     badgeClass: "stock-critical",
-    color: "#e05244",
+    color: "var(--status-critical)",
   },
   bajo: {
     label: "Bajo mínimo",
     badgeClass: "stock-low",
-    color: "#d88936",
+    color: "var(--status-warn)",
   },
   saludable: {
     label: "Saludable",
     badgeClass: "stock-good",
-    color: "#159666",
+    color: "var(--status-ok)",
   },
 };
 

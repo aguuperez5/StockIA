@@ -415,7 +415,7 @@ export function WarehouseReportModal({
                     {stockStats.lowStockItems.length > 0 ? (
                       <div className="low-stock-alert-box">
                         <div className="alert-message-header">
-                          <AlertTriangle size={16} color="#d88936" />
+                          <AlertTriangle size={16} color="var(--status-warn)" />
                           <span>
                             Hay <b>{stockStats.lowStockItems.length} productos</b> en este
                             depósito por debajo o en su nivel de stock mínimo.
@@ -444,7 +444,7 @@ export function WarehouseReportModal({
                       </div>
                     ) : (
                       <div className="ok-stock-box">
-                        <CheckCircle2 size={20} color="#159666" />
+                        <CheckCircle2 size={20} color="var(--status-ok)" />
                         <div>
                           <b>Inventario en niveles óptimos</b>
                           <p>

@@ -656,15 +656,15 @@ export default function StockPage() {
                                     position: "relative",
                                     ...(isOutOfStock
                                       ? {
-                                          color: "#ef4444",
-                                          borderColor: "rgba(239, 68, 68, 0.4)",
-                                          backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                          color: "var(--status-critical)",
+                                          borderColor: "var(--status-critical-border)",
+                                          backgroundColor: "var(--status-critical-bg)",
                                         }
                                       : isLowStock
                                       ? {
-                                          color: "#f59e0b",
-                                          borderColor: "rgba(245, 158, 11, 0.4)",
-                                          backgroundColor: "rgba(245, 158, 11, 0.1)",
+                                          color: "var(--status-warn)",
+                                          borderColor: "var(--status-warn-border)",
+                                          backgroundColor: "var(--status-warn-bg)",
                                         }
                                       : {}),
                                   }}

@@ -521,7 +521,16 @@ export default function DashboardCharts({
                       stroke="none"
                     >
                       {statusData.map((item, index) => (
-                        <Cell key={`cell-${index}`} fill={item.color} />
+                        <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          item.label?.toLowerCase().includes("saludable")
+                            ? "var(--status-ok)"
+                            : item.label?.toLowerCase().includes("bajo")
+                            ? "var(--status-warn)"
+                            : "var(--status-critical)"
+                        }
+                      />
                       ))}
                     </Pie>
                     <Tooltip
@@ -551,7 +560,7 @@ export default function DashboardCharts({
                   <div className="status-mini-left">
                     <span
                       className="status-dot"
-                      style={{ background: "#159666" }}
+                      style={{ background: "var(--status-ok)" }}
                     />
                     <div>
                       <span className="status-title">Saludable</span>
@@ -568,7 +577,7 @@ export default function DashboardCharts({
                   <div className="status-mini-left">
                     <span
                       className="status-dot"
-                      style={{ background: "#d88936" }}
+                      style={{ background: "var(--status-warn)" }}
                     />
                     <div>
                       <span className="status-title">Bajo mínimo</span>
@@ -585,7 +594,7 @@ export default function DashboardCharts({
                   <div className="status-mini-left">
                     <span
                       className="status-dot"
-                      style={{ background: "#d45b55" }}
+                      style={{ background: "var(--status-critical)" }}
                     />
                     <div>
                       <span className="status-title">Sin existencias</span>
@@ -616,7 +625,7 @@ export default function DashboardCharts({
                 className="health-segment"
                 style={{
                   width: `${healthyPercent}%`,
-                  background: "#159666",
+                  background: "var(--status-ok)",
                 }}
                 title={`Saludable: ${healthyPercent}%`}
               />
@@ -624,7 +633,7 @@ export default function DashboardCharts({
                 className="health-segment"
                 style={{
                   width: `${lowPercent}%`,
-                  background: "#d88936",
+                  background: "var(--status-warn)",
                 }}
                 title={`Bajo mínimo: ${lowPercent}%`}
               />
@@ -632,7 +641,7 @@ export default function DashboardCharts({
                 className="health-segment"
                 style={{
                   width: `${outPercent}%`,
-                  background: "#d45b55",
+                  background: "var(--status-critical)",
                 }}
                 title={`Sin existencias: ${outPercent}%`}
               />

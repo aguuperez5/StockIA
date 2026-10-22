@@ -420,7 +420,7 @@ export function ClientDetailPage() {
                 void remove();
               }}
               disabled={pending}
-              className="bg-red-700 hover:bg-red-800"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {pending ? "Eliminando…" : "Eliminar cliente"}
             </AlertDialogAction>
