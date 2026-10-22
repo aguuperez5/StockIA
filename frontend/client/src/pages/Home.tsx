@@ -87,12 +87,12 @@ export default function Home() {
               </div>
             </article>
 
-            <article className="metric-card card-blue">
+            <article className="metric-card card-scanner">
               <div className="metric-card-top">
                 <span className="metric-icon terracotta">
                   <Warehouse size={20} />
                 </span>
-                <span className="metric-pill blue">Ubicaciones</span>
+                <span className="metric-pill scanner">Ubicaciones</span>
               </div>
               <div>
                 <p>Depósitos operativos</p>
@@ -101,12 +101,12 @@ export default function Home() {
               </div>
             </article>
 
-            <article className="metric-card card-indigo">
+            <article className="metric-card card-violet">
               <div className="metric-card-top">
                 <span className="metric-icon ink">
                   <PackageSearch size={20} />
                 </span>
-                <span className="metric-pill indigo">Lista</span>
+                <span className="metric-pill violet">Lista</span>
               </div>
               <div>
                 <p>Valor de inventario</p>
