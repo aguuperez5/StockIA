@@ -15,16 +15,16 @@ interface ThemeProviderProps {
   switchable?: boolean;
 }
 
-const THEME_COLORS: Record<Theme, string> = {
-  light: "#F4F3EF",
-  dark: "#07090E",
-};
-
-function updateThemeColorMeta(theme: Theme) {
+function updateThemeColorMeta() {
   if (typeof document === "undefined") return;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", THEME_COLORS[theme]);
+    const paperColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--paper")
+      .trim();
+    if (paperColor) {
+      meta.setAttribute("content", paperColor);
+    }
   }
 }
 
@@ -73,7 +73,7 @@ export function ThemeProvider({
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = theme;
-    updateThemeColorMeta(theme);
+    updateThemeColorMeta();
 
     if (switchable && hasUserPreference) {
       try {
