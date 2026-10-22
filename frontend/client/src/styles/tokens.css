@@ -1,0 +1,178 @@
+/* client/src/styles/tokens.css — ÚNICO lugar donde se permiten colores literales */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Superficies · "Tactile Warehouse" */
+  --paper: #F4F3EF;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-sunken: #EBE9E2;
+  --surface-hover: #FAF9F6;
+  --line: #DFDDD4;
+  --line-subtle: #EBE9E2;
+  --line-strong: #C8C5B8;
+  --input-border: #8F8C7E;           /* 3.4:1 sobre blanco, 3.0:1 sobre paper */
+
+  /* Texto */
+  --ink: #111318;
+  --muted-ink: #5A606E;              /* 5.7:1 sobre paper */
+  --subtle-ink: #666D7B;             /* 5.2:1 blanco · 4.7:1 paper. Solo placeholders/hints sobre blanco o paper; sobre --surface-sunken usa --muted-ink */
+
+  /* Marca / Acción (Cargo) */
+  --brand: #FF5500;
+  --brand-hover: #FF6A1F;            /* se ACLARA: texto oscuro sobre él = 6.5:1 */
+  --brand-active: #E64A00;           /* 4.7:1 con texto oscuro */
+  --brand-soft: #FFF0E6;
+  --brand-ink: #111318;              /* texto SOBRE naranja: 5.8:1 */
+  --brand-text: #C23E00;             /* naranja COMO texto: 5.3:1 blanco · 4.7:1 brand-soft */
+
+  /* Visión / Cámara (Laser) */
+  --scanner: #0088A9;                /* bordes, íconos, relleno (4.1:1) */
+  --scanner-text: #00728F;           /* cian COMO texto (5.5:1) */
+  --scanner-soft: #E0F7FA;
+  --scanner-border: #80DEEA;
+  --scanner-glow: 0 0 0 3px rgba(0, 136, 169, 0.25);
+
+  /* Estados de stock (LED). Siempre con ícono + texto */
+  --status-ok: #059669;
+  --status-ok-text: #047857;
+  --status-ok-bg: #D1FAE5;
+  --status-ok-border: #6EE7B7;
+  --status-warn: #D97706;
+  --status-warn-text: #B45309;
+  --status-warn-bg: #FEF3C7;
+  --status-warn-border: #FCD34D;
+  --status-critical: #E11D48;
+  --status-critical-text: #BE123C;
+  --status-critical-bg: #FFE4E6;
+  --status-critical-border: #FDA4AF;
+  --status-critical-ink: #FFFFFF;    /* texto sobre botón destructivo (4.7:1) */
+
+  /* Foco, overlays, selección */
+  --ring: #0088A9;                   /* COLOR (shadcn). */
+  --focus-ring: 0 0 0 3px rgba(0, 136, 169, 0.35);   /* SOMBRA de foco */
+  --overlay: rgba(17, 19, 24, 0.45);
+  --selection: rgba(255, 85, 0, 0.22);
+
+  /* Gráficos (≥3:1 sobre blanco) */
+  --chart-1: #FF5500;
+  --chart-2: #0088A9;
+  --chart-3: #8B5CF6;
+  --chart-4: #059669;
+  --chart-5: #D97706;
+
+  /* Sidebar */
+  --rail-bg: #ECEAE3;
+  --rail-bg-soft: #E3E1D8;
+  --rail-ink: #111318;
+  --rail-ink-muted: #5A606E;
+  --rail-line: #DFDDD4;
+  --rail-hover: #FAF9F6;
+  --rail-active-bg: #FFF0E6;
+  --rail-active-ink: #C23E00;
+
+  /* Sombras */
+  --shadow-xs: 0 1px 2px rgba(17, 19, 24, 0.06);
+  --shadow-card: 0 2px 5px rgba(17, 19, 24, 0.04), 0 8px 20px -4px rgba(17, 19, 24, 0.06);
+  --shadow-float: 0 12px 28px -6px rgba(17, 19, 24, 0.12), 0 4px 10px -2px rgba(17, 19, 24, 0.06);
+  --shadow-brand: 0 10px 24px -6px rgba(255, 85, 0, 0.45);
+
+  /* Efectos de fondo */
+  --bg-grid: linear-gradient(rgba(17, 19, 24, 0.045) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(17, 19, 24, 0.045) 1px, transparent 1px);
+  --bg-glow: radial-gradient(60% 50% at 85% 0%, rgba(255, 85, 0, 0.10), transparent 70%);
+  --stripe-cargo: repeating-linear-gradient(135deg, var(--brand) 0 10px, var(--ink) 10px 20px);
+
+  /* Forma, tipografía, movimiento */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --font-sans: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Superficies · "Optical HUD" */
+  --paper: #07090E;
+  --surface: #10141F;
+  --surface-elevated: #171D2B;
+  --surface-sunken: #0B0E16;
+  --surface-hover: #1A2133;
+  --line: #222B40;
+  --line-subtle: #171D2B;
+  --line-strong: #33415E;
+  --input-border: #5C6B8E;           /* 3.6:1 sobre sunken */
+
+  --ink: #F3F6FA;
+  --muted-ink: #8A96AD;              /* 6.2:1 sobre surface */
+  --subtle-ink: #7A869E;             /* 5.0:1 sobre surface */
+
+  --brand: #FF6B1A;
+  --brand-hover: #FF8542;
+  --brand-active: #E85A0C;
+  --brand-soft: rgba(255, 107, 26, 0.15);
+  --brand-ink: #090604;
+  --brand-text: #FF8542;             /* 7.6:1 sobre surface */
+
+  --scanner: #00F0FF;
+  --scanner-text: #00F0FF;
+  --scanner-soft: rgba(0, 240, 255, 0.12);
+  --scanner-border: rgba(0, 240, 255, 0.35);
+  --scanner-glow: 0 0 16px rgba(0, 240, 255, 0.35);
+
+  --status-ok: #10B981;
+  --status-ok-text: #34D399;
+  --status-ok-bg: rgba(16, 185, 129, 0.14);
+  --status-ok-border: rgba(52, 211, 153, 0.35);
+  --status-warn: #F59E0B;
+  --status-warn-text: #FBBF24;
+  --status-warn-bg: rgba(245, 158, 11, 0.14);
+  --status-warn-border: rgba(251, 191, 36, 0.35);
+  --status-critical: #F43F5E;
+  --status-critical-text: #FB7185;
+  --status-critical-bg: rgba(244, 63, 94, 0.15);
+  --status-critical-border: rgba(251, 113, 133, 0.40);
+  --status-critical-ink: #16060A;    /* verifica ≥4.5:1 sobre #F43F5E; si no, ajusta */
+
+  --ring: #00F0FF;
+  --focus-ring: 0 0 0 3px rgba(0, 240, 255, 0.35);
+  --overlay: rgba(0, 0, 0, 0.65);
+  --selection: rgba(0, 240, 255, 0.25);
+
+  --chart-1: #FF6B1A;
+  --chart-2: #00F0FF;
+  --chart-3: #A78BFA;
+  --chart-4: #34D399;
+  --chart-5: #FBBF24;
+
+  --rail-bg: #07090E;
+  --rail-bg-soft: #0B0E16;
+  --rail-ink: #F3F6FA;
+  --rail-ink-muted: #8A96AD;
+  --rail-line: #171D2B;
+  --rail-hover: #10141F;
+  --rail-active-bg: rgba(255, 107, 26, 0.15);
+  --rail-active-ink: #FF8542;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  --shadow-float: 0 16px 36px -6px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+  --shadow-brand: 0 14px 30px rgba(255, 107, 26, 0.30);
+
+  --bg-grid: linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+  --bg-glow: radial-gradient(60% 50% at 85% 0%, rgba(255, 107, 26, 0.16), transparent 70%),
+             radial-gradient(50% 40% at 0% 100%, rgba(0, 240, 255, 0.10), transparent 70%);
+  --stripe-cargo: repeating-linear-gradient(135deg, var(--brand) 0 10px, #090604 10px 20px);
+}
+
+::selection { background: var(--selection); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }

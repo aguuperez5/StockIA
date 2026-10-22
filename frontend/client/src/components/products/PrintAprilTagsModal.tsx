@@ -249,7 +249,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                                 className="rounded-xs border border-neutral-200 dark:border-neutral-700 bg-white"
                                 style={{ imageRendering: "pixelated" }}
                               />
-                              <span className="font-mono text-xs font-semibold">
+                              <span className="font-mono text-xs font-semibold text-[var(--scanner)]">
                                 {formattedTag}
                               </span>
                             </div>
@@ -258,7 +258,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                             <div className="font-medium text-neutral-900 dark:text-neutral-100">
                               {product.name}
                             </div>
-                            <div className="text-xs font-mono text-neutral-500">
+                            <div className="text-xs font-mono text-[var(--muted-ink)]">
                               {product.sku}
                             </div>
                           </td>

@@ -506,13 +506,20 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
 
                 {isCameraActive ? (
                   <div className="camera-viewfinder-card">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="camera-video-stream"
-                    />
+                    <div className="camera-viewfinder-inner">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="camera-video-stream"
+                      />
+                      <div className="camera-viewfinder-guide">
+                        <span className="guide-label">
+                          Centrá el producto para la foto
+                        </span>
+                      </div>
+                    </div>
                     <div className="camera-controls">
                       <button
                         type="button"

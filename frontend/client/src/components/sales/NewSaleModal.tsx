@@ -341,16 +341,8 @@ export function NewSaleModal({
       setCart(prev => [
         ...prev,
         {
-          productId: inventoryItem.productId,
-          warehouseId: inventoryItem.warehouseId,
-          productName: inventoryItem.productName,
-          sku: inventoryItem.sku,
-          category: inventoryItem.category,
-          warehouseName: inventoryItem.warehouseName,
-          priceCents: inventoryItem.priceCents,
-          availableStock: inventoryItem.quantity,
+          ...inventoryItem,
           cartQuantity: finalQty,
-          priceRules: inventoryItem.priceRules,
           effectiveUnitPriceCents: pricing.unitPriceCents,
           appliedRuleLabel: pricing.appliedRuleLabel,
         },
