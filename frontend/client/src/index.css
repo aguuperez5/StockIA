@@ -208,6 +208,14 @@ h3 {
     transform 0.24s cubic-bezier(0.23, 1, 0.32, 1),
     opacity 0.2s ease;
 }
+.side-rail::before {
+  content: "";
+  display: block;
+  height: 4px;
+  width: 100%;
+  background: var(--stripe-cargo);
+  flex-shrink: 0;
+}
 .desktop-sidebar-toggle {
   display: grid;
   place-items: center;
@@ -2049,10 +2057,25 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 tbody tr {
-  transition: background-color 0.15s ease;
+  transition: background-color var(--dur-fast) var(--ease);
 }
 tbody tr:hover td {
   background: var(--surface-hover);
+}
+
+.data-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  border: 1px solid var(--line-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 td b {
   color: var(--ink);
@@ -9561,6 +9584,10 @@ button.data-table-row:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .camera-viewfinder-inner::after,
+  .camera-viewfinder-guide::before {
+    animation: none !important;
   }
 }
 
