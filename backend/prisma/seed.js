@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import bcrypt from 'bcryptjs';
+import { getNextAvailableAprilTagId } from '../services/apriltag.service.js';
 
 // Deposit no tiene una clave de negocio única en el schema (dos depósitos
 // podrían compartir nombre); para un seed idempotente alcanza con
@@ -40,16 +41,23 @@ async function main() {
   const sur = await findOrCreateDeposit(prisma, 'Depósito Sur', 'Av. Independencia 1840, Rosario');
   await prisma.deposit.update({ where: { id: sur.id }, data: { type: 'Sucursal', manager: 'Mariana López', capacity: 180 } });
 
-  const valvula = await prisma.product.upsert({
-    where: { code: 'VAL-20E-ST' },
-    update: {},
-    create: { name: 'Válvula Industrial 2"', code: 'VAL-20E-ST', category: 'Válvulas', price: 1500.0 }
+async function findOrCreateProduct(client, { code, name, category, price, lowStockThreshold = 5 }) {
+  const existing = await client.product.findUnique({ where: { code } });
+  if (existing) {
+    if (existing.apriltagId === null) {
+      const nextId = await getNextAvailableAprilTagId(client);
+      return client.product.update({ where: { id: existing.id }, data: { apriltagId: nextId } });
+    }
+    return existing;
+  }
+  const nextId = await getNextAvailableAprilTagId(client);
+  return client.product.create({
+    data: { name, code, category, price, lowStockThreshold, apriltagId: nextId }
   });
-  const tornillo = await prisma.product.upsert({
-    where: { code: 'TOR-08M-CX' },
-    update: {},
-    create: { name: 'Tornillo M8 (caja x100)', code: 'TOR-08M-CX', category: 'Ferretería', price: 3200.0 }
-  });
+}
+
+  const valvula = await findOrCreateProduct(prisma, { name: 'Válvula Industrial 2"', code: 'VAL-20E-ST', category: 'Válvulas', price: 1500.0 });
+  const tornillo = await findOrCreateProduct(prisma, { name: 'Tornillo M8 (caja x100)', code: 'TOR-08M-CX', category: 'Ferretería', price: 3200.0 });
 
   // Precio por cantidad para el tornillo: 1 caja precio normal, 6+ cajas con descuento.
   await prisma.priceRule.upsert({
@@ -74,14 +82,18 @@ async function main() {
     create: { productId: tornillo.id, depositId: central.id, quantity: 50 }
   });
 
-  const demoProducts = await Promise.all([
-    prisma.product.upsert({ where: { code: 'DEMO-CAF-001' }, update: {}, create: { name: 'Café molido demo', code: 'DEMO-CAF-001', category: 'Almacén', price: 2800, lowStockThreshold: 8 } }),
-    prisma.product.upsert({ where: { code: 'DEMO-YER-001' }, update: {}, create: { name: 'Yerba mate demo', code: 'DEMO-YER-001', category: 'Almacén', price: 3600, lowStockThreshold: 8 } }),
-    prisma.product.upsert({ where: { code: 'DEMO-ACE-001' }, update: {}, create: { name: 'Aceite demo', code: 'DEMO-ACE-001', category: 'Almacén', price: 2100, lowStockThreshold: 6 } }),
-    prisma.product.upsert({ where: { code: 'DEMO-GAL-001' }, update: {}, create: { name: 'Galletitas avena y miel', code: 'DEMO-GAL-001', category: 'Almacén', price: 1750, lowStockThreshold: 10 } }),
-    prisma.product.upsert({ where: { code: 'DEMO-DET-001' }, update: {}, create: { name: 'Detergente concentrado 750 ml', code: 'DEMO-DET-001', category: 'Limpieza', price: 2450, lowStockThreshold: 7 } }),
-    prisma.product.upsert({ where: { code: 'DEMO-LAM-001' }, update: {}, create: { name: 'Lámpara LED 12W', code: 'DEMO-LAM-001', category: 'Hogar', price: 3900, lowStockThreshold: 5 } }),
-  ]);
+  const demoList = [
+    { name: 'Café molido demo', code: 'DEMO-CAF-001', category: 'Almacén', price: 2800, lowStockThreshold: 8 },
+    { name: 'Yerba mate demo', code: 'DEMO-YER-001', category: 'Almacén', price: 3600, lowStockThreshold: 8 },
+    { name: 'Aceite demo', code: 'DEMO-ACE-001', category: 'Almacén', price: 2100, lowStockThreshold: 6 },
+    { name: 'Galletitas avena y miel', code: 'DEMO-GAL-001', category: 'Almacén', price: 1750, lowStockThreshold: 10 },
+    { name: 'Detergente concentrado 750 ml', code: 'DEMO-DET-001', category: 'Limpieza', price: 2450, lowStockThreshold: 7 },
+    { name: 'Lámpara LED 12W', code: 'DEMO-LAM-001', category: 'Hogar', price: 3900, lowStockThreshold: 5 },
+  ];
+  const demoProducts = [];
+  for (const item of demoList) {
+    demoProducts.push(await findOrCreateProduct(prisma, item));
+  }
   const stockPlan = [
     [demoProducts[0], central, 42], [demoProducts[0], norte, 16], [demoProducts[0], sur, 9],
     [demoProducts[1], central, 34], [demoProducts[1], norte, 12],

@@ -6,6 +6,7 @@ import {
   PackageSearch,
   Plus,
   Search,
+  SlidersHorizontal,
   Trash2,
   X,
 } from "lucide-react";
@@ -19,6 +20,11 @@ import {
   StockBadge,
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { WarehouseCard } from "@/components/stock/WarehouseCard";
 import { WarehouseFormModal } from "@/components/stock/WarehouseFormModal";
 import { WarehouseDetailModal } from "@/components/stock/WarehouseDetailModal";
@@ -266,6 +272,27 @@ export default function StockPage() {
     setMaxQuantity("");
   };
 
+  const clearAdvancedFilters = () => {
+    setStockFilter("all");
+    setMinQuantity("");
+    setMaxQuantity("");
+  };
+
+  const hasAdvancedFilters = Boolean(
+    stockFilter !== "all" || minQuantity !== "" || maxQuantity !== ""
+  );
+
+  const advancedCount =
+    (stockFilter !== "all" ? 1 : 0) +
+    (minQuantity !== "" || maxQuantity !== "" ? 1 : 0);
+
+  const hasAnyFilter = Boolean(
+    productSearch.trim() !== "" ||
+      categoryFilter !== "Todas" ||
+      warehouseId !== "" ||
+      hasAdvancedFilters
+  );
+
   return (
     <div className="stock-reference-page">
       <PageHeader
@@ -398,46 +425,99 @@ export default function StockPage() {
           options={categories}
           ariaLabel="Filtrar por categoría"
         />
-        <ModernSelect
-          value={stockFilter}
-          onChange={setStockFilter}
-          options={[
-            { value: "all", label: "Todo el stock" },
-            { value: "available", label: "Disponible" },
-            { value: "low", label: "Bajo mínimo" },
-            { value: "out", label: "Sin stock" },
-          ]}
-          ariaLabel="Filtrar por estado"
-        />
-        <label className="filter-number">
-          <span>Mín:</span>
-          <input
-            type="number"
-            min="0"
-            value={minQuantity}
-            onChange={event => setMinQuantity(event.target.value)}
-            placeholder="0"
-            aria-label="Unidades mínimas"
-          />
-        </label>
-        <label className="filter-number">
-          <span>Máx:</span>
-          <input
-            type="number"
-            min="0"
-            value={maxQuantity}
-            onChange={event => setMaxQuantity(event.target.value)}
-            placeholder="∞"
-            aria-label="Unidades máximas"
-          />
-        </label>
-        <button
-          className="button-secondary filter-clear"
-          type="button"
-          onClick={clearStockFilters}
-        >
-          Limpiar
-        </button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`filter-more-btn ${hasAdvancedFilters ? "active" : ""}`}
+              aria-label="Filtros avanzados"
+            >
+              <SlidersHorizontal size={14} />
+              <span>Filtros</span>
+              {advancedCount > 0 && (
+                <span className="filter-count-badge">{advancedCount}</span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="filter-popover-content">
+            <div className="filter-popover-panel">
+              <div className="filter-popover-header">
+                <div className="filter-popover-heading">
+                  <SlidersHorizontal
+                    size={14}
+                    className="filter-heading-icon"
+                  />
+                  <span>Filtros de inventario</span>
+                </div>
+                {hasAdvancedFilters && (
+                  <button
+                    type="button"
+                    className="filter-popover-reset"
+                    onClick={clearAdvancedFilters}
+                  >
+                    Restablecer
+                  </button>
+                )}
+              </div>
+
+              <div className="filter-popover-item">
+                <label>Nivel de stock</label>
+                <ModernSelect
+                  value={stockFilter}
+                  onChange={setStockFilter}
+                  options={[
+                    { value: "all", label: "Todo el stock" },
+                    { value: "available", label: "Disponible" },
+                    { value: "low", label: "Bajo mínimo" },
+                    { value: "out", label: "Sin stock" },
+                  ]}
+                  ariaLabel="Filtrar por estado"
+                  minWidth="100%"
+                />
+              </div>
+
+              <div className="filter-popover-item">
+                <label>Unidades en stock</label>
+                <div className="filter-popover-grid">
+                  <div className="popover-input-wrapper">
+                    <span className="popover-input-prefix">Mín</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={minQuantity}
+                      onChange={event => setMinQuantity(event.target.value)}
+                      placeholder="0"
+                      aria-label="Unidades mínimas"
+                    />
+                  </div>
+                  <div className="popover-input-wrapper">
+                    <span className="popover-input-prefix">Máx</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={maxQuantity}
+                      onChange={event => setMaxQuantity(event.target.value)}
+                      placeholder="∞"
+                      aria-label="Unidades máximas"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {hasAnyFilter && (
+          <button
+            className="button-secondary filter-clear"
+            type="button"
+            onClick={clearStockFilters}
+          >
+            <X size={15} />
+            Limpiar
+          </button>
+        )}
         <span>
           {filteredItems.length} producto{filteredItems.length === 1 ? "" : "s"}
         </span>
