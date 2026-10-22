@@ -5,6 +5,7 @@ import { analyzeProductImage } from '../services/ai-recognition.client.js';
 import { canonicalGtin, findRecognitionCatalogCandidates, rankRecognitionProducts } from '../services/catalog-match.agent.js';
 import { transferStock } from '../services/stock-transfer.service.js';
 import { buildRecognitionDetections } from '../services/recognition-detections.js';
+import { getNextAvailableAprilTagId } from '../services/apriltag.service.js';
 
 const moneyToCents = n => Math.round(Number(n) * 100);
 const centsToMoney = c => Number(c) / 100;
@@ -20,7 +21,7 @@ const photoFields = (body) => {
   if (photoMimeType && !photoMimeType.startsWith('image/')) throw Object.assign(new Error('Sólo se permiten archivos de imagen.'), { status: 400 });
   return { photoData, photoMimeType };
 };
-const serializeProduct = p => ({ id: p.id, name: p.name, sku: p.code, category: p.category || '', priceCents: moneyToCents(p.price), price: Number(p.price), lowStockThreshold: p.lowStockThreshold, imageUrl: p.imageUrl || null, active: p.active, stock: (p.stocks || []).reduce((s, x) => s + x.quantity, 0), createdAt: p.createdAt, updatedAt: p.updatedAt, priceRules: (p.priceRules || []).map(r => ({ id: r.id, minQuantity: r.minQuantity, priceCents: moneyToCents(r.price), price: Number(r.price) })) });
+const serializeProduct = p => ({ id: p.id, name: p.name, sku: p.code, apriltagId: p.apriltagId ?? null, category: p.category || '', priceCents: moneyToCents(p.price), price: Number(p.price), lowStockThreshold: p.lowStockThreshold, imageUrl: p.imageUrl || null, active: p.active, stock: (p.stocks || []).reduce((s, x) => s + x.quantity, 0), createdAt: p.createdAt, updatedAt: p.updatedAt, priceRules: (p.priceRules || []).map(r => ({ id: r.id, minQuantity: r.minQuantity, priceCents: moneyToCents(r.price), price: Number(r.price) })) });
 
 export async function registerCompat(req, res) {
   try {
@@ -79,7 +80,8 @@ export async function createProductCompat(req, res) {
   const threshold = Math.max(0, Number(lowStockThreshold) || 0);
   try {
     const result = await prisma.$transaction(async tx => {
-      const p = await tx.product.create({ data: { name: name.trim(), code: sku.trim(), category: category.trim(), price: Number(price), lowStockThreshold: threshold, imageUrl: image } });
+      const nextTagId = await getNextAvailableAprilTagId(tx);
+      const p = await tx.product.create({ data: { name: name.trim(), code: sku.trim(), category: category.trim(), price: Number(price), lowStockThreshold: threshold, imageUrl: image, apriltagId: nextTagId } });
       const deposits = await tx.deposit.findMany({ select: { id: true } });
       if (deposits.length > 0) {
         await tx.stock.createMany({
@@ -801,7 +803,7 @@ async function processRecognitionImage(photo) {
   if (Array.isArray(analysis?.tags)) {
     const tagIds = analysis.tags.map(t => t.id);
     const products = await prisma.product.findMany({
-      where: { active: true, id: { in: tagIds } },
+      where: { active: true, apriltagId: { in: tagIds } },
       include: {
         stocks: { include: { deposit: true } },
         priceRules: { orderBy: { minQuantity: 'asc' } },
@@ -810,7 +812,7 @@ async function processRecognitionImage(photo) {
 
     const itemsMap = new Map();
     for (const tag of analysis.tags) {
-      const p = products.find(prod => prod.id === tag.id);
+      const p = products.find(prod => prod.apriltagId === tag.id);
       if (p) {
         if (!itemsMap.has(p.id)) {
           itemsMap.set(p.id, {
@@ -952,3 +954,36 @@ export async function recognition(req, res) {
 export async function listTelegram(req, res) { const items = await prisma.telegramOffer.findMany({ orderBy: { createdAt: 'desc' } }); res.json({ items }); }
 export async function createTelegram(req, res) { const { message, productIds = [], customerIds = [], status = 'Lista para enviar' } = req.body; if (!message?.trim()) return res.status(400).json({ message: 'El mensaje no puede estar vacío.' }); const x = await prisma.telegramOffer.create({ data: { message: message.trim(), productIds, customerIds, status, userId: req.user.id } }); res.status(201).json({ id: x.id, message: 'Campaña guardada correctamente.' }); }
 export async function updateTelegram(req, res) { await prisma.telegramOffer.update({ where: { id: Number(req.params.id) }, data: { status: String(req.body.status) } }); res.json({ message: 'Estado actualizado.' }); }
+
+export async function getAprilTagImage(req, res) {
+  const tagId = Number(req.params.tagId);
+  if (!Number.isInteger(tagId) || tagId < 0 || tagId > 586) {
+    return res.status(400).json({ message: 'El ID de AprilTag debe estar entre 0 y 586.' });
+  }
+
+  const tagServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+  const size = Math.min(1200, Math.max(50, Number(req.query.size) || 300));
+
+  try {
+    const response = await fetch(`${tagServiceUrl}/api/tags/${tagId}/image?size=${size}`);
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(Buffer.from(arrayBuffer));
+    }
+  } catch (error) {
+    // Si el microservicio Python está offline o cargando, generamos un SVG fallback determinista
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
+    <rect width="100" height="100" fill="black"/>
+    <rect x="12.5" y="12.5" width="75" height="75" fill="white"/>
+    <rect x="25" y="25" width="50" height="50" fill="black"/>
+    <text x="50" y="55" fill="white" font-family="monospace" font-size="16" font-weight="bold" text-anchor="middle">#${tagId}</text>
+  </svg>`;
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  return res.send(svg);
+}
+

@@ -11,6 +11,7 @@ export type Product = {
   lowStockThreshold: number;
   active: boolean;
   imageUrl?: string | null;
+  apriltagId?: number | null;
   createdAt: string;
   updatedAt: string;
   priceRules?: Array<{ minQuantity: number; priceCents: number }>;

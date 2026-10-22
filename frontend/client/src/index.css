@@ -120,47 +120,47 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --paper: oklch(0.165 0.014 250);
-  --surface: oklch(0.212 0.016 250);
-  --surface-sunken: oklch(0.185 0.015 250);
-  --surface-hover: oklch(0.255 0.018 250);
-  --surface-raised: oklch(0.235 0.017 250);
+  --paper: oklch(0.16 0.015 240);
+  --surface: oklch(0.21 0.016 240);
+  --surface-sunken: oklch(0.18 0.015 240);
+  --surface-hover: oklch(0.25 0.018 240);
+  --surface-raised: oklch(0.235 0.017 240);
 
-  --ink: oklch(0.93 0.006 250);
-  --ink-strong: oklch(0.97 0.004 250);
-  --muted-ink: oklch(0.68 0.014 250);
-  --faint-ink: oklch(0.55 0.014 60);
+  --ink: oklch(0.96 0.005 240);
+  --ink-strong: oklch(0.99 0.002 240);
+  --muted-ink: oklch(0.81 0.015 175);
+  --faint-ink: oklch(0.78 0.022 165);
 
-  --line: oklch(0.34 0.017 250);
-  --line-soft: oklch(0.28 0.016 250);
+  --line: oklch(0.35 0.018 240);
+  --line-soft: oklch(0.28 0.016 240);
 
-  --brand: oklch(0.7 0.135 155);
-  --brand-strong: oklch(0.78 0.13 155);
-  --brand-soft: oklch(0.29 0.055 155);
-  --brand-ink: oklch(0.87 0.09 155);
-  --brand-contrast: oklch(0.16 0.02 155);
+  --brand: oklch(0.74 0.16 155);
+  --brand-strong: oklch(0.82 0.15 155);
+  --brand-soft: oklch(0.28 0.065 155);
+  --brand-ink: oklch(0.93 0.10 155);
+  --brand-contrast: oklch(0.12 0.03 155);
 
-  --accent: oklch(0.7 0.12 45);
-  --accent-strong: oklch(0.78 0.12 45);
-  --accent-soft: oklch(0.3 0.05 45);
-  --accent-ink: oklch(0.84 0.08 48);
+  --accent: oklch(0.76 0.13 65);
+  --accent-strong: oklch(0.84 0.13 65);
+  --accent-soft: oklch(0.29 0.055 65);
+  --accent-ink: oklch(0.93 0.09 70);
 
-  --warning: oklch(0.78 0.12 82);
-  --warning-soft: oklch(0.32 0.05 82);
-  --warning-ink: oklch(0.87 0.09 85);
+  --warning: oklch(0.80 0.13 85);
+  --warning-soft: oklch(0.30 0.06 85);
+  --warning-ink: oklch(0.92 0.10 88);
 
-  --danger: oklch(0.7 0.16 25);
-  --danger-soft: oklch(0.32 0.07 25);
-  --danger-ink: oklch(0.86 0.1 25);
+  --danger: oklch(0.74 0.17 25);
+  --danger-soft: oklch(0.29 0.07 25);
+  --danger-ink: oklch(0.93 0.11 25);
 
   --rail-bg: oklch(0.13 0.016 250);
   --rail-bg-soft: oklch(0.16 0.018 250);
-  --rail-ink: oklch(0.94 0.006 250);
-  --rail-ink-muted: oklch(0.6 0.02 250);
+  --rail-ink: oklch(0.96 0.005 240);
+  --rail-ink-muted: oklch(0.74 0.02 165);
   --rail-line: oklch(1 0 0 / 0.07);
   --rail-hover: oklch(1 0 0 / 0.05);
-  --rail-active-bg: oklch(0.32 0.065 155);
-  --rail-active-ink: oklch(0.9 0.08 155);
+  --rail-active-bg: oklch(0.28 0.075 155);
+  --rail-active-ink: oklch(0.96 0.08 155);
 
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
@@ -679,6 +679,11 @@ h3 {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+[data-theme="dark"] .eyebrow {
+  color: var(--brand-ink);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
 .header-action {
   flex: none;
 }
@@ -1045,16 +1050,19 @@ button.warehouse-card:hover,
   font: 600 11.5px/1 var(--font-sans);
 }
 .stock-good {
-  background: color-mix(in srgb, var(--brand) 14%, transparent);
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
   color: var(--brand-ink);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
 }
 .stock-low {
-  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
   color: var(--warning-ink);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 .stock-critical {
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
   color: var(--danger-ink);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 .quiet-state {
@@ -1780,13 +1788,13 @@ table {
   border-collapse: collapse;
 }
 th {
-  font: 600 11px/1.2 var(--font-sans);
+  font: 600 11.5px/1.2 var(--font-sans);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--muted-ink);
   background: var(--surface-sunken);
   border-bottom: 1px solid var(--line);
-  padding: 10px 14px;
+  padding: 11px 14px;
   text-align: left;
   font-variant-numeric: tabular-nums;
   position: sticky;
@@ -1797,7 +1805,7 @@ td {
   padding: 12px 14px;
   font-size: 13.5px;
   border-bottom: 1px solid var(--line-soft);
-  color: var(--muted-ink);
+  color: var(--ink);
   vertical-align: middle;
   font-variant-numeric: tabular-nums;
 }
@@ -1812,13 +1820,16 @@ tbody tr:hover td {
 }
 td b {
   color: var(--ink-strong);
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 600;
 }
 td small {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   color: var(--faint-ink);
-  font-size: 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.015em;
 }
 .product-cell {
   display: flex;
@@ -1830,7 +1841,7 @@ td small {
   height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line));
   border-radius: 8px;
   background: var(--brand-soft);
   color: var(--brand-ink);
@@ -1847,13 +1858,14 @@ td small {
 }
 .category-tag {
   display: inline-flex;
-  border: 1px solid var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 99px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   background: var(--accent-soft);
   color: var(--accent-ink);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 .mono {
   font-family: var(--font-mono);
@@ -9263,3 +9275,28 @@ button.data-table-row:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* Reglas de impresión para etiquetas AprilTag en A4 */
+@page {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print,
+  nav,
+  aside,
+  header,
+  .sidebar,
+  .app-header {
+    display: none !important;
+  }
+}
+

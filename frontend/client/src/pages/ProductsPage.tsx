@@ -1,6 +1,7 @@
 import {
   Edit3,
   PackagePlus,
+  Printer,
   RotateCcw,
   Search,
   SlidersHorizontal,
@@ -20,6 +21,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   EmptyState,
   ErrorPanel,
   LoadingPanel,
@@ -29,6 +35,8 @@ import {
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
 import { ProductModal } from "@/components/products/ProductModal";
+import { AprilTagBadge } from "@/components/products/AprilTagBadge";
+import { PrintAprilTagsModal } from "@/components/products/PrintAprilTagsModal";
 import { productService, type Product } from "@/services/products";
 import { useStockAuth } from "@/contexts/StockAuthContext";
 
@@ -44,6 +52,7 @@ export default function ProductsPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
   const reqVersion = useRef(0);
   const reactivate = async (item: Product) => {
     try {
@@ -111,6 +120,26 @@ export default function ProductsPage() {
     setMaxPrice("");
     setShowInactive(false);
   };
+
+  const clearAdvancedFilters = () => {
+    setStockFilter("all");
+    setMinPrice("");
+    setMaxPrice("");
+    setShowInactive(false);
+  };
+
+  const hasAdvancedFilters = Boolean(
+    stockFilter !== "all" || minPrice !== "" || maxPrice !== "" || showInactive
+  );
+
+  const advancedCount =
+    (stockFilter !== "all" ? 1 : 0) +
+    (minPrice !== "" || maxPrice !== "" ? 1 : 0) +
+    (showInactive ? 1 : 0);
+
+  const hasAnyFilter = Boolean(
+    search.trim() !== "" || category !== "Todas" || hasAdvancedFilters
+  );
   const load = () => {
     const currentVersion = ++reqVersion.current;
     setLoading(true);
@@ -147,15 +176,26 @@ export default function ProductsPage() {
         title="Productos"
         description="Consultá precios, SKU y disponibilidad. Cada movimiento queda registrado en el inventario."
         action={
-          canManage ? (
+          <div className="flex items-center gap-2">
             <button
-              className="button-primary"
-              onClick={() => setCreateModalOpen(true)}
+              className="button-secondary"
+              onClick={() => setPrintModalOpen(true)}
+              type="button"
+              title="Imprimir etiquetas AprilTag en formato A4"
             >
-              <PackagePlus size={17} />
-              Nuevo producto
+              <Printer size={16} />
+              Imprimir AprilTags
             </button>
-          ) : undefined
+            {canManage && (
+              <button
+                className="button-primary"
+                onClick={() => setCreateModalOpen(true)}
+              >
+                <PackagePlus size={17} />
+                Nuevo producto
+              </button>
+            )}
+          </div>
         }
       />
       <section className="filter-bar">
@@ -175,57 +215,121 @@ export default function ProductsPage() {
           icon={<SlidersHorizontal size={15} />}
           ariaLabel="Filtrar por categoría"
         />
-        <ModernSelect
-          value={stockFilter}
-          onChange={setStockFilter}
-          options={[
-            { value: "all", label: "Todo el stock" },
-            { value: "available", label: "Stock disponible" },
-            { value: "low", label: "Stock bajo" },
-            { value: "out", label: "Sin stock" },
-          ]}
-          ariaLabel="Filtrar por estado de stock"
-        />
-        <label className="filter-number">
-          <span>Desde:</span>
-          <input
-            type="number"
-            min="0"
-            value={minPrice}
-            onChange={event => setMinPrice(event.target.value)}
-            placeholder="$ mín"
-            aria-label="Precio mínimo"
-          />
-        </label>
-        <label className="filter-number">
-          <span>Hasta:</span>
-          <input
-            type="number"
-            min="0"
-            value={maxPrice}
-            onChange={event => setMaxPrice(event.target.value)}
-            placeholder="$ máx"
-            aria-label="Precio máximo"
-          />
-        </label>
-        {canManage && (
-          <label className="check-control">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={event => setShowInactive(event.target.checked)}
-            />
-            Ver dados de baja
-          </label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`filter-more-btn ${hasAdvancedFilters ? "active" : ""}`}
+              aria-label="Filtros avanzados"
+            >
+              <SlidersHorizontal size={14} />
+              <span>Filtros</span>
+              {advancedCount > 0 && (
+                <span className="filter-count-badge">{advancedCount}</span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="filter-popover-content">
+            <div className="filter-popover-panel">
+              <div className="filter-popover-header">
+                <div className="filter-popover-heading">
+                  <SlidersHorizontal
+                    size={14}
+                    className="filter-heading-icon"
+                  />
+                  <span>Filtros avanzados</span>
+                </div>
+                {hasAdvancedFilters && (
+                  <button
+                    type="button"
+                    className="filter-popover-reset"
+                    onClick={clearAdvancedFilters}
+                  >
+                    Restablecer
+                  </button>
+                )}
+              </div>
+
+              <div className="filter-popover-item">
+                <label>Estado de stock</label>
+                <ModernSelect
+                  value={stockFilter}
+                  onChange={setStockFilter}
+                  options={[
+                    { value: "all", label: "Todo el stock" },
+                    { value: "available", label: "Stock disponible" },
+                    { value: "low", label: "Stock bajo" },
+                    { value: "out", label: "Sin stock" },
+                  ]}
+                  ariaLabel="Filtrar por estado de stock"
+                  minWidth="100%"
+                />
+              </div>
+
+              <div className="filter-popover-item">
+                <label>Rango de precio ($)</label>
+                <div className="filter-popover-grid">
+                  <div className="popover-input-wrapper">
+                    <span className="popover-input-prefix">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={minPrice}
+                      onChange={event => setMinPrice(event.target.value)}
+                      placeholder="Mínimo"
+                      aria-label="Precio mínimo"
+                    />
+                  </div>
+                  <div className="popover-input-wrapper">
+                    <span className="popover-input-prefix">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={maxPrice}
+                      onChange={event => setMaxPrice(event.target.value)}
+                      placeholder="Máximo"
+                      aria-label="Precio máximo"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {canManage && (
+                <div className="filter-popover-item">
+                  <label>Opciones de catálogo</label>
+                  <label
+                    className="check-control"
+                    style={{
+                      width: "100%",
+                      justifyContent: "space-between",
+                      height: "38px",
+                      minHeight: "38px",
+                      borderRadius: "10px",
+                    }}
+                  >
+                    <span>Ver dados de baja</span>
+                    <input
+                      type="checkbox"
+                      checked={showInactive}
+                      onChange={event => setShowInactive(event.target.checked)}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {hasAnyFilter && (
+          <button
+            className="button-secondary filter-clear"
+            onClick={clearFilters}
+            type="button"
+          >
+            <X size={15} />
+            Limpiar
+          </button>
         )}
-        <button
-          className="button-secondary filter-clear"
-          onClick={clearFilters}
-          type="button"
-        >
-          <X size={15} />
-          Limpiar
-        </button>
       </section>
       {loading && <LoadingPanel rows={6} />}
       {error && <ErrorPanel message={error} retry={load} />}
@@ -238,6 +342,7 @@ export default function ProductsPage() {
                 <thead>
                   <tr>
                     <th scope="col">Producto</th>
+                    <th scope="col">AprilTag</th>
                     <th scope="col">Categoría</th>
                     <th scope="col">Precio</th>
                     <th scope="col">Stock total</th>
@@ -271,6 +376,13 @@ export default function ProductsPage() {
                             <small>{item.sku}</small>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <AprilTagBadge
+                          tagId={item.apriltagId}
+                          productName={item.name}
+                          sku={item.sku}
+                        />
                       </td>
                       <td>
                         <span className="category-tag">{item.category}</span>
@@ -390,6 +502,13 @@ export default function ProductsPage() {
             setEditingProduct(null);
             load();
           }}
+        />
+      )}
+
+      {printModalOpen && (
+        <PrintAprilTagsModal
+          products={items}
+          onClose={() => setPrintModalOpen(false)}
         />
       )}
     </>
