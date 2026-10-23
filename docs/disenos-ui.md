@@ -215,3 +215,87 @@ Visualizar el estado crítico de inventario en tiempo real. Clasifica los produc
 | **Captura y Visión IA** | `HU-12` (Reconocimiento Inteligente) | `SB-061`, `SB-079`, `SB-080` | `frontend/client/src/components/PhotoCapture.tsx` |
 | **Transferencias** | `HU-14` (Transferencias entre Depósitos) | `SB-061`, `SB-073`, `SB-081` | `frontend/client/src/components/transfers/TransferForm.tsx` |
 | **Alertas de Stock** | `HU-13` (Control de Stock Mínimo) | `SB-061`, `SB-067`, `SB-068` | `frontend/client/src/components/stock/StockAlerts.tsx` |
+| **Reportes y Decisiones** | `HU-11`, `HU-16` (Analítica e Inteligencia) | `SB-061`, `SB-070` | `frontend/client/src/pages/ReportsPage.tsx` |
+
+---
+
+## 7. Wireframe 5: Reportes Gerenciales y Toma de Decisiones (`/reports`, `ReportsPage.tsx`)
+
+### 7.1. Propósito y Requerimientos de UX
+Proveer al Administrador una vista panorámica, interactiva y con rigor matemático del rendimiento comercial y logístico:
+1. **Selector de Período Rápido:** Presets instantáneos (*Hoy*, *Últimos 7 días*, *Este mes*, *Últimos 30 días*, *Todo el historial*) y selector de fechas `from/to` manual.
+2. **KPIs Ejecutivos de Alto Impacto:** Facturación total, Ticket promedio por comprobante, Plan de reposición urgente (+unidades faltantes y capital estimado), y Capital inmovilizado en stock parado.
+3. **Evolución Temporal de Ventas:** Gráfico dinámico configurable (Área continua vs. Barras) con formateo monetario proporcional y métricas de días activos y día pico.
+4. **Grillas de Decisión Estratégica (4 cuadrantes):**
+   - *Plan de compras urgente:* Prioridad CRÍTICA (stock 0) y ALTA (`stock <= min`).
+   - *Rendimiento por depósito:* Total facturado y porcentaje (%) de contribución a las ventas globales. Hacé clic para abrir el reporte individual de la sucursal.
+   - *Top productos por recaudación:* Ranking descendente de ingresos reales.
+   - *Stock inmovilizado:* Artículos con existencias sin ninguna venta en el período para aplicar promociones o transferencias.
+5. **Modal de Desempeño Logístico de Sucursal (`WarehouseReportModal.tsx`):**
+   - Jerarquía visual calibrada: Rotación comercial (top ingresos) visible en la parte superior a ancho completo, Alertas de stock debajo.
+   - Pestañas secundarias: Inventario completo en depósito con chips de estado y Comprobantes de venta asociados.
+
+### 7.2. Diagrama de Estructura Visual (Wireframe)
+```
++-----------------------------------------------------------------------------------+
+|  Inteligencia comercial y logística                                                |
+|  Reportes y toma de decisiones             [ Exportar informe estratégico (CSV) ] |
++-----------------------------------------------------------------------------------+
+|  Período: [Hoy] [7 días] [Este mes*] [30 días] [Todo]   |   [ 2026-10-01 ] a [ Hoy ]|
++-----------------------------------------------------------------------------------+
+|                                                                                   |
+|  [ Facturación Total ]    [ Ticket Promedio ]    [ Reposición Urgente ]  [ Cap. Parado ] |
+|  | $ 15.420.000      |    | $ 550.714       |    | +38 un. ($ 1.250.000)|  | $ 890.000 | |
+|  | 28 comprobantes   |    | Por operación   |    | Inversión requerida  |  | 65 un. sin| |
+|  +-------------------+    +-----------------+    +----------------------+  +-----------+ |
+|                                                                                   |
+|  +-----------------------------------------------------------------------------+  |
+|  | EVOLUCIÓN DE FACTURACIÓN DIARIA                   [ Curva continua* | Barras ] |  |
+|  | Total: $ 15.420.000  ·  Días activos: 18 de 22  ·  Pico: $ 3.400.000 (18 Oct)|  |
+|  |                                                                             |  |
+|  |  $3M ┤            ╭──╮                                                      |  |
+|  |  $2M ┤    ╭───╮   │  │   ╭─╮                                                |  |
+|  |  $1M ┤ ───╯   ╰───╯  ╰───╯ ╰──────                                          |  |
+|  |   $0 ┴───────────────────────────                                           |  |
+|  +-----------------------------------------------------------------------------+  |
+|                                                                                   |
+|  [ SECCIÓN 1: PLAN DE REPOSICIÓN ]        [ SECCIÓN 2: DESGLOSE POR SUCURSAL ]    |
+|  +------------------------------------+   +------------------------------------+  |
+|  | Producto       | Stock/Mín | Pedir |   | Depósito     | Facturado | Aporte% |  |
+|  +----------------+-----------+-------+   +--------------+-----------+---------+  |
+|  | Aceite 1.5L    | 0 / 10 u. | +10 u.|   | Almacén Cent | $9.820.000|  64% █  |  |
+|  | Harina 000 1kg | 2 / 15 u. | +13 u.|   | Sucursal Nor | $5.600.000|  36% ▌  |  |
+|  +------------------------------------+   +------------------------------------+  |
+|                                                                                   |
+|  [ SECCIÓN 3: TOP PRODUCTOS INGRESO ]     [ SECCIÓN 4: MERCADERÍA SIN ROTACIÓN]|  |
+|  +------------------------------------+   +------------------------------------+  |
+|  | # | Producto    | Un. | Facturación|   | Producto     | Stock | Capital     |  |
+|  +---+-------------+-----+------------+   +--------------+-------+-------------+  |
+|  | 1 | Yerba 1kg   | 45  | $4.500.000 |   | Válvula 1/2  | 20 un.| $ 320.000   |  |
+|  | 2 | Fideos 500g | 60  | $2.400.000 |   | Termo 1L     | 8 un. | $ 570.000   |  |
+|  +------------------------------------+   +------------------------------------+  |
++-----------------------------------------------------------------------------------+
+```
+
+---
+
+## 8. Guía Visual: Modo Oscuro de Alto Contraste y Tarjetas con Portada
+
+### 8.1. Arquitectura de Superficies y Elevación
+- **Fondo Inmersivo Fijo:** Gradiente radial profundo (`radial-gradient(120% 90% at 50% -10%, #152238 0%, #0B111E 45%, #060911 100%)`) que permanece fijo al desplazarse, otorgando sensación de profundidad.
+- **Superficies Elevadas (`--surface`, `--surface-hover`):** Fondos `#131E31` y `#19273F` con borde nítido `#263B5D`, diferenciándose con claridad del fondo sin empastes.
+- **Etiquetas y Datos Iluminados:**
+  - Valores destacados (`h2`, `h3`): Blanco absoluto (`#FFFFFF`, `font-weight: 700`).
+  - Textos de lectura y subtítulos (`--muted-ink`): Slate brillante `#A4B3C9` y `#CBD5E1` (ratio de contraste WCAG AAA > 7:1).
+
+### 8.2. Paleta Cromática Temática
+- **Cobalt Blue (`#3B82F6`):** Identidad general, catálogo de productos y acciones primarias.
+- **Laser Cyan (`#00F0FF` / `--cyan-glow`):** Escáner, depósitos, ubicaciones y visión computacional.
+- **Cargo Orange (`#FF6A1F`):** Puntos de venta, terminal de caja y botones de venta en vivo.
+- **Neon Violet (`#A78BFA`):** Trazabilidad de AprilTags e impresión fiducial.
+
+### 8.3. Tarjetas de Depósito con Imagen de Portada (`WarehouseCard.tsx`)
+Cuando el usuario define una `imageUrl` para una sucursal:
+- La imagen se proyecta en la cabecera mediante `.warehouse-card-cover-banner`.
+- Un degradado de contraste oscuro (`.warehouse-cover-shade`: `linear-gradient(180deg, rgba(6,10,20,0.6) 0%, rgba(13,20,34,0.92) 100%)`) garantiza que el texto de dirección, responsable y stock mantengan legibilidad 100% sobre cualquier fotografía.
+- Los botones de edición y eliminación adoptan estilos `.on-cover` con fondos blancos traslúcidos e íconos en alto contraste.

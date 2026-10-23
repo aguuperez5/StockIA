@@ -306,16 +306,21 @@ export default function StockPage() {
   };
 
   const clearAdvancedFilters = () => {
+    setCategoryFilter("Todas");
     setStockFilter("all");
     setMinQuantity("");
     setMaxQuantity("");
   };
 
   const hasAdvancedFilters = Boolean(
-    stockFilter !== "all" || minQuantity !== "" || maxQuantity !== ""
+    categoryFilter !== "Todas" ||
+      stockFilter !== "all" ||
+      minQuantity !== "" ||
+      maxQuantity !== ""
   );
 
   const advancedCount =
+    (categoryFilter !== "Todas" ? 1 : 0) +
     (stockFilter !== "all" ? 1 : 0) +
     (minQuantity !== "" || maxQuantity !== "" ? 1 : 0);
 
@@ -431,6 +436,17 @@ export default function StockPage() {
 
       {/* Filtros de la tabla de stock */}
       <div className="stock-toolbar">
+        {/* 1. Barra de búsqueda */}
+        <label className="search-control">
+          <Search size={15} />
+          <input
+            value={productSearch}
+            onChange={event => setProductSearch(event.target.value)}
+            placeholder="Buscar producto, SKU o depósito"
+          />
+        </label>
+
+        {/* 2. Filtro por depósito */}
         <ModernSelect
           value={warehouseId}
           onChange={setWarehouseId}
@@ -444,21 +460,8 @@ export default function StockPage() {
           icon={<Filter size={15} />}
           ariaLabel="Filtrar por depósito"
         />
-        <label className="search-control">
-          <Search size={15} />
-          <input
-            value={productSearch}
-            onChange={event => setProductSearch(event.target.value)}
-            placeholder="Buscar producto, SKU o depósito"
-          />
-        </label>
-        <ModernSelect
-          value={categoryFilter}
-          onChange={setCategoryFilter}
-          options={categories}
-          ariaLabel="Filtrar por categoría"
-        />
 
+        {/* 3. Botón de Filtros (incluye categorías, nivel de stock y unidades) */}
         <Popover>
           <PopoverTrigger asChild>
             <button
@@ -492,6 +495,22 @@ export default function StockPage() {
                     Restablecer
                   </button>
                 )}
+              </div>
+
+              <div className="filter-popover-item">
+                <label>Categoría</label>
+                <ModernSelect
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  options={[
+                    { value: "Todas", label: "Todas las categorías" },
+                    ...categories
+                      .filter(c => c !== "Todas")
+                      .map(c => ({ value: c, label: c })),
+                  ]}
+                  ariaLabel="Filtrar por categoría"
+                  minWidth="100%"
+                />
               </div>
 
               <div className="filter-popover-item">

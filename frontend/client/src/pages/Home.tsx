@@ -27,11 +27,6 @@ export default function Home() {
     <>
       <div className="home-hero">
         <div className="hero-content">
-          <div className="hero-badge">
-            <span className="hero-pulse-dot" />
-            <span>CENTRO DE CONTROL INTELIGENTE</span>
-            <span className="hero-badge-tag">IA & STOCK EN VIVO</span>
-          </div>
           <h1 className="hero-title">
             Buen día, el inventario está{" "}
             <span className="hero-highlight">en orden.</span>
@@ -50,7 +45,7 @@ export default function Home() {
             <span>Registrar venta</span>
           </button>
           <button
-            className="button-secondary hero-btn-sub"
+            className="button-secondary hero-btn-sub hero-btn-ai"
             onClick={() => setLocation("/products")}
             title="Gestionar e imprimir etiquetas AprilTags"
           >
@@ -73,12 +68,12 @@ export default function Home() {
       {data && (
         <>
           <section className="metric-grid">
-            <article className="metric-card card-green">
+            <article className="metric-card card-blue">
               <div className="metric-card-top">
-                <span className="metric-icon green">
+                <span className="metric-icon blue">
                   <Boxes size={20} />
                 </span>
-                <span className="metric-pill green">Catálogo</span>
+                <span className="metric-pill blue">Catálogo</span>
               </div>
               <div>
                 <p>Productos en catálogo</p>
@@ -89,7 +84,7 @@ export default function Home() {
 
             <article className="metric-card card-scanner">
               <div className="metric-card-top">
-                <span className="metric-icon terracotta">
+                <span className="metric-icon scanner">
                   <Warehouse size={20} />
                 </span>
                 <span className="metric-pill scanner">Ubicaciones</span>
@@ -101,12 +96,12 @@ export default function Home() {
               </div>
             </article>
 
-            <article className="metric-card card-violet">
+            <article className="metric-card card-deep-blue">
               <div className="metric-card-top">
-                <span className="metric-icon ink">
+                <span className="metric-icon deep-blue">
                   <PackageSearch size={20} />
                 </span>
-                <span className="metric-pill violet">Lista</span>
+                <span className="metric-pill deep-blue">Lista</span>
               </div>
               <div>
                 <p>Valor de inventario</p>
@@ -115,12 +110,12 @@ export default function Home() {
               </div>
             </article>
 
-            <article className="metric-card card-amber">
+            <article className="metric-card card-brand">
               <div className="metric-card-top">
-                <span className="metric-icon amber">
+                <span className="metric-icon brand">
                   <ShoppingCart size={20} />
                 </span>
-                <span className="metric-pill amber">
+                <span className="metric-pill brand">
                   <span className="mini-pulse-dot" /> En vivo
                 </span>
               </div>

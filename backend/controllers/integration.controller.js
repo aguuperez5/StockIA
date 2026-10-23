@@ -6,6 +6,7 @@ import { canonicalGtin, findRecognitionCatalogCandidates, rankRecognitionProduct
 import { transferStock } from '../services/stock-transfer.service.js';
 import { buildRecognitionDetections } from '../services/recognition-detections.js';
 import { getNextAvailableAprilTagId } from '../services/apriltag.service.js';
+import { generateAprilTagSvg } from '../services/apriltag-svg.js';
 
 const moneyToCents = n => Math.round(Number(n) * 100);
 const centsToMoney = c => Number(c) / 100;
@@ -610,13 +611,21 @@ export async function customerDetail(req, res) {
     productName: rows.find(r => r.productId === productId)?.product?.name || `Producto #${productId}`,
     units
   })).sort((a, b) => b.units - a.units);
-  const sales = await prisma.sale.findMany({
-    where: { customerId: c.id },
-    select: { id: true, total: true, createdAt: true },
-    orderBy: { createdAt: 'desc' },
-    take: 10
-  });
-  const totalPurchasesCents = sales.reduce((acc, s) => acc + moneyToCents(s.total), 0);
+  const [sales, allSalesAgg] = await Promise.all([
+    prisma.sale.findMany({
+      where: { customerId: c.id },
+      select: { id: true, total: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    }),
+    prisma.sale.aggregate({
+      where: { customerId: c.id },
+      _count: { id: true },
+      _sum: { total: true }
+    })
+  ]);
+  const totalPurchasesCents = moneyToCents(allSalesAgg._sum.total ?? 0);
+  const purchasesCount = allSalesAgg._count.id;
   res.json({
     customer: c,
     frequent,
@@ -627,7 +636,7 @@ export async function customerDetail(req, res) {
       createdAt: s.createdAt.toISOString()
     })),
     totalPurchasesCents,
-    purchasesCount: sales.length
+    purchasesCount
   });
 }
 
@@ -973,17 +982,16 @@ export async function getAprilTagImage(req, res) {
       return res.send(Buffer.from(arrayBuffer));
     }
   } catch (error) {
-    // Si el microservicio Python está offline o cargando, generamos un SVG fallback determinista
+    // Si el microservicio Python está offline o cargando, generamos el SVG matemático real determinista
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
-    <rect width="100" height="100" fill="black"/>
-    <rect x="12.5" y="12.5" width="75" height="75" fill="white"/>
-    <rect x="25" y="25" width="50" height="50" fill="black"/>
-    <text x="50" y="55" fill="white" font-family="monospace" font-size="16" font-weight="bold" text-anchor="middle">#${tagId}</text>
-  </svg>`;
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'public, max-age=60');
-  return res.send(svg);
+  const svg = generateAprilTagSvg(tagId, size);
+  if (svg) {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.send(svg);
+  }
+
+  return res.status(404).json({ message: 'Tag no encontrado' });
 }
 

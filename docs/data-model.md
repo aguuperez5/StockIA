@@ -33,6 +33,12 @@ Se encuentra implementado de forma canónica en el esquema de Prisma: [backend/p
 7. **Proyección para Fidelización y Marketing (`Customer` y `TelegramOffer`):**  
    Se incluyen las entidades de clientes y ofertas programadas de Telegram para permitir campañas automáticas sin requerir cambios estructurales posteriores en las tablas transaccionales.
 
+8. **Identificadores Fiduciales AprilTags (`apriltag_id`):**  
+   Para la trazabilidad física y reconocimiento visual instantáneo, la tabla `products` incorpora la columna `apriltag_id` (`UNIQUE`, rango 0 a 586 de la familia `tag36h11`). La asignación es secuencial y automática al registrar productos. Cuando un producto se desactiva mediante baja lógica (`active = false`), su `apriltag_id` permanece reservado para evitar colisiones con etiquetas físicas ya adheridas a mercadería existente.
+
+9. **Personalización Visual de Depósitos (`imageUrl`):**  
+   La entidad `deposits` soporta una URL de imagen de portada para identificación visual inmediata en el panel de control, con tratamiento de contraste y sombreado adaptativo en la interfaz.
+
 ---
 
 ## 2. Diagrama Entidad-Relación (DER Actualizado)
@@ -81,6 +87,7 @@ erDiagram
         decimal price "Precio base unitario"
         int lowStockThreshold "Umbral alerta stock"
         string imageUrl
+        int apriltagId UK "tag36h11 (0-586)"
         boolean active "Baja lógica"
         datetime createdAt
         datetime updatedAt
@@ -206,6 +213,7 @@ Catálogo maestro de mercaderías gestionadas por la empresa.
 - **`price`** (`Decimal(10,2)`): Precio base minorista para venta por unidad individual.
 - **`lowStockThreshold`** (`Int`, default `5`): Cantidad de existencias mínimas para disparar alertas operativas de reposición.
 - **`imageUrl`** (`String?`): Fotografía de referencia del envase o packaging.
+- **`apriltagId`** (`Int?`, Unique, `@map("apriltag_id")`): Identificador único AprilTag (0-586 de la familia robótica `tag36h11`) vinculado para lectura por cámara y generación de etiquetas imprimibles A4.
 - **`active`** (`Boolean`, default `true`): Flag de baja lógica.
 - **`createdAt`**, **`updatedAt`** (`DateTime`).
 - **Integridad:** `onDelete: Restrict` en todas sus referencias para proteger la integridad histórica de ventas y movimientos.

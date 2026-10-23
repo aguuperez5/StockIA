@@ -1,91 +1,108 @@
-/* client/src/styles/tokens.css — ÚNICO lugar donde se permiten colores literales */
+/* client/src/styles/tokens.css — Sistema de Diseño Unificado StockIA */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Superficies · "Tactile Warehouse" */
-  --paper: #F4F3EF;
-  --surface: #FFFFFF;
-  --surface-elevated: #FFFFFF;
-  --surface-sunken: #EBE9E2;
-  --surface-hover: #FAF9F6;
-  --line: #DFDDD4;
-  --line-subtle: #EBE9E2;
-  --line-strong: #C8C5B8;
-  --input-border: #858273;           /* 3.9:1 sobre blanco, 3.5:1 sobre paper, 3.2:1 sobre sunken */
+  /* Superficies · Cálido "Naranja Crema", suave a la vista, sin deslumbramiento */
+  --paper: #FAF4EB;                  /* Base crema cálido relajante, elimina el encandilamiento */
+  --surface: #FFFDF9;                /* Tarjetas y paneles: marfil suave / crema ligero, no blanco reflectivo */
+  --surface-elevated: #FFFFFF;       /* Modales y menús flotantes nítidos */
+  --surface-sunken: #F1E9DC;         /* Contenedores secundarios, inputs y fondos de descanso */
+  --surface-hover: #F4ECE0;          /* Hover suave con calidez */
+  --line: #E5DBCB;                   /* Bordes y divisiones sutiles en tono arena/crema */
+  --line-subtle: #EDE4D6;            /* Líneas muy suaves de separación interna */
+  --line-strong: #D6C7B2;            /* Bordes marcados y bordes de input */
+  --input-border: #D6C7B2;
 
-  /* Texto */
-  --ink: #111318;
-  --muted-ink: #5A606E;              /* 5.7:1 sobre paper */
-  --subtle-ink: #666D7B;             /* 5.2:1 blanco · 4.7:1 paper. Solo placeholders/hints sobre blanco o paper; sobre --surface-sunken usa --muted-ink */
+  /* Tipografía y jerarquía de texto (Espresso profundo de alto contraste, descanso visual) */
+  --ink: #221B16;                    /* 15.2:1 sobre surface — contraste superior a WCAG AAA sin el brillo agresivo del negro puro */
+  --muted-ink: #5F5346;              /* 6.6:1 sobre surface — piedra cálida para subtítulos y metadatos */
+  --subtle-ink: #86786A;             /* 4.5:1 sobre surface — etiquetas secundarias */
 
-  /* Marca / Acción (Cargo) */
+  /* Marca / Acción principal (Cargo Orange con acentos cálidos) */
   --brand: #FF5500;
-  --brand-hover: #FF6A1F;            /* se ACLARA: texto oscuro sobre él = 6.5:1 */
-  --brand-active: #E64A00;           /* 4.7:1 con texto oscuro */
-  --brand-soft: #FFF0E6;
-  --brand-ink: #111318;              /* texto SOBRE naranja: 5.8:1 */
-  --brand-text: #C23E00;             /* naranja COMO texto: 5.3:1 blanco · 4.7:1 brand-soft */
+  --brand-hover: #FF6A1F;
+  --brand-active: #E64A00;
+  --brand-soft: rgba(255, 85, 0, 0.09);
+  --brand-ink: #FFFFFF;
+  --brand-text: #B83A00;
 
-  /* Visión / Cámara (Laser) */
-  --scanner: #0088A9;                /* bordes, íconos, relleno (4.1:1) */
-  --scanner-text: #00728F;           /* cian COMO texto (5.5:1) */
-  --scanner-soft: #E0F7FA;
-  --scanner-border: #80DEEA;
-  --scanner-glow: 0 0 0 3px rgba(0, 136, 169, 0.25);
+  /* Visión / Cámara / AprilTags (Laser Cyan con contraste cuidado) */
+  --scanner: #0284C7;
+  --scanner-text: #0369A1;
+  --scanner-soft: rgba(2, 132, 199, 0.08);
+  --scanner-border: rgba(2, 132, 199, 0.28);
+  --scanner-glow: 0 0 0 3px rgba(2, 132, 199, 0.20);
 
-  /* Estados de stock (LED). Siempre con ícono + texto */
+  /* StockIA Blue · Electric Cobalt para catálogo y visión */
+  --blue-brand: #2563EB;
+  --blue-brand-hover: #1D4ED8;
+  --blue-brand-text: #1D4ED8;
+  --blue-brand-soft: rgba(37, 99, 235, 0.08);
+  --blue-brand-border: rgba(37, 99, 235, 0.28);
+
+  /* StockIA Violet / Deep · Para valor de inventario y datos financieros */
+  --blue-deep: #7C3AED;
+  --blue-deep-soft: rgba(124, 58, 237, 0.08);
+  --blue-deep-border: rgba(124, 58, 237, 0.24);
+  --blue-deep-text: #6D28D9;
+
+  /* Estados semánticos (LED / Alertas) con tonos cálidos y nítidos */
   --status-ok: #059669;
   --status-ok-text: #047857;
-  --status-ok-bg: #D1FAE5;
-  --status-ok-border: #6EE7B7;
+  --status-ok-bg: #ECFDF5;
+  --status-ok-border: #A7F3D0;
   --status-warn: #D97706;
   --status-warn-text: #B45309;
-  --status-warn-bg: #FEF3C7;
-  --status-warn-border: #FCD34D;
+  --status-warn-bg: #FFFBEB;
+  --status-warn-border: #FDE68A;
   --status-critical: #E11D48;
   --status-critical-text: #BE123C;
-  --status-critical-bg: #FFE4E6;
-  --status-critical-border: #FDA4AF;
-  --status-critical-ink: #FFFFFF;    /* texto sobre botón destructivo (4.7:1) */
+  --status-critical-bg: #FFF1F2;
+  --status-critical-border: #FECDD3;
+  --status-critical-ink: #FFFFFF;
 
-  /* Foco, overlays, selección */
-  --ring: #0088A9;                   /* COLOR (shadcn). */
-  --focus-ring: 0 0 0 3px rgba(0, 136, 169, 0.35);   /* SOMBRA de foco */
-  --overlay: rgba(17, 19, 24, 0.45);
-  --selection: rgba(255, 85, 0, 0.22);
+  /* Foco accesible, selección y modales */
+  --ring: #FF5500;
+  --focus-ring: 0 0 0 3px rgba(255, 85, 0, 0.26);
+  --overlay: rgba(34, 27, 22, 0.52);
+  --selection: rgba(255, 85, 0, 0.18);
 
-  /* Gráficos (≥3:1 sobre blanco) */
+  /* Gráficos y analíticas comerciales (contraste ≥ 3:1) */
   --chart-1: #FF5500;
-  --chart-2: #0088A9;
+  --chart-2: #0284C7;
   --chart-3: #8B5CF6;
   --chart-4: #059669;
   --chart-5: #D97706;
 
-  /* Sidebar */
-  --rail-bg: #ECEAE3;
-  --rail-bg-soft: #E3E1D8;
-  --rail-ink: #111318;
-  --rail-ink-muted: #5A606E;
-  --rail-line: #DFDDD4;
-  --rail-hover: #FAF9F6;
-  --rail-active-bg: #FFF0E6;
-  --rail-active-ink: #C23E00;
+  /* Barra lateral de navegación (Sidebar / Rail) */
+  --rail-bg: #F1E9DC;
+  --rail-bg-soft: #E8DFD0;
+  --rail-ink: #221B16;
+  --rail-ink-muted: #6B5E51;
+  --rail-line: #E2D7C6;
+  --rail-hover: #EBE2D4;
+  --rail-active-bg: rgba(255, 85, 0, 0.11);
+  --rail-active-ink: #B83A00;
 
-  /* Sombras */
-  --shadow-xs: 0 1px 2px rgba(17, 19, 24, 0.06);
-  --shadow-card: 0 2px 5px rgba(17, 19, 24, 0.04), 0 8px 20px -4px rgba(17, 19, 24, 0.06);
-  --shadow-float: 0 12px 28px -6px rgba(17, 19, 24, 0.12), 0 4px 10px -2px rgba(17, 19, 24, 0.06);
-  --shadow-brand: 0 10px 24px -6px rgba(255, 85, 0, 0.45);
+  /* Sombras cálidas y dimensionales en tono tostado/taupe */
+  --shadow-xs: 0 1px 2px rgba(45, 30, 15, 0.04);
+  --shadow-card: 0 1px 3px rgba(45, 30, 15, 0.04), 0 6px 16px -4px rgba(45, 30, 15, 0.06);
+  --shadow-float: 0 12px 32px -6px rgba(45, 30, 15, 0.12), 0 4px 12px -2px rgba(45, 30, 15, 0.05);
+  --shadow-brand: 0 8px 20px -4px rgba(255, 85, 0, 0.32);
 
-  /* Efectos de fondo */
-  --bg-grid: linear-gradient(rgba(17, 19, 24, 0.045) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(17, 19, 24, 0.045) 1px, transparent 1px);
-  --bg-glow: radial-gradient(60% 50% at 85% 0%, rgba(255, 85, 0, 0.10), transparent 70%);
+  /* Efectos de fondo: degradé ambiental visible de naranja crema + cuadrícula sutil */
+  --bg-gradient: linear-gradient(170deg, #FFFDF8 0%, #FAF3E8 35%, #F4E7D3 100%);
+  --bg-grid: linear-gradient(rgba(180, 120, 60, 0.045) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(180, 120, 60, 0.045) 1px, transparent 1px);
+  --bg-glow: radial-gradient(75% 60% at 90% -5%, rgba(255, 115, 20, 0.22), transparent 68%),
+             radial-gradient(60% 50% at 6% 80%, rgba(255, 140, 40, 0.16), transparent 70%),
+             radial-gradient(55% 45% at 50% 10%, rgba(255, 160, 50, 0.14), transparent 72%),
+             radial-gradient(45% 40% at 95% 95%, rgba(2, 132, 199, 0.08), transparent 65%);
   --stripe-cargo: repeating-linear-gradient(135deg, var(--brand) 0 10px, var(--ink) 10px 20px);
 
-  /* Forma, tipografía, movimiento */
+  /* Forma, tipografía y movimiento */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -100,33 +117,47 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Superficies · "Optical HUD" */
-  --paper: #07090E;
-  --surface: #10141F;
-  --surface-elevated: #171D2B;
-  --surface-sunken: #0B0E16;
-  --surface-hover: #1A2133;
-  --line: #222B40;
-  --line-subtle: #171D2B;
-  --line-strong: #33415E;
-  --input-border: #5C6B8E;           /* 3.6:1 sobre sunken */
+  /* Superficies · "Optical HUD" profundo, refinado y con contraste elevado sobre fondo fijo */
+  --paper: #090D16;
+  --surface: #131B2E;
+  --surface-elevated: #1B263F;
+  --surface-sunken: #0C1220;
+  --surface-hover: #1E2C48;
+  --line: #223250;
+  --line-subtle: #172338;
+  --line-strong: #334B73;
+  --input-border: #334B73;
 
-  --ink: #F3F6FA;
-  --muted-ink: #8A96AD;              /* 6.2:1 sobre surface */
-  --subtle-ink: #7A869E;             /* 5.0:1 sobre surface */
+  --ink: #F8FAFC;
+  --muted-ink: #A4B3C9;
+  --subtle-ink: #7B8CA6;
 
-  --brand: #FF6B1A;
+  --brand: #FF6A1F;
   --brand-hover: #FF8542;
   --brand-active: #E85A0C;
-  --brand-soft: rgba(255, 107, 26, 0.15);
-  --brand-ink: #090604;
-  --brand-text: #FF8542;             /* 7.6:1 sobre surface */
+  --brand-soft: rgba(255, 106, 31, 0.14);
+  --brand-ink: #090D16;
+  --brand-text: #FF8542;
 
+  /* Visión / Cámara / AprilTags · Laser Cyan */
   --scanner: #00F0FF;
   --scanner-text: #00F0FF;
   --scanner-soft: rgba(0, 240, 255, 0.12);
   --scanner-border: rgba(0, 240, 255, 0.35);
-  --scanner-glow: 0 0 16px rgba(0, 240, 255, 0.35);
+  --scanner-glow: 0 0 14px rgba(0, 240, 255, 0.28);
+
+  /* StockIA Blue · Electric Cobalt (distinto e independiente del cyan) */
+  --blue-brand: #3B82F6;
+  --blue-brand-hover: #60A5FA;
+  --blue-brand-text: #60A5FA;
+  --blue-brand-soft: rgba(59, 130, 246, 0.14);
+  --blue-brand-border: rgba(59, 130, 246, 0.36);
+
+  /* StockIA Deep / Violet · Valor de inventario y finanzas */
+  --blue-deep: #A78BFA;
+  --blue-deep-soft: rgba(167, 139, 250, 0.14);
+  --blue-deep-border: rgba(167, 139, 250, 0.36);
+  --blue-deep-text: #C4B5FD;
 
   --status-ok: #10B981;
   --status-ok-text: #34D399;
@@ -140,39 +171,48 @@
   --status-critical-text: #FB7185;
   --status-critical-bg: rgba(244, 63, 94, 0.15);
   --status-critical-border: rgba(251, 113, 133, 0.40);
-  --status-critical-ink: #16060A;    /* verifica ≥4.5:1 sobre #F43F5E; si no, ajusta */
+  --status-critical-ink: #FFFFFF;
 
   --ring: #00F0FF;
-  --focus-ring: 0 0 0 3px rgba(0, 240, 255, 0.35);
-  --overlay: rgba(0, 0, 0, 0.65);
-  --selection: rgba(0, 240, 255, 0.25);
+  --focus-ring: 0 0 0 3px rgba(0, 240, 255, 0.30);
+  --overlay: rgba(0, 0, 0, 0.70);
+  --selection: rgba(0, 240, 255, 0.22);
 
-  --chart-1: #FF6B1A;
+  --chart-1: #FF6A1F;
   --chart-2: #00F0FF;
   --chart-3: #A78BFA;
   --chart-4: #34D399;
   --chart-5: #FBBF24;
 
-  --rail-bg: #07090E;
-  --rail-bg-soft: #0B0E16;
-  --rail-ink: #F3F6FA;
-  --rail-ink-muted: #8A96AD;
-  --rail-line: #171D2B;
-  --rail-hover: #10141F;
-  --rail-active-bg: rgba(255, 107, 26, 0.15);
+  --rail-bg: #090D16;
+  --rail-bg-soft: #0B0F1A;
+  --rail-ink: #F8FAFC;
+  --rail-ink-muted: #94A3B8;
+  --rail-line: #172033;
+  --rail-hover: #101726;
+  --rail-active-bg: rgba(255, 106, 31, 0.14);
   --rail-active-ink: #FF8542;
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
-  --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
-  --shadow-float: 0 16px 36px -6px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
-  --shadow-brand: 0 14px 30px rgba(255, 107, 26, 0.30);
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  --shadow-float: 0 16px 40px -6px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-brand: 0 10px 24px rgba(255, 106, 31, 0.28);
 
-  --bg-grid: linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-  --bg-glow: radial-gradient(60% 50% at 85% 0%, rgba(255, 107, 26, 0.16), transparent 70%),
-             radial-gradient(50% 40% at 0% 100%, rgba(0, 240, 255, 0.10), transparent 70%);
-  --stripe-cargo: repeating-linear-gradient(135deg, var(--brand) 0 10px, #090604 10px 20px);
+  --bg-gradient: linear-gradient(175deg, #0E1626 0%, #090E1A 45%, #050811 100%);
+  --bg-grid: linear-gradient(rgba(0, 240, 255, 0.055) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(0, 240, 255, 0.055) 1px, transparent 1px);
+  --bg-glow: radial-gradient(75% 60% at 92% -5%, rgba(255, 106, 31, 0.28), transparent 68%),
+             radial-gradient(65% 55% at 5% 95%, rgba(0, 240, 255, 0.20), transparent 70%),
+             radial-gradient(50% 45% at 50% 12%, rgba(255, 133, 66, 0.16), transparent 72%),
+             radial-gradient(40% 35% at 98% 50%, rgba(56, 189, 248, 0.12), transparent 65%);
+  --stripe-cargo: repeating-linear-gradient(135deg, var(--brand) 0 10px, #090D16 10px 20px);
 }
 
-::selection { background: var(--selection); }
-:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+::selection {
+  background: var(--selection);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

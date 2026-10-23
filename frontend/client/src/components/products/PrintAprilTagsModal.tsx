@@ -73,6 +73,14 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
   };
 
   const updateQuantity = (id: number, delta: number) => {
+    setSelectedIds(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      }
+      return prev;
+    });
     setQuantities(prev => {
       const current = prev[id] || 1;
       const next = Math.max(1, Math.min(200, current + delta));
@@ -81,7 +89,15 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
   };
 
   const setExactQuantity = (id: number, val: number) => {
-    const safe = Math.max(1, Math.min(200, val || 1));
+    setSelectedIds(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      }
+      return prev;
+    });
+    const safe = Math.max(1, Math.min(200, isNaN(val) ? 1 : val));
     setQuantities(prev => ({ ...prev, [id]: safe }));
   };
 
@@ -227,11 +243,16 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                       return (
                         <tr
                           key={product.id}
-                          className={`hover:bg-surface-hover transition-colors ${
-                            isSelected ? "bg-brand/5 dark:bg-brand/10" : ""
+                          onClick={() => toggleSelect(product.id)}
+                          title={isSelected ? "Clic para deseleccionar" : "Clic para seleccionar"}
+                          className={`cursor-pointer hover:bg-surface-hover transition-colors select-none ${
+                            isSelected ? "bg-brand/10 dark:bg-brand/20 font-medium" : ""
                           }`}
                         >
-                          <td className="py-2.5 px-3 text-center">
+                          <td
+                            className="py-2.5 px-3 text-center"
+                            onClick={e => e.stopPropagation()}
+                          >
                             <input
                               type="checkbox"
                               checked={isSelected}
@@ -265,13 +286,17 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                           <td className="py-2.5 px-3 text-xs text-muted-ink">
                             {product.stock} u.
                           </td>
-                          <td className="py-2.5 px-3 text-right">
+                          <td
+                            className="py-2.5 px-3 text-right"
+                            onClick={e => e.stopPropagation()}
+                          >
                             <div className="inline-flex items-center border border-line rounded-lg overflow-hidden bg-surface-sunken">
                               <button
                                 type="button"
-                                disabled={!isSelected || qty <= 1}
+                                disabled={qty <= 1}
                                 onClick={() => updateQuantity(product.id, -1)}
-                                className="px-2 py-1 hover:bg-surface-hover disabled:opacity-30 cursor-pointer"
+                                className="px-2 py-1 hover:bg-surface-hover disabled:opacity-30 cursor-pointer text-ink"
+                                aria-label="Disminuir cantidad"
                               >
                                 <Minus size={13} />
                               </button>
@@ -279,18 +304,20 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                                 type="number"
                                 min={1}
                                 max={200}
-                                disabled={!isSelected}
                                 value={qty}
-                                onChange={e =>
-                                  setExactQuantity(product.id, parseInt(e.target.value, 10))
-                                }
-                                className="w-12 text-center text-xs font-semibold py-1 bg-transparent border-0 focus:outline-hidden"
+                                onChange={e => {
+                                  const v = parseInt(e.target.value, 10);
+                                  setExactQuantity(product.id, isNaN(v) ? 1 : v);
+                                }}
+                                className="w-12 text-center text-xs font-semibold py-1 bg-transparent border-0 focus:outline-hidden text-ink"
+                                aria-label="Cantidad de etiquetas"
                               />
                               <button
                                 type="button"
-                                disabled={!isSelected || qty >= 200}
+                                disabled={qty >= 200}
                                 onClick={() => updateQuantity(product.id, 1)}
-                                className="px-2 py-1 hover:bg-surface-hover disabled:opacity-30 cursor-pointer"
+                                className="px-2 py-1 hover:bg-surface-hover disabled:opacity-30 cursor-pointer text-ink"
+                                aria-label="Aumentar cantidad"
                               >
                                 <Plus size={13} />
                               </button>

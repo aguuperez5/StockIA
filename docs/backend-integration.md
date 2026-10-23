@@ -182,6 +182,97 @@ El sistema define tres roles canónicos en `appRole`:
 - **`StockTransferService`**: Transferencias atómicas entre depósitos (`transferStock({ originId, destinationId, items, userId, photo })`) con movimientos con signo (+/-) y único `depositId` por movimiento. Descuento atómico condicional (`quantity: { gte: qty }`) para prevenir sobregiros en concurrencia. Violación del CHECK de base mapeado a `400 Bad Request`.
 - **`createSaleCompat`**: Aplicación de la misma protección de descuento condicional atómico para evitar sobreventas concurrentes en la misma línea de stock.
 
+## Endpoints de Reportes, Analítica y Toma de Decisiones
+
+### 1. `GET /api/reports`
+- **Propósito**: Genera el informe gerencial consolidado para un período específico. Cruza facturación real, stock actual, necesidades urgentes de compra, aporte por depósito y detección de mercadería estancada.
+- **Autenticación y Permisos**: Requiere sesión con rol `administrador` (`requireAppRole(ROLE.ADMIN)`).
+- **Query Parameters**:
+  - `from` (opcional, string `YYYY-MM-DD`): Fecha de inicio del período (`00:00:00.000` en hora local del servidor).
+  - `to` (opcional, string `YYYY-MM-DD`): Fecha de fin del período (`23:59:59.999` en hora local del servidor).
+- **Garantías de Exactitud**:
+  - Toda cifra monetaria se calcula en **centavos enteros** (`moneyToCents` = `Math.round(precio * 100)`), previniendo desvíos de coma flotante.
+  - La fecha local se extrae por componentes (`getFullYear`, `getMonth() + 1`, `getDate`), evitando desfasajes por corrimientos UTC de medianoche.
+  - No incluye números simulados ni proyecciones ficticias: las ventas corresponden a comprobantes efectivamente confirmados en PostgreSQL.
+- **Respuesta `200 OK`**:
+  ```json
+  {
+    "sales": {
+      "totalCents": 15400000,
+      "count": 28,
+      "averageTicketCents": 550000
+    },
+    "dailySales": [
+      { "date": "2026-10-16", "totalCents": 2100000 },
+      { "date": "2026-10-17", "totalCents": 0 },
+      { "date": "2026-10-18", "totalCents": 3400000 }
+    ],
+    "replenishment": {
+      "totalItems": 3,
+      "totalUnitsNeeded": 24,
+      "totalReferenceValueCents": 12800000,
+      "items": [
+        {
+          "productId": 5,
+          "productName": "Aceite de Girasol 1.5L",
+          "sku": "ACE-001",
+          "category": "Almacén",
+          "currentStock": 0,
+          "threshold": 10,
+          "unitsNeeded": 10,
+          "priceCents": 850000,
+          "referenceValueCents": 8500000,
+          "priority": "CRÍTICA"
+        }
+      ]
+    },
+    "warehouseBreakdown": [
+      { "id": 1, "name": "Almacén Central", "count": 18, "totalCents": 9800000, "percentage": 64 },
+      { "id": 2, "name": "Sucursal Norte", "count": 10, "totalCents": 5600000, "percentage": 36 }
+    ],
+    "topRevenue": [
+      { "productId": 12, "productName": "Yerba Mate 1kg", "sku": "YER-001", "units": 45, "revenueCents": 4500000 }
+    ],
+    "stagnantStock": {
+      "count": 4,
+      "totalUnits": 65,
+      "totalReferenceValueCents": 8900000,
+      "items": [
+        { "id": 9, "name": "Válvula Esférica 1/2", "sku": "VAL-002", "category": "Ferretería", "stock": 20, "referenceValueCents": 3200000 }
+      ]
+    },
+    "transfers": 6
+  }
+  ```
+
+### 2. `GET /api/dashboard`
+- **Propósito**: Alimenta el panel principal de control en vivo (`Home.tsx` y `DashboardCharts.tsx`).
+- **Autenticación**: Sesión activa obligatoria (`requireAuth`).
+- **Payload de Respuesta**:
+  - `products`: Conteo exacto de productos activos en catálogo (`active: true`).
+  - `warehouses`: Total de depósitos registrados en la base de datos.
+  - `inventoryValueCents`: Valuación integral de existencias a precio de lista (`sum(stock * precioLista)`).
+  - `todaySalesCents` y `todaySaleCount`: Total facturado y comprobantes emitidos desde las `00:00:00` de hoy.
+  - `salesByDay`: Ventas de los últimos 7 días continuos (hoy y los 6 días anteriores) con días en $0 si no hubo actividad.
+  - `inventoryByCategory`: Distribución real de unidades físicas y valor monetario agrupado por categoría.
+  - `inventoryStatus`: Conteo y clasificación de artículos (`Saludable`, `Bajo mínimo`, `Sin stock`).
+
+### 3. `GET /api/warehouses/:id/summary`
+- **Propósito**: Reporte específico de una sucursal o depósito para el modal gerencial y la toma de decisiones logísticas.
+- **Query Parameters**: `from`, `to` (filtrado opcional por período temporal aplicado directamente en PostgreSQL).
+- **Contenido**:
+  - `deposit`: Metadatos de la sucursal (nombre, tipo, dirección, responsable, capacidad e imagen de portada).
+  - `stock`: Inventario completo en el depósito con umbral de alerta y valuación unitaria y total.
+  - `sales`: Lista de comprobantes emitidos desde ese depósito en el período, incluyendo cliente y desglose de renglones.
+
+### 4. `GET /api/customers/:id`
+- **Propósito**: Ficha comercial integral del cliente.
+- **Garantía de Agregación**: Consulta en paralelo el historial de comprobantes (`take: 10` para vista rápida) y la agregación atómica de base de datos (`prisma.sale.aggregate`) para reflejar con exactitud matemática el total histórico real (`totalPurchasesCents`) y el total de ventas (`purchasesCount`), sin límites ni truncamiento.
+
+### 5. `GET /api/apriltags/:tagId/image`
+- **Propósito**: Sirve la etiqueta gráfica del AprilTag (formato PNG a través del microservicio de visión OpenCV o SVG vectorial determinista de respaldo).
+- **Optimización de Caché**: Cabecera `Cache-Control: public, max-age=31536000, immutable` para descarga instantánea y cero sobrecarga de red en pantallas e impresiones masivas.
+
 ## Pendiente de coordinación (fuera de este Sprint)
 
 - Integración bidireccional y recepción de fotos vía Telegram Bot (ítems 13.12 y 13.16 del backlog general).

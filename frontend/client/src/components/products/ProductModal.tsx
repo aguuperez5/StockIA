@@ -414,7 +414,7 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
         {loading ? (
           <LoadingPanel rows={6} />
         ) : (
-          <form className="form-card product-form" onSubmit={submit} noValidate>
+          <form className="product-modal-form" onSubmit={submit} noValidate>
             <div className="form-section">
               <div className="form-section-title">
                 <span>

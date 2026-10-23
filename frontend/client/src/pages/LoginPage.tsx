@@ -4,11 +4,14 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  Moon,
   Store,
+  Sun,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Field } from "@/components/StockUI";
 import {
   validateEmail,
@@ -19,6 +22,7 @@ import {
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { login } = useStockAuth();
+  const { theme, toggleTheme } = useTheme();
   const [form, setForm] = useState({ email: "", password: "" });
   const [touched, setTouched] = useState({ email: false, password: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -111,7 +115,18 @@ export default function LoginPage() {
             <em>IA</em>
           </span>
         </button>
-        <span className="auth-login-header-caption">Gestión comercial</span>
+        <div className="flex items-center gap-3">
+          <span className="auth-login-header-caption">Gestión comercial</span>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+            title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+            type="button"
+          >
+            {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+        </div>
       </header>
       <main className="auth-login-main">
         <section className="auth-login-card">

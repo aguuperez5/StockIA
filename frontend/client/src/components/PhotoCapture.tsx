@@ -255,23 +255,8 @@ export default function PhotoCapture({
       )}
 
       {analysisStatus === "no_detection" && (
-        <div
-          className="photo-capture-warning alert-warning"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "12px 14px",
-            backgroundColor: "var(--status-warn-bg)",
-            border: "1px solid var(--status-warn-border)",
-            borderRadius: "8px",
-            color: "var(--status-warn-text)",
-            marginBottom: "14px",
-            fontSize: "0.875rem",
-            lineHeight: 1.4,
-          }}
-        >
-          <AlertTriangle size={18} style={{ flexShrink: 0, color: "var(--status-warn)" }} />
+        <div className="alert-box alert-warning photo-capture-warning mb-3.5">
+          <AlertTriangle size={18} className="shrink-0 text-status-warn" />
           <div>
             <strong>Sin detección:</strong> No se identificó ningún código de barras u OCR. Intente reencuadrar la foto con mayor iluminación y nitidez, acercando el código.
           </div>

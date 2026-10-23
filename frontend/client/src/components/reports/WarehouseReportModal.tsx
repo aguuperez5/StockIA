@@ -81,16 +81,10 @@ export function WarehouseReportModal({
     };
   }, [warehouse.id, from, to, onClose]);
 
-  // Filtrado de ventas por fecha como salvaguarda
+  // Ventas del período (ya filtradas exactamente por el backend en PostgreSQL)
   const periodSales = useMemo(() => {
-    if (!summary?.sales) return [];
-    return summary.sales.filter(sale => {
-      const d = sale.createdAt.slice(0, 10);
-      if (from && d < from) return false;
-      if (to && d > to) return false;
-      return true;
-    });
-  }, [summary?.sales, from, to]);
+    return summary?.sales || [];
+  }, [summary?.sales]);
 
   // Estadísticas de stock del depósito
   const stockStats = useMemo(() => {
@@ -402,7 +396,65 @@ export function WarehouseReportModal({
               {/* VISTA 1: RESUMEN Y TOP PRODUCTOS */}
               {activeTab === "overview" && (
                 <div className="wmodal-overview-grid">
-                  {/* Alertas de inventario en este depósito */}
+                  {/* 1. Top productos vendidos en este depósito (Rotación comercial primero) */}
+                  <div className="wmodal-subcard">
+                    <div className="wmodal-subcard-header">
+                      <div className="card-tag success">
+                        <Award size={13} />
+                        <span>Rotación comercial</span>
+                      </div>
+                      <h4>Productos con mayor recaudación</h4>
+                    </div>
+
+                    {topDepositProducts.length > 0 ? (
+                      <div className="table-scroll">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th scope="col" style={{ width: "32px" }}>
+                                #
+                              </th>
+                              <th scope="col">Producto</th>
+                              <th scope="col">Unidades</th>
+                              <th scope="col">Facturación</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {topDepositProducts.map((p, idx) => (
+                              <tr key={p.productId}>
+                                <td>
+                                  <span className={`rank-pill rank-${idx + 1}`}>{idx + 1}</span>
+                                </td>
+                                <td>
+                                  <b>{p.productName}</b>
+                                  {p.sku && <small>{p.sku}</small>}
+                                </td>
+                                <td>{p.units.toLocaleString("es-AR")} un.</td>
+                                <td>
+                                  <b>{money(p.revenueCents)}</b>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : periodSales.length > 0 ? (
+                      <div className="empty-subcard-notice">
+                        <CheckCircle2 size={18} color="var(--brand)" />
+                        <span>
+                          Se registraron {periodSales.length} ventas en el período por un total de{" "}
+                          <b>{money(warehouse.totalCents)}</b>.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="empty-subcard-notice">
+                        <Package size={18} />
+                        <span>No se registraron ventas en este depósito durante el período.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. Alertas y monitoreo de stock en este depósito (debajo) */}
                   <div className="wmodal-subcard">
                     <div className="wmodal-subcard-header">
                       <div className="card-tag alert">
@@ -471,64 +523,6 @@ export function WarehouseReportModal({
                         <span className="strip-value">{summary?.stock.length ?? 0} SKUs</span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Top productos vendidos en este depósito */}
-                  <div className="wmodal-subcard">
-                    <div className="wmodal-subcard-header">
-                      <div className="card-tag success">
-                        <Award size={13} />
-                        <span>Rotación comercial</span>
-                      </div>
-                      <h4>Productos con mayor recaudación</h4>
-                    </div>
-
-                    {topDepositProducts.length > 0 ? (
-                      <div className="table-scroll">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th scope="col" style={{ width: "32px" }}>
-                                #
-                              </th>
-                              <th scope="col">Producto</th>
-                              <th scope="col">Unidades</th>
-                              <th scope="col">Facturación</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {topDepositProducts.map((p, idx) => (
-                              <tr key={p.productId}>
-                                <td>
-                                  <span className={`rank-pill rank-${idx + 1}`}>{idx + 1}</span>
-                                </td>
-                                <td>
-                                  <b>{p.productName}</b>
-                                  {p.sku && <small>{p.sku}</small>}
-                                </td>
-                                <td>{p.units.toLocaleString("es-AR")} un.</td>
-                                <td>
-                                  <b>{money(p.revenueCents)}</b>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : periodSales.length > 0 ? (
-                      <div className="empty-subcard-notice">
-                        <CheckCircle2 size={18} color="var(--brand)" />
-                        <span>
-                          Se registraron {periodSales.length} ventas en el período por un total de{" "}
-                          <b>{money(warehouse.totalCents)}</b>.
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="empty-subcard-notice">
-                        <Package size={18} />
-                        <span>No se registraron ventas en este depósito durante el período.</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
