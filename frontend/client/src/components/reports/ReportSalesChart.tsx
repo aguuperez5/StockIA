@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartEmpty } from "@/components/DashboardCharts";
-import { day, money } from "@/components/StockUI";
+import { formatAxisMoney, day, money } from "@/components/StockUI";
 import { type reportService } from "@/services/backlog";
 
 type ReportData = Awaited<ReturnType<typeof reportService.get>>;
@@ -188,7 +188,7 @@ export function ReportSalesChart({ data, from = "", to = "" }: ReportSalesChartP
                 </defs>
                 <CartesianGrid
                   vertical={false}
-                  stroke="var(--line-soft)"
+                  stroke="var(--line-subtle)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
@@ -203,9 +203,7 @@ export function ReportSalesChart({ data, from = "", to = "" }: ReportSalesChartP
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--muted-ink)", fontSize: 11.5 }}
-                  tickFormatter={value =>
-                    value === 0 ? "$0" : `$${Math.round(value / 1000)}k`
-                  }
+                  tickFormatter={formatAxisMoney}
                   allowDecimals={false}
                 />
                 <Tooltip
@@ -245,7 +243,7 @@ export function ReportSalesChart({ data, from = "", to = "" }: ReportSalesChartP
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke="var(--line-soft)"
+                  stroke="var(--line-subtle)"
                   strokeDasharray="4 4"
                 />
                 <XAxis
@@ -260,9 +258,7 @@ export function ReportSalesChart({ data, from = "", to = "" }: ReportSalesChartP
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--muted-ink)", fontSize: 11.5 }}
-                  tickFormatter={value =>
-                    value === 0 ? "$0" : `$${Math.round(value / 1000)}k`
-                  }
+                  tickFormatter={formatAxisMoney}
                   allowDecimals={false}
                 />
                 <Tooltip

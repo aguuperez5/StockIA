@@ -112,7 +112,7 @@ export function ReportDecisionGrids({
               ) : (
                 <tr>
                   <td colSpan={5} className="empty-table-cell">
-                    <CheckCircle2 size={24} color="#159666" />
+                    <CheckCircle2 size={24} color="var(--status-ok)" />
                     <span>
                       ¡Excelente! Todo el stock actual se encuentra por encima
                       del mínimo sugerido.
@@ -236,38 +236,48 @@ export function ReportDecisionGrids({
               </tr>
             </thead>
             <tbody>
-              {data.topRevenue && data.topRevenue.length > 0
-                ? data.topRevenue.map((p, index) => (
-                    <tr key={p.productId}>
-                      <td>
-                        <span className={`rank-pill rank-${index + 1}`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td>
-                        <b>{p.productName}</b>
-                        {p.sku && <small>{p.sku}</small>}
-                      </td>
-                      <td>{p.units.toLocaleString("es-AR")} un.</td>
-                      <td>
-                        <b>{money(p.revenueCents)}</b>
-                      </td>
-                    </tr>
-                  ))
-                : data.bestSellers.map((b, index) => (
-                    <tr key={b.productId}>
-                      <td>
-                        <span className={`rank-pill rank-${index + 1}`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td>
-                        <b>{b.productName}</b>
-                      </td>
-                      <td>{b.units.toLocaleString("es-AR")} un.</td>
-                      <td>—</td>
-                    </tr>
-                  ))}
+              {data.topRevenue && data.topRevenue.length > 0 ? (
+                data.topRevenue.map((p, index) => (
+                  <tr key={p.productId}>
+                    <td>
+                      <span className={`rank-pill rank-${index + 1}`}>
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td>
+                      <b>{p.productName}</b>
+                      {p.sku && <small>{p.sku}</small>}
+                    </td>
+                    <td>{p.units.toLocaleString("es-AR")} un.</td>
+                    <td>
+                      <b>{money(p.revenueCents)}</b>
+                    </td>
+                  </tr>
+                ))
+              ) : data.bestSellers && data.bestSellers.length > 0 ? (
+                data.bestSellers.map((b, index) => (
+                  <tr key={b.productId}>
+                    <td>
+                      <span className={`rank-pill rank-${index + 1}`}>
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td>
+                      <b>{b.productName}</b>
+                    </td>
+                    <td>{b.units.toLocaleString("es-AR")} un.</td>
+                    <td>—</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="empty-table-cell">
+                    <span>
+                      No se registraron ventas de productos en este período.
+                    </span>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

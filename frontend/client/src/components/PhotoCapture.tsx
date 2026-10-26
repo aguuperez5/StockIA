@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  AlertTriangle,
   Camera,
   LoaderCircle,
   RotateCcw,
@@ -250,6 +251,15 @@ export default function PhotoCapture({
           >
             <X size={13} />
           </button>
+        </div>
+      )}
+
+      {analysisStatus === "no_detection" && (
+        <div className="alert-box alert-warning photo-capture-warning mb-3.5">
+          <AlertTriangle size={18} className="shrink-0 text-status-warn" />
+          <div>
+            <strong>Sin detección:</strong> No se identificó ningún código de barras u OCR. Intente reencuadrar la foto con mayor iluminación y nitidez, acercando el código.
+          </div>
         </div>
       )}
 

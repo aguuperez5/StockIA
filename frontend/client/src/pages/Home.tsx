@@ -4,6 +4,7 @@ import {
   Boxes,
   PackageSearch,
   Plus,
+  QrCode,
   ShoppingCart,
   Warehouse,
 } from "lucide-react";
@@ -12,7 +13,6 @@ import DashboardCharts from "@/components/DashboardCharts";
 import {
   ErrorPanel,
   LoadingPanel,
-  PageHeader,
   money,
   StockBadge,
 } from "@/components/StockUI";
@@ -25,59 +25,100 @@ export default function Home() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Centro de control"
-        title="Buen día, el negocio está en orden."
-        description="Seguí la mercadería, las ventas y los puntos que necesitan tu atención."
-        action={
+      <div className="home-hero">
+        <div className="hero-content">
+          <h1 className="hero-title">
+            Buen día, el inventario está{" "}
+            <span className="hero-highlight">en orden.</span>
+          </h1>
+          <p className="hero-subtitle">
+            Monitoreo en tiempo real de mercadería, movimientos de depósitos y
+            trazabilidad visual con AprilTags.
+          </p>
+        </div>
+        <div className="hero-actions">
           <button
-            className="button-primary"
+            className="button-primary hero-btn-main"
             onClick={() => setLocation("/sales?new=1")}
           >
             <ShoppingCart size={17} />
-            Registrar venta
+            <span>Registrar venta</span>
           </button>
-        }
-      />
+          <button
+            className="button-secondary hero-btn-sub hero-btn-ai"
+            onClick={() => setLocation("/products")}
+            title="Gestionar e imprimir etiquetas AprilTags"
+          >
+            <QrCode size={16} />
+            <span>AprilTags</span>
+          </button>
+          <button
+            className="button-secondary hero-btn-sub"
+            onClick={() => setLocation("/stock")}
+            title="Ver depósitos y niveles de mercadería"
+          >
+            <Warehouse size={16} />
+            <span>Depósitos</span>
+          </button>
+        </div>
+      </div>
+
       {!data && loading && !error && <LoadingPanel rows={5} />}
       {error && <ErrorPanel message={error} retry={reload} />}
       {data && (
         <>
           <section className="metric-grid">
-            <article className="metric-card">
-              <span className="metric-icon green">
-                <Boxes size={20} />
-              </span>
+            <article className="metric-card card-blue">
+              <div className="metric-card-top">
+                <span className="metric-icon blue">
+                  <Boxes size={20} />
+                </span>
+                <span className="metric-pill blue">Catálogo</span>
+              </div>
               <div>
                 <p>Productos en catálogo</p>
                 <h2>{data.products}</h2>
                 <small>Artículos activos</small>
               </div>
             </article>
-            <article className="metric-card">
-              <span className="metric-icon terracotta">
-                <Warehouse size={20} />
-              </span>
+
+            <article className="metric-card card-scanner">
+              <div className="metric-card-top">
+                <span className="metric-icon scanner">
+                  <Warehouse size={20} />
+                </span>
+                <span className="metric-pill scanner">Ubicaciones</span>
+              </div>
               <div>
                 <p>Depósitos operativos</p>
                 <h2>{data.warehouses}</h2>
-                <small>Ubicaciones registradas</small>
+                <small>Depósitos registrados</small>
               </div>
             </article>
-            <article className="metric-card">
-              <span className="metric-icon ink">
-                <PackageSearch size={20} />
-              </span>
+
+            <article className="metric-card card-deep-blue">
+              <div className="metric-card-top">
+                <span className="metric-icon deep-blue">
+                  <PackageSearch size={20} />
+                </span>
+                <span className="metric-pill deep-blue">Lista</span>
+              </div>
               <div>
                 <p>Valor de inventario</p>
                 <h2>{money(data.inventoryValueCents)}</h2>
                 <small>Según precio de lista</small>
               </div>
             </article>
-            <article className="metric-card">
-              <span className="metric-icon amber">
-                <ShoppingCart size={20} />
-              </span>
+
+            <article className="metric-card card-brand">
+              <div className="metric-card-top">
+                <span className="metric-icon brand">
+                  <ShoppingCart size={20} />
+                </span>
+                <span className="metric-pill brand">
+                  <span className="mini-pulse-dot" /> En vivo
+                </span>
+              </div>
               <div>
                 <p>Ventas de hoy</p>
                 <h2>{money(data.todaySalesCents)}</h2>
@@ -89,7 +130,9 @@ export default function Home() {
               </div>
             </article>
           </section>
+
           <DashboardCharts data={data} />
+
           <section className="dashboard-grid">
             <article className="ledger-card">
               <div className="card-heading">
@@ -99,7 +142,7 @@ export default function Home() {
                 </div>
                 <button
                   className="text-button"
-                  onClick={() => setLocation("/stock")}
+                  onClick={() => setLocation("/stock?filter=low")}
                 >
                   Ver todo <ArrowUpRight size={15} />
                 </button>
@@ -140,6 +183,7 @@ export default function Home() {
                 </div>
               )}
             </article>
+
             <article className="quick-card">
               <div>
                 <p className="eyebrow">Acciones rápidas</p>
@@ -156,6 +200,16 @@ export default function Home() {
                   <div>
                     <b>Incorporar producto</b>
                     <small>Catálogo y stock inicial</small>
+                  </div>
+                  <ArrowUpRight size={16} />
+                </button>
+                <button onClick={() => setLocation("/products")}>
+                  <span className="action-icon-apriltag">
+                    <QrCode size={17} />
+                  </span>
+                  <div>
+                    <b>Imprimir AprilTags</b>
+                    <small>Etiquetas de alta precisión</small>
                   </div>
                   <ArrowUpRight size={16} />
                 </button>

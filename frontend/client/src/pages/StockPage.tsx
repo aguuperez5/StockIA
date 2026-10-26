@@ -28,6 +28,7 @@ import {
 import { WarehouseCard } from "@/components/stock/WarehouseCard";
 import { WarehouseFormModal } from "@/components/stock/WarehouseFormModal";
 import { WarehouseDetailModal } from "@/components/stock/WarehouseDetailModal";
+import { NewTransferModal } from "@/components/transfers/NewTransferModal";
 import {
   inventoryService,
   type InventoryItem,
@@ -75,12 +76,33 @@ export default function StockPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
+  const [transferModalState, setTransferModalState] = useState<{
+    isOpen: boolean;
+    destinationWarehouseId?: number | string;
+    productId?: number;
+    quantity?: number;
+  }>({ isOpen: false });
+
+  // Deep linking: leer parámetros iniciales de la URL (ej. ?filter=low o ?warehouseId=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const filterParam = params.get("filter");
+    const warehouseParam = params.get("warehouseId");
+
+    if (filterParam && ["all", "available", "low", "out"].includes(filterParam)) {
+      setStockFilter(filterParam);
+    }
+    if (warehouseParam) {
+      setWarehouseId(warehouseParam);
+    }
+  }, []);
 
   const loadWarehouses = () =>
     warehouseService
       .list()
       .then(result => setWarehouses(result.items))
       .catch((reason: Error) => setError(reason.message));
+
   const load = () => {
     setLoading(true);
     setError("");
@@ -99,9 +121,20 @@ export default function StockPage() {
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
   };
+
   useEffect(() => {
     void load();
   }, [warehouseId, stockFilter]);
+
+  const openQuickTransfer = (item: InventoryItem) => {
+    const needed = Math.max(1, item.lowStockThreshold - item.quantity);
+    setTransferModalState({
+      isOpen: true,
+      destinationWarehouseId: item.warehouseId,
+      productId: item.productId,
+      quantity: needed,
+    });
+  };
 
   const openAdjustment = (item: InventoryItem) => {
     setSelected(item);
@@ -273,16 +306,21 @@ export default function StockPage() {
   };
 
   const clearAdvancedFilters = () => {
+    setCategoryFilter("Todas");
     setStockFilter("all");
     setMinQuantity("");
     setMaxQuantity("");
   };
 
   const hasAdvancedFilters = Boolean(
-    stockFilter !== "all" || minQuantity !== "" || maxQuantity !== ""
+    categoryFilter !== "Todas" ||
+      stockFilter !== "all" ||
+      minQuantity !== "" ||
+      maxQuantity !== ""
   );
 
   const advancedCount =
+    (categoryFilter !== "Todas" ? 1 : 0) +
     (stockFilter !== "all" ? 1 : 0) +
     (minQuantity !== "" || maxQuantity !== "" ? 1 : 0);
 
@@ -398,6 +436,17 @@ export default function StockPage() {
 
       {/* Filtros de la tabla de stock */}
       <div className="stock-toolbar">
+        {/* 1. Barra de búsqueda */}
+        <label className="search-control">
+          <Search size={15} />
+          <input
+            value={productSearch}
+            onChange={event => setProductSearch(event.target.value)}
+            placeholder="Buscar producto, SKU o depósito"
+          />
+        </label>
+
+        {/* 2. Filtro por depósito */}
         <ModernSelect
           value={warehouseId}
           onChange={setWarehouseId}
@@ -411,21 +460,8 @@ export default function StockPage() {
           icon={<Filter size={15} />}
           ariaLabel="Filtrar por depósito"
         />
-        <label className="search-control">
-          <Search size={15} />
-          <input
-            value={productSearch}
-            onChange={event => setProductSearch(event.target.value)}
-            placeholder="Buscar producto, SKU o depósito"
-          />
-        </label>
-        <ModernSelect
-          value={categoryFilter}
-          onChange={setCategoryFilter}
-          options={categories}
-          ariaLabel="Filtrar por categoría"
-        />
 
+        {/* 3. Botón de Filtros (incluye categorías, nivel de stock y unidades) */}
         <Popover>
           <PopoverTrigger asChild>
             <button
@@ -459,6 +495,22 @@ export default function StockPage() {
                     Restablecer
                   </button>
                 )}
+              </div>
+
+              <div className="filter-popover-item">
+                <label>Categoría</label>
+                <ModernSelect
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  options={[
+                    { value: "Todas", label: "Todas las categorías" },
+                    ...categories
+                      .filter(c => c !== "Todas")
+                      .map(c => ({ value: c, label: c })),
+                  ]}
+                  ariaLabel="Filtrar por categoría"
+                  minWidth="100%"
+                />
               </div>
 
               <div className="filter-popover-item">
@@ -598,14 +650,71 @@ export default function StockPage() {
                             >
                               <Edit3 size={16} />
                             </button>
-                            <button
-                              className="icon-button"
-                              onClick={() => openMove(item)}
-                              aria-label={`Transferir ${item.productName}`}
-                              title="Transferir entre depósitos"
-                            >
-                              <ArrowLeftRight size={16} />
-                            </button>
+                            {(() => {
+                              const isOutOfStock = item.quantity === 0;
+                              const isLowStock =
+                                item.quantity <= item.lowStockThreshold;
+                              const isReplenish = isOutOfStock || isLowStock;
+
+                              const title = isOutOfStock
+                                ? `⚠️ Sin stock: Pedir transferencia / reposición para "${item.productName}" hacia ${item.warehouseName}`
+                                : isLowStock
+                                ? `⚠️ Stock bajo (${item.quantity} u.): Pedir transferencia / reposición para "${item.productName}" hacia ${item.warehouseName}`
+                                : "Transferir entre depósitos";
+
+                              return (
+                                <button
+                                  className={`icon-button ${
+                                    isOutOfStock
+                                      ? "out-of-stock"
+                                      : isLowStock
+                                      ? "warning"
+                                      : ""
+                                  }`}
+                                  style={{
+                                    position: "relative",
+                                    ...(isOutOfStock
+                                      ? {
+                                          color: "var(--status-critical)",
+                                          borderColor: "var(--status-critical-border)",
+                                          backgroundColor: "var(--status-critical-bg)",
+                                        }
+                                      : isLowStock
+                                      ? {
+                                          color: "var(--status-warn)",
+                                          borderColor: "var(--status-warn-border)",
+                                          backgroundColor: "var(--status-warn-bg)",
+                                        }
+                                      : {}),
+                                  }}
+                                  onClick={() =>
+                                    isReplenish
+                                      ? openQuickTransfer(item)
+                                      : openMove(item)
+                                  }
+                                  aria-label={title}
+                                  title={title}
+                                >
+                                  <ArrowLeftRight size={16} />
+                                  {isReplenish && (
+                                    <span
+                                      style={{
+                                        position: "absolute",
+                                        top: "-2px",
+                                        right: "-2px",
+                                        width: "7px",
+                                        height: "7px",
+                                        borderRadius: "50%",
+                                        backgroundColor: isOutOfStock
+                                          ? "var(--status-critical)"
+                                          : "var(--status-warn)",
+                                        boxShadow: "0 0 0 1.5px var(--surface)",
+                                      }}
+                                    />
+                                  )}
+                                </button>
+                              );
+                            })()}
                           </span>
                         )}
                       </td>
@@ -750,6 +859,21 @@ export default function StockPage() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Modal de transferencia rápida completa */}
+      {transferModalState.isOpen && (
+        <NewTransferModal
+          isOpen={transferModalState.isOpen}
+          onClose={() => setTransferModalState({ isOpen: false })}
+          onSuccess={() => {
+            setTransferModalState({ isOpen: false });
+            load();
+          }}
+          initialDestinationWarehouseId={transferModalState.destinationWarehouseId}
+          initialProductId={transferModalState.productId}
+          initialQuantity={transferModalState.quantity}
+        />
       )}
     </div>
   );

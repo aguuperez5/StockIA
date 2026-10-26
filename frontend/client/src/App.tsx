@@ -50,6 +50,9 @@ function WorkspaceRoutes() {
           <Redirect to="/stock" />
         </Route>
         <Route path="/stock" component={StockPage} />
+        <Route path="/alerts">
+          <Redirect to="/stock?filter=low" />
+        </Route>
         <Route path="/sales/new">
           <RequireRole roles={["administrador", "caja"]}>
             <Redirect to="/sales?new=1" />

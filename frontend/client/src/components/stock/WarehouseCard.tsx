@@ -55,7 +55,7 @@ export function WarehouseCard({
               <Edit3 size={15} />
             </button>
             <button
-              className="icon-button"
+              className="icon-button danger"
               onClick={event => {
                 event.stopPropagation();
                 onDelete();

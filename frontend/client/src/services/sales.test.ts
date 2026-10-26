@@ -18,7 +18,7 @@ describe("StockIA dashboard analytics service", () => {
       inventoryByCategory: [
         { category: "Bebidas", units: 12, valueCents: 48000 },
       ],
-      inventoryStatus: [{ label: "Saludable", value: 4, color: "#159666" }],
+      inventoryStatus: [{ label: "Saludable", value: 4, color: "var(--status-ok)" }],
     };
     const fetchMock = vi
       .fn()

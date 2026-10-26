@@ -81,16 +81,10 @@ export function WarehouseReportModal({
     };
   }, [warehouse.id, from, to, onClose]);
 
-  // Filtrado de ventas por fecha como salvaguarda
+  // Ventas del período (ya filtradas exactamente por el backend en PostgreSQL)
   const periodSales = useMemo(() => {
-    if (!summary?.sales) return [];
-    return summary.sales.filter(sale => {
-      const d = sale.createdAt.slice(0, 10);
-      if (from && d < from) return false;
-      if (to && d > to) return false;
-      return true;
-    });
-  }, [summary?.sales, from, to]);
+    return summary?.sales || [];
+  }, [summary?.sales]);
 
   // Estadísticas de stock del depósito
   const stockStats = useMemo(() => {
@@ -402,78 +396,7 @@ export function WarehouseReportModal({
               {/* VISTA 1: RESUMEN Y TOP PRODUCTOS */}
               {activeTab === "overview" && (
                 <div className="wmodal-overview-grid">
-                  {/* Alertas de inventario en este depósito */}
-                  <div className="wmodal-subcard">
-                    <div className="wmodal-subcard-header">
-                      <div className="card-tag alert">
-                        <AlertTriangle size={13} />
-                        <span>Monitoreo de stock</span>
-                      </div>
-                      <h4>Salud del inventario en {warehouse.name}</h4>
-                    </div>
-
-                    {stockStats.lowStockItems.length > 0 ? (
-                      <div className="low-stock-alert-box">
-                        <div className="alert-message-header">
-                          <AlertTriangle size={16} color="#d88936" />
-                          <span>
-                            Hay <b>{stockStats.lowStockItems.length} productos</b> en este
-                            depósito por debajo o en su nivel de stock mínimo.
-                          </span>
-                        </div>
-                        <ul className="low-stock-items-preview">
-                          {stockStats.lowStockItems.slice(0, 4).map(item => (
-                            <li key={item.productId}>
-                              <span>{item.productName}</span>
-                              <b>
-                                {item.quantity} / {item.threshold} un.
-                              </b>
-                            </li>
-                          ))}
-                        </ul>
-                        <button
-                          type="button"
-                          className="button-link text-xs"
-                          onClick={() => {
-                            setActiveTab("inventory");
-                            setInventoryFilter("low");
-                          }}
-                        >
-                          Ver todos los faltantes en inventario →
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="ok-stock-box">
-                        <CheckCircle2 size={20} color="#159666" />
-                        <div>
-                          <b>Inventario en niveles óptimos</b>
-                          <p>
-                            Ningún artículo en este depósito se encuentra por debajo de su umbral de
-                            alerta.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="warehouse-info-strip">
-                      <div className="info-strip-item">
-                        <span className="strip-label">Tipo de depósito:</span>
-                        <span className="strip-value">{summary?.deposit.type || "Principal"}</span>
-                      </div>
-                      {summary?.deposit.capacity ? (
-                        <div className="info-strip-item">
-                          <span className="strip-label">Capacidad máxima:</span>
-                          <span className="strip-value">{summary.deposit.capacity} un.</span>
-                        </div>
-                      ) : null}
-                      <div className="info-strip-item">
-                        <span className="strip-label">Artículos diferentes:</span>
-                        <span className="strip-value">{summary?.stock.length ?? 0} SKUs</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top productos vendidos en este depósito */}
+                  {/* 1. Top productos vendidos en este depósito (Rotación comercial primero) */}
                   <div className="wmodal-subcard">
                     <div className="wmodal-subcard-header">
                       <div className="card-tag success">
@@ -529,6 +452,77 @@ export function WarehouseReportModal({
                         <span>No se registraron ventas en este depósito durante el período.</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* 2. Alertas y monitoreo de stock en este depósito (debajo) */}
+                  <div className="wmodal-subcard">
+                    <div className="wmodal-subcard-header">
+                      <div className="card-tag alert">
+                        <AlertTriangle size={13} />
+                        <span>Monitoreo de stock</span>
+                      </div>
+                      <h4>Salud del inventario en {warehouse.name}</h4>
+                    </div>
+
+                    {stockStats.lowStockItems.length > 0 ? (
+                      <div className="low-stock-alert-box">
+                        <div className="alert-message-header">
+                          <AlertTriangle size={16} color="var(--status-warn)" />
+                          <span>
+                            Hay <b>{stockStats.lowStockItems.length} productos</b> en este
+                            depósito por debajo o en su nivel de stock mínimo.
+                          </span>
+                        </div>
+                        <ul className="low-stock-items-preview">
+                          {stockStats.lowStockItems.slice(0, 4).map(item => (
+                            <li key={item.productId}>
+                              <span>{item.productName}</span>
+                              <b>
+                                {item.quantity} / {item.threshold} un.
+                              </b>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          className="button-link text-xs"
+                          onClick={() => {
+                            setActiveTab("inventory");
+                            setInventoryFilter("low");
+                          }}
+                        >
+                          Ver todos los faltantes en inventario →
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="ok-stock-box">
+                        <CheckCircle2 size={20} color="var(--status-ok)" />
+                        <div>
+                          <b>Inventario en niveles óptimos</b>
+                          <p>
+                            Ningún artículo en este depósito se encuentra por debajo de su umbral de
+                            alerta.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="warehouse-info-strip">
+                      <div className="info-strip-item">
+                        <span className="strip-label">Tipo de depósito:</span>
+                        <span className="strip-value">{summary?.deposit.type || "Principal"}</span>
+                      </div>
+                      {summary?.deposit.capacity ? (
+                        <div className="info-strip-item">
+                          <span className="strip-label">Capacidad máxima:</span>
+                          <span className="strip-value">{summary.deposit.capacity} un.</span>
+                        </div>
+                      ) : null}
+                      <div className="info-strip-item">
+                        <span className="strip-label">Artículos diferentes:</span>
+                        <span className="strip-value">{summary?.stock.length ?? 0} SKUs</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -614,9 +608,9 @@ export function WarehouseReportModal({
                                   <b
                                     style={{
                                       color: isZero
-                                        ? "var(--danger-ink)"
+                                        ? "var(--status-critical-text)"
                                         : isLow
-                                        ? "var(--warning-ink)"
+                                        ? "var(--status-warn-text)"
                                         : "inherit",
                                     }}
                                   >

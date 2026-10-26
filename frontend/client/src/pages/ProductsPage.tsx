@@ -82,16 +82,18 @@ export default function ProductsPage() {
       setDeleting(false);
     }
   };
-  const categories = useMemo(
+  const categoryOptions = useMemo(
     () => [
-      "Todas",
+      { value: "Todas", label: "Categorías" },
       ...Array.from(
         new Set(
           items
             .map(item => item.category?.trim())
             .filter((c): c is string => Boolean(c && c.length > 0))
         )
-      ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })),
+      )
+        .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+        .map(c => ({ value: c, label: c })),
     ],
     [items]
   );
@@ -211,7 +213,7 @@ export default function ProductsPage() {
         <ModernSelect
           value={category}
           onChange={setCategory}
-          options={categories}
+          options={categoryOptions}
           icon={<SlidersHorizontal size={15} />}
           ariaLabel="Filtrar por categoría"
         />
@@ -346,6 +348,7 @@ export default function ProductsPage() {
                     <th scope="col">Categoría</th>
                     <th scope="col">Precio</th>
                     <th scope="col">Stock total</th>
+                    <th scope="col">Mínimo</th>
                     <th scope="col">Estado</th>
                     <th scope="col" aria-label="Acciones" />
                   </tr>
@@ -388,9 +391,11 @@ export default function ProductsPage() {
                         <span className="category-tag">{item.category}</span>
                       </td>
                       <td className="mono">{money(item.priceCents)}</td>
-                      <td>
+                      <td className="stock-number">
                         <b>{item.stock} u.</b>
-                        <small>Mínimo: {item.lowStockThreshold}</small>
+                      </td>
+                      <td className="mono">
+                        {item.lowStockThreshold} u.
                       </td>
                       <td>
                         {item.active ? (
@@ -482,7 +487,7 @@ export default function ProductsPage() {
                 void confirmDelete();
               }}
               disabled={deleting}
-              className="bg-red-700 hover:bg-red-800"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {deleting ? "Dando de baja…" : "Dar de baja"}
             </AlertDialogAction>

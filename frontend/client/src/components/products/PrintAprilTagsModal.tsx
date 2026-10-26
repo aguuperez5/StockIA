@@ -73,6 +73,14 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
   };
 
   const updateQuantity = (id: number, delta: number) => {
+    setSelectedIds(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      }
+      return prev;
+    });
     setQuantities(prev => {
       const current = prev[id] || 1;
       const next = Math.max(1, Math.min(200, current + delta));
@@ -81,7 +89,15 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
   };
 
   const setExactQuantity = (id: number, val: number) => {
-    const safe = Math.max(1, Math.min(200, val || 1));
+    setSelectedIds(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      }
+      return prev;
+    });
+    const safe = Math.max(1, Math.min(200, isNaN(val) ? 1 : val));
     setQuantities(prev => ({ ...prev, [id]: safe }));
   };
 
@@ -115,20 +131,20 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-overlay backdrop-blur-xs">
       {/* Contenedor Modal */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl flex flex-col w-full max-w-4xl max-h-[92vh] overflow-hidden no-print">
+      <div className="bg-surface border border-line rounded-xl shadow-2xl flex flex-col w-full max-w-4xl max-h-[92vh] overflow-hidden no-print">
         {/* Cabecera del modal */}
-        <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-b border-line flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-brand/10 text-brand rounded-lg">
               <Printer size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
+              <h2 className="text-lg font-bold text-ink">
                 Imprimir Códigos AprilTag (tag36h11)
               </h2>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted-ink">
                 Grilla A4 de alta precisión (25 mm x 25 mm con quiet zone y bordes nítidos).
               </p>
             </div>
@@ -136,7 +152,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded-md"
+            className="p-1.5 text-subtle-ink hover:text-ink rounded-md"
             aria-label="Cerrar modal"
           >
             <X size={20} />
@@ -151,21 +167,21 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
               <div className="relative flex-1">
                 <Search
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle-ink"
                 />
                 <input
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Buscar por producto, SKU o ID de AprilTag..."
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-surface-sunken border border-input rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
                 />
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 cursor-pointer font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line hover:bg-surface-hover text-ink cursor-pointer font-medium"
                 >
                   <CheckSquare size={14} />
                   <span>Seleccionar todos</span>
@@ -174,7 +190,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                   <button
                     type="button"
                     onClick={deselectAll}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 cursor-pointer font-medium"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line hover:bg-surface-hover text-ink cursor-pointer font-medium"
                   >
                     <Square size={14} />
                     <span>Deseleccionar ({selectedIds.size})</span>
@@ -185,14 +201,14 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
 
             {/* Listado de productos */}
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-12 text-neutral-500">
+              <div className="text-center py-12 text-muted-ink">
                 <AlertCircle size={32} className="mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No se encontraron productos con AprilTag asignado.</p>
               </div>
             ) : (
-              <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
+              <div className="border border-line rounded-lg overflow-hidden">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-neutral-50 dark:bg-neutral-800/60 border-b border-neutral-200 dark:border-neutral-800 text-xs text-neutral-600 dark:text-neutral-400">
+                  <thead className="bg-surface-sunken border-b border-line text-xs text-muted-ink">
                     <tr>
                       <th className="py-2.5 px-3 w-10 text-center">
                         <input
@@ -209,7 +225,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                             if (e.target.checked) selectAll();
                             else deselectAll();
                           }}
-                          className="rounded-sm border-neutral-300 text-brand focus:ring-brand cursor-pointer"
+                          className="rounded-sm border-line text-brand focus:ring-brand cursor-pointer"
                         />
                       </th>
                       <th className="py-2.5 px-3">AprilTag</th>
@@ -218,7 +234,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                       <th className="py-2.5 px-3 text-right">Cantidad de etiquetas</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                  <tbody className="divide-y divide-line">
                     {filteredProducts.map(product => {
                       const isSelected = selectedIds.has(product.id);
                       const qty = quantities[product.id] || 1;
@@ -227,16 +243,21 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                       return (
                         <tr
                           key={product.id}
-                          className={`hover:bg-neutral-50/70 dark:hover:bg-neutral-800/50 transition-colors ${
-                            isSelected ? "bg-brand/5 dark:bg-brand/10" : ""
+                          onClick={() => toggleSelect(product.id)}
+                          title={isSelected ? "Clic para deseleccionar" : "Clic para seleccionar"}
+                          className={`cursor-pointer hover:bg-surface-hover transition-colors select-none ${
+                            isSelected ? "bg-brand/10 dark:bg-brand/20 font-medium" : ""
                           }`}
                         >
-                          <td className="py-2.5 px-3 text-center">
+                          <td
+                            className="py-2.5 px-3 text-center"
+                            onClick={e => e.stopPropagation()}
+                          >
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelect(product.id)}
-                              className="rounded-sm border-neutral-300 text-brand focus:ring-brand cursor-pointer"
+                              className="rounded-sm border-line text-brand focus:ring-brand cursor-pointer"
                             />
                           </td>
                           <td className="py-2.5 px-3">
@@ -246,32 +267,36 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                                 alt={`Tag ${formattedTag}`}
                                 width={26}
                                 height={26}
-                                className="rounded-xs border border-neutral-200 dark:border-neutral-700 bg-white"
+                                className="rounded-xs border border-line bg-surface"
                                 style={{ imageRendering: "pixelated" }}
                               />
-                              <span className="font-mono text-xs font-semibold">
+                              <span className="font-mono text-xs font-semibold text-[var(--scanner)]">
                                 {formattedTag}
                               </span>
                             </div>
                           </td>
                           <td className="py-2.5 px-3">
-                            <div className="font-medium text-neutral-900 dark:text-neutral-100">
+                            <div className="font-medium text-ink">
                               {product.name}
                             </div>
-                            <div className="text-xs font-mono text-neutral-500">
+                            <div className="text-xs font-mono text-[var(--muted-ink)]">
                               {product.sku}
                             </div>
                           </td>
-                          <td className="py-2.5 px-3 text-xs text-neutral-600 dark:text-neutral-300">
+                          <td className="py-2.5 px-3 text-xs text-muted-ink">
                             {product.stock} u.
                           </td>
-                          <td className="py-2.5 px-3 text-right">
-                            <div className="inline-flex items-center border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-hidden bg-white dark:bg-neutral-800">
+                          <td
+                            className="py-2.5 px-3 text-right"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <div className="inline-flex items-center border border-line rounded-lg overflow-hidden bg-surface-sunken">
                               <button
                                 type="button"
-                                disabled={!isSelected || qty <= 1}
+                                disabled={qty <= 1}
                                 onClick={() => updateQuantity(product.id, -1)}
-                                className="px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer"
+                                className="px-2 py-1 hover:bg-surface-hover disabled:opacity-30 cursor-pointer text-ink"
+                                aria-label="Disminuir cantidad"
                               >
                                 <Minus size={13} />
                               </button>
@@ -279,18 +304,20 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                                 type="number"
                                 min={1}
                                 max={200}
-                                disabled={!isSelected}
                                 value={qty}
-                                onChange={e =>
-                                  setExactQuantity(product.id, parseInt(e.target.value, 10))
-                                }
-                                className="w-12 text-center text-xs font-semibold py-1 bg-transparent border-0 focus:outline-hidden"
+                                onChange={e => {
+                                  const v = parseInt(e.target.value, 10);
+                                  setExactQuantity(product.id, isNaN(v) ? 1 : v);
+                                }}
+                                className="w-12 text-center text-xs font-semibold py-1 bg-transparent border-0 focus:outline-hidden text-ink"
+                                aria-label="Cantidad de etiquetas"
                               />
                               <button
                                 type="button"
-                                disabled={!isSelected || qty >= 200}
+                                disabled={qty >= 200}
                                 onClick={() => updateQuantity(product.id, 1)}
-                                className="px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer"
+                                className="px-2 py-1 hover:bg-surface-hover disabled:opacity-30 cursor-pointer text-ink"
+                                aria-label="Aumentar cantidad"
                               >
                                 <Plus size={13} />
                               </button>
@@ -306,7 +333,8 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
           </div>
         ) : (
           /* Vista Previa de la Grilla A4 */
-          <div className="flex-1 overflow-y-auto p-6 bg-neutral-100 dark:bg-neutral-950 flex flex-col items-center">
+          <div className="flex-1 overflow-y-auto p-6 bg-paper flex flex-col items-center">
+            {/* print-sheet: color literal intencional (impresión/escaneo) */}
             <div className="w-full max-w-[210mm] bg-white text-neutral-900 shadow-xl p-[8mm] border border-neutral-300 min-h-[297mm] rounded-sm">
               <div className="text-[10px] text-neutral-400 font-mono text-center border-b pb-2 mb-4">
                 VISTA PREVIA DE IMPRESIÓN — Hoja A4 (210 mm x 297 mm) • AprilTags tag36h11 (25 mm x 25 mm)
@@ -352,16 +380,16 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
         )}
 
         {/* Barra inferior resumen y acciones */}
-        <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="px-6 py-4 border-t border-line bg-surface flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
-              <FileText size={15} className="text-neutral-500" />
+              <FileText size={15} className="text-muted-ink" />
               <span>
                 <b>{selectedIds.size}</b> productos seleccionados
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Printer size={15} className="text-neutral-500" />
+              <Printer size={15} className="text-muted-ink" />
               <span>
                 <b>{totalStickers}</b> etiquetas (~{estimatedPages}{" "}
                 {estimatedPages === 1 ? "hoja A4" : "hojas A4"})
@@ -375,7 +403,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setPreviewMode(false)}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-line rounded-lg hover:bg-surface-hover text-ink transition-colors"
                 >
                   <ArrowLeft size={16} />
                   <span>Volver a selección</span>
@@ -384,7 +412,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                   type="button"
                   disabled={totalStickers === 0}
                   onClick={handlePrint}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-white rounded-lg shadow-sm hover:bg-brand-strong transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-brand-ink rounded-lg shadow-xs hover:bg-brand-hover transition-colors cursor-pointer"
                 >
                   <Printer size={16} />
                   <span>Imprimir / Guardar PDF</span>
@@ -395,7 +423,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium border border-line rounded-lg hover:bg-surface-hover text-ink transition-colors"
                 >
                   Cancelar
                 </button>
@@ -403,7 +431,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                   type="button"
                   disabled={totalStickers === 0}
                   onClick={() => setPreviewMode(true)}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-line rounded-lg hover:bg-surface-hover text-ink transition-colors"
                 >
                   <Eye size={16} />
                   <span>Vista Previa A4</span>
@@ -412,7 +440,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                   type="button"
                   disabled={totalStickers === 0}
                   onClick={handlePrint}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-white rounded-lg shadow-sm hover:bg-brand-strong transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium bg-brand text-brand-ink rounded-lg shadow-xs hover:bg-brand-hover transition-colors cursor-pointer"
                 >
                   <Printer size={16} />
                   <span>Imprimir ({totalStickers})</span>
@@ -424,6 +452,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
       </div>
 
       {/* Estructura exclusiva para impresión (visible únicamente en @media print) */}
+      {/* print-sheet: color literal intencional (impresión/escaneo) */}
       <div className="hidden print:block fixed inset-0 bg-white text-black p-0 m-0 z-9999">
         <div
           className="grid gap-[2.5mm]"

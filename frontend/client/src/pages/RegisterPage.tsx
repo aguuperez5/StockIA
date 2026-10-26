@@ -3,18 +3,22 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  Moon,
   Store,
+  Sun,
   UserRoundPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useStockAuth } from "@/contexts/StockAuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Field } from "@/components/StockUI";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { register } = useStockAuth();
+  const { theme, toggleTheme } = useTheme();
   const [form, setForm] = useState({
     fullName: "",
     legajo: "",
@@ -72,7 +76,18 @@ export default function RegisterPage() {
             <em>IA</em>
           </span>
         </button>
-        <span className="auth-login-header-caption">Gestión comercial</span>
+        <div className="flex items-center gap-3">
+          <span className="auth-login-header-caption">Gestión comercial</span>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+            title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+            type="button"
+          >
+            {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+        </div>
       </header>
       <main className="auth-login-main auth-register-main">
         <section className="auth-login-card auth-register-card">

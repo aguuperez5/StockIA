@@ -48,7 +48,9 @@ Sistema inteligente de reconocimiento visual de productos para automatizar punto
 - 📦 [Reglas de Negocio de Stock, Concurrencia y Multi-Sucursal](docs/stock-rules.md)
 - 🏷️ [Reglas de Precios Dinámicos por Volumen](docs/pricing.md)
 - 🛒 [Flujo Transaccional de Venta Asistida](docs/flujo-venta-manual.md)
-- 🔌 [Contrato de Integración y Endpoints de API Backend](docs/backend-integration.md)
+- 🔌 [Contrato de Integración y Endpoints de API Backend (incluye Reportes y Analítica)](docs/backend-integration.md)
+- 👁️ [Arquitectura de Reconocimiento Visual (AprilTags tag36h11)](docs/reconocimiento-apriltags.md)
+- 🏷️ [Asignación Automática e Impresión de AprilTags en Hoja A4](docs/implementacion-apriltags-impresion.md)
 - 🎨 [Especificación y Wireframes de Interfaces UI (SB-061)](docs/disenos-ui.md)
 - ⚙️ [Instructivo de Instalación y Puesta en Marcha](docs/installation.md)
 
