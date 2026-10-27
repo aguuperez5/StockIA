@@ -35,6 +35,7 @@ import {
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
 import { ProductModal } from "@/components/products/ProductModal";
+import { useCategories } from "@/components/products/CategorySelect";
 import { AprilTagBadge } from "@/components/products/AprilTagBadge";
 import { PrintAprilTagsModal } from "@/components/products/PrintAprilTagsModal";
 import { productService, type Product } from "@/services/products";
@@ -82,20 +83,23 @@ export default function ProductsPage() {
       setDeleting(false);
     }
   };
+  const { categories } = useCategories();
   const categoryOptions = useMemo(
     () => [
       { value: "Todas", label: "Categorías" },
-      ...Array.from(
-        new Set(
-          items
-            .map(item => item.category?.trim())
-            .filter((c): c is string => Boolean(c && c.length > 0))
-        )
-      )
-        .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
-        .map(c => ({ value: c, label: c })),
+      ...(categories.length > 0
+        ? categories.map(c => ({ value: c.name, label: c.name }))
+        : Array.from(
+            new Set(
+              items
+                .map(item => item.category?.trim())
+                .filter((c): c is string => Boolean(c && c.length > 0))
+            )
+          )
+            .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+            .map(c => ({ value: c, label: c }))),
     ],
-    [items]
+    [categories, items]
   );
   const filteredItems = useMemo(
     () =>

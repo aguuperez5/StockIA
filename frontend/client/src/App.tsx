@@ -15,6 +15,7 @@ import {
 } from "@/pages/TransfersPages";
 import { ClientsPage, ClientDetailPage } from "@/pages/ClientsPages";
 import ReportsPage from "@/pages/ReportsPage";
+import SettingsPage from "@/pages/SettingsPage";
 import TelegramOffersPage from "@/pages/TelegramOffersPage";
 import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -73,6 +74,11 @@ function WorkspaceRoutes() {
         <Route path="/reports">
           <RequireRole roles={["administrador"]}>
             <ReportsPage />
+          </RequireRole>
+        </Route>
+        <Route path="/settings">
+          <RequireRole roles={["administrador"]}>
+            <SettingsPage />
           </RequireRole>
         </Route>
         <Route path="/team">

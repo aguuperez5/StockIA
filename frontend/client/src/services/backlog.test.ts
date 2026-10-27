@@ -50,6 +50,57 @@ describe("StockIA backlog services", () => {
       expect.stringContaining("/api/telegram/4"),
       expect.objectContaining({ method: "PATCH" })
     );
+    await telegramService.list({ status: "Borrador", search: "yerba" });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram?"),
+      expect.any(Object)
+    );
+    await telegramService.create({
+      title: "Oferta de la semana",
+      message: "Mensaje de campaña suficientemente largo",
+      items: [{ productId: 1, offerPrice: null }],
+      customerIds: [],
+      status: "Borrador",
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram"),
+      expect.objectContaining({ method: "POST" })
+    );
+    await telegramService.update(4, {
+      title: "Oferta editada",
+      message: "Mensaje de campaña suficientemente largo",
+      items: [{ productId: 1, offerPrice: 90 }],
+      customerIds: [2],
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram/4"),
+      expect.objectContaining({ method: "PUT" })
+    );
+    await telegramService.preview(4, 2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram/4/preview?customerId=2"),
+      expect.any(Object)
+    );
+    await telegramService.suggest(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram/suggest?customerId=2"),
+      expect.any(Object)
+    );
+    await telegramService.duplicate(4);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram/4/duplicate"),
+      expect.objectContaining({ method: "POST" })
+    );
+    await telegramService.broadcast(4);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram/4/broadcast"),
+      expect.objectContaining({ method: "POST" })
+    );
+    await telegramService.remove(4);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining("/api/telegram/4"),
+      expect.objectContaining({ method: "DELETE" })
+    );
     await reportService.get("2026-01-01", "2026-01-31");
     expect(fetchMock).toHaveBeenLastCalledWith(
       expect.stringContaining("/api/reports?from=2026-01-01&to=2026-01-31"),

@@ -36,6 +36,24 @@ async function main() {
     create: { name: 'Facundo Sereno', legajo: '12345', email: 'josesitosereno@gmail.com', password, role: 'ADMIN', appRole: 'administrador' }
   });
 
+  // Catálogo cerrado de categorías: evita cargar lo mismo escrito de
+  // distintas maneras ("Almacen" vs "Almacén"). Se gestiona en Configuración.
+  const defaultCategories = [
+    'Almacén',
+    'Bebidas',
+    'Limpieza',
+    'Hogar',
+    'Ferretería',
+    'Electrónica',
+    'Indumentaria',
+    'Salud y Cuidado',
+    'Mascotas',
+    'Otros',
+  ];
+  for (const name of defaultCategories) {
+    await prisma.category.upsert({ where: { name }, update: {}, create: { name } });
+  }
+
   const central = await findOrCreateDeposit(prisma, 'Depósito Central', 'Sede principal');
   const norte = await findOrCreateDeposit(prisma, 'Depósito Norte', 'Sucursal Norte');
   const sur = await findOrCreateDeposit(prisma, 'Depósito Sur', 'Av. Independencia 1840, Rosario');
@@ -94,6 +112,15 @@ async function findOrCreateProduct(client, { code, name, category, price, lowSto
   for (const item of demoList) {
     demoProducts.push(await findOrCreateProduct(prisma, item));
   }
+  // Sincroniza categorías históricas (ej. "Válvulas") al catálogo cerrado.
+  const usedCategories = await prisma.product.findMany({
+    select: { category: true },
+    distinct: ['category'],
+  });
+  for (const row of usedCategories) {
+    const name = String(row.category ?? '').trim().replace(/\s+/g, ' ');
+    if (name) await prisma.category.upsert({ where: { name }, update: {}, create: { name } });
+  }
   const stockPlan = [
     [demoProducts[0], central, 42], [demoProducts[0], norte, 16], [demoProducts[0], sur, 9],
     [demoProducts[1], central, 34], [demoProducts[1], norte, 12],
@@ -129,6 +156,63 @@ async function findOrCreateProduct(client, { code, name, category, price, lowSto
       const sale = await tx.sale.create({ data: { depositId: demoSale.deposit.id, customerId: demoSale.customer.id, userId: admin.id, total, createdAt, items: { create: [{ productId: demoSale.product.id, quantity: demoSale.quantity, price: demoSale.product.price }] } } });
       await tx.stock.update({ where: { id: stock.id }, data: { quantity: { decrement: demoSale.quantity } } });
       await tx.stockMovement.create({ data: { productId: demoSale.product.id, depositId: demoSale.deposit.id, saleId: sale.id, quantity: -demoSale.quantity, reason: `Venta demo #${sale.id}`, createdAt } });
+    });
+  }
+
+  const offersCount = await prisma.telegramOffer.count();
+  if (offersCount === 0 && demoProducts.length >= 4 && customers.length >= 2) {
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const twoWeeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    await prisma.telegramOffer.createMany({
+      data: [
+        {
+          title: 'Combo Desayuno y Almacén',
+          message: '¡Hola *{{nombre}}*!\nArmamos este *combo de almacén* con *{{descuento}}*:\n\n{{productos}}\n\n{{vigencia}}\n_Respondé con las cantidades para reservar._',
+          status: 'Lista para enviar',
+          productIds: [demoProducts[0].id, demoProducts[1].id, demoProducts[3].id],
+          customerIds: [customers[0].id, customers[1].id],
+          items: [
+            { productId: demoProducts[0].id, offerPrice: 2380 },
+            { productId: demoProducts[1].id, offerPrice: 3060 },
+            { productId: demoProducts[3].id, offerPrice: 1490 },
+          ],
+          discountPercent: 15,
+          validFrom: new Date(),
+          validUntil: nextWeek,
+          userId: admin.id,
+        },
+        {
+          title: 'Promo Limpieza y Hogar',
+          message: '¡Hola *{{nombre}}*!\nRenová tu stock de limpieza e iluminación con *{{descuento}}* mayorista:\n\n{{productos}}\n\n{{vigencia}}\n_Pedí hoy y coordinamos la entrega._',
+          status: 'Enviada',
+          productIds: [demoProducts[4].id, demoProducts[5].id],
+          customerIds: [],
+          items: [
+            { productId: demoProducts[4].id, offerPrice: 1990 },
+            { productId: demoProducts[5].id, offerPrice: 3290 },
+          ],
+          discountPercent: 18,
+          validFrom: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          validUntil: twoWeeks,
+          sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          userId: admin.id,
+        },
+        {
+          title: 'Beneficio Comercial El Roble',
+          message: '¡Hola *{{nombre}}*!\nPor ser cliente frecuente tenés *{{descuento}}* en reposición de aceite y café:\n\n{{productos}}\n\n{{vigencia}}\n_Avisanos cuántas cajas te separamos._',
+          status: 'Borrador',
+          productIds: [demoProducts[2].id, demoProducts[0].id],
+          customerIds: [customers[0].id],
+          items: [
+            { productId: demoProducts[2].id, offerPrice: null },
+            { productId: demoProducts[0].id, offerPrice: null },
+          ],
+          discountPercent: 20,
+          validFrom: new Date(),
+          validUntil: twoWeeks,
+          userId: admin.id,
+        },
+      ],
     });
   }
 

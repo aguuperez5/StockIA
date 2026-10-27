@@ -30,6 +30,15 @@ model User {
   @@map("users")
 }
 
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
 model Product {
   id        Int      @id @default(autoincrement())
   name      String
@@ -196,11 +205,19 @@ model TransferItem {
 
 model TelegramOffer {
   id Int @id @default(autoincrement())
+  title String @default("")
   message String
-  status String
-  productIds Json
-  customerIds Json
+  status String @default("Borrador")
+  productIds Json @default("[]")
+  customerIds Json @default("[]")
+  items Json @default("[]")
+  discountPercent Int?
+  validFrom DateTime?
+  validUntil DateTime?
+  scheduledAt DateTime?
+  sentAt DateTime?
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
   userId Int?
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 

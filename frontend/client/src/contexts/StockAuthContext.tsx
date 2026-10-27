@@ -25,7 +25,7 @@ export function StockAuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     authService
       .me()
-      .then(result => setUser(result.user))
+      .then(result => setUser(result.user ?? null))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);

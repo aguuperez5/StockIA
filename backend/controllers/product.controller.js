@@ -66,6 +66,18 @@ export const getProductById = async (req, res) => {
   }
 };
 
+// Normaliza la categoría al nombre canónico del catálogo cuando existe.
+// Si el catálogo está vacío se acepta cualquier texto (compatibilidad).
+async function resolveCategoryName(db, raw) {
+  const cleaned = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  if (!cleaned) return { error: 'Campos obligatorios requeridos: name, code, price' };
+  const catalog = await db.category.findMany({ select: { name: true } });
+  if (catalog.length === 0) return { name: cleaned };
+  const match = catalog.find(c => c.name.toLowerCase() === cleaned.toLowerCase());
+  if (!match) return { error: 'La categoría seleccionada no existe en el catálogo.' };
+  return { name: match.name };
+}
+
 // SB-021: Registrar nuevo producto
 export const createProduct = async (req, res) => {
   try {
@@ -82,12 +94,21 @@ export const createProduct = async (req, res) => {
 
     const nextTagId = await getNextAvailableAprilTagId(prisma);
 
+    let canonicalCategory = null;
+    if (category?.trim()) {
+      const resolved = await resolveCategoryName(prisma, category);
+      if (resolved.error) {
+        return res.status(400).json({ error: resolved.error });
+      }
+      canonicalCategory = resolved.name;
+    }
+
     const newProduct = await prisma.product.create({
       data: {
         name: String(name).trim(),
         code: String(code).trim(),
         price: priceNum,
-        category: category?.trim() || null,
+        category: canonicalCategory,
         imageUrl: imageUrl?.trim() || null,
         apriltagId: nextTagId,
       },
@@ -120,13 +141,26 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    let canonicalCategory;
+    if (category !== undefined) {
+      if (!String(category ?? '').trim()) {
+        canonicalCategory = null;
+      } else {
+        const resolved = await resolveCategoryName(prisma, category);
+        if (resolved.error) {
+          return res.status(400).json({ error: resolved.error });
+        }
+        canonicalCategory = resolved.name;
+      }
+    }
+
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: {
         ...(name !== undefined && { name: String(name).trim() }),
         ...(code !== undefined && { code: String(code).trim() }),
         ...(price !== undefined && { price: Number(price) }),
-        ...(category !== undefined && { category: category?.trim() || null }),
+        ...(canonicalCategory !== undefined && { category: canonicalCategory }),
         ...(imageUrl !== undefined && { imageUrl: imageUrl?.trim() || null }),
         ...(active !== undefined && { active: Boolean(active) }),
       },
