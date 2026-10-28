@@ -18,6 +18,8 @@ import {
   SubmitButton,
 } from "@/components/StockUI";
 import { ModernSelect } from "@/components/ModernSelect";
+import { CategorySelect } from "@/components/products/CategorySelect";
+import { normalizeCategoryName } from "@/services/categories";
 import { warehouseService, type Warehouse } from "@/services/inventory";
 import { productService } from "@/services/products";
 import { priceRuleService } from "@/services/backlog";
@@ -47,7 +49,6 @@ const getBlankForm = (): FormData => ({
 
 import { parseMoney, resizeImageToDataUrl } from "./productFormUtils";
 
-let cachedCategories: string[] = [];
 let cachedWarehouses: Warehouse[] = [];
 
 interface ProductModalProps {
@@ -67,7 +68,6 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
     return blank;
   });
   const [warehouses, setWarehouses] = useState<Warehouse[]>(cachedWarehouses);
-  const [knownCategories, setKnownCategories] = useState<string[]>(cachedCategories);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pageError, setPageError] = useState("");
   const [loading, setLoading] = useState(isEdit);
@@ -82,22 +82,6 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
-  // Cargar categorías conocidas
-  useEffect(() => {
-    productService
-      .list()
-      .then(result => {
-        const cats = Array.from(
-          new Set(result.items.map(item => item.category).filter(Boolean))
-        ).sort();
-        cachedCategories = cats;
-        setKnownCategories(cats);
-      })
-      .catch((err: Error) => {
-        console.error("Error al cargar categorías sugeridas:", err);
-      });
-  }, []);
 
   // Cargar depósitos
   useEffect(() => {
@@ -280,7 +264,8 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
     const next: Record<string, string> = {};
     if (!form.name.trim()) next.name = "Ingresá el nombre comercial.";
     if (!form.sku.trim()) next.sku = "Ingresá un SKU o código interno.";
-    if (!form.category.trim()) next.category = "Indicá una categoría.";
+    if (!normalizeCategoryName(form.category))
+      next.category = "Elegí una categoría del listado.";
     if (!Number.isFinite(parseMoney(form.price)) || parseMoney(form.price) <= 0)
       next.price = "El precio debe ser mayor a cero.";
     if (
@@ -306,7 +291,7 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
     const input = {
       name: form.name.trim(),
       sku: form.sku.trim().toUpperCase(),
-      category: form.category.trim(),
+      category: normalizeCategoryName(form.category),
       price: parseMoney(form.price),
       lowStockThreshold: Number(form.lowStockThreshold),
       initialStock: Number(form.initialStock),
@@ -464,17 +449,10 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
                   />
                 </Field>
                 <Field label="Categoría" error={errors.category}>
-                  <input
+                  <CategorySelect
                     value={form.category}
-                    onChange={e => update("category", e.target.value)}
-                    placeholder="Ej. Almacén"
-                    list="modal-known-categories"
+                    onChange={value => update("category", value)}
                   />
-                  <datalist id="modal-known-categories">
-                    {knownCategories.map(option => (
-                      <option key={option} value={option} />
-                    ))}
-                  </datalist>
                 </Field>
                 <Field label="Precio de venta" error={errors.price}>
                   <div className="input-prefix">

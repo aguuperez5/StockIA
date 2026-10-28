@@ -15,6 +15,13 @@ export class ApiError extends Error {
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  // /auth/me es un chequeo rutinario de sesión (devuelve 200 con user:null si no hay
+  // sesión) y /auth/login devuelve 401 ante credenciales inválidas: ninguno de los
+  // dos debe disparar el logout global.
+  const isAuthEndpoint =
+    normalizedPath === "/auth/me" ||
+    normalizedPath === "/auth/login" ||
+    normalizedPath === "/users/register";
   try {
     response = await fetch(`${API_URL}/api${normalizedPath}`, {
       ...init,
@@ -28,7 +35,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     );
   }
   const body = await response.json().catch(() => ({}));
-  if (response.status === 401)
+  if (response.status === 401 && !isAuthEndpoint)
     window.dispatchEvent(new Event("stockia:unauthorized"));
   if (!response.ok)
     throw new ApiError(

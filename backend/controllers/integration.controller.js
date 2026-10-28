@@ -1,12 +1,27 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
-import { appRole, clearSession, createSession, publicUser, resetLoginAttempts, setSession } from '../middleware.js';
+import { appRole, clearSession, createSession, publicUser, readSession, resetLoginAttempts, setSession } from '../middleware.js';
 import { analyzeProductImage } from '../services/ai-recognition.client.js';
 import { canonicalGtin, findRecognitionCatalogCandidates, rankRecognitionProducts } from '../services/catalog-match.agent.js';
 import { transferStock } from '../services/stock-transfer.service.js';
 import { buildRecognitionDetections } from '../services/recognition-detections.js';
 import { getNextAvailableAprilTagId } from '../services/apriltag.service.js';
 import { generateAprilTagSvg } from '../services/apriltag-svg.js';
+import {
+  TELEGRAM_STATUSES,
+  assertOfferCatalog,
+  buildPersonalizedMessage,
+  buildWaMeLink,
+  canTransition,
+  enrichOffer,
+  isExpired,
+  isValidStatus,
+  normalizeOfferInput,
+  suggestOfferForCustomer,
+  validateOfferShape,
+  EDITABLE_STATUSES,
+  DELETABLE_STATUSES,
+} from '../services/telegram-offer.service.js';
 
 const moneyToCents = n => Math.round(Number(n) * 100);
 const centsToMoney = c => Number(c) / 100;
@@ -50,7 +65,17 @@ export async function login(req, res) {
   setSession(res, createSession(user.id));
   return res.json({ message: 'Sesión iniciada.', user: publicUser(user) });
 }
-export async function me(req, res) { return res.json({ user: publicUser(req.user) }); }
+export async function me(req, res) {
+  try {
+    const userId = readSession(req);
+    if (!userId) return res.json({ user: null });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.json({ user: null });
+    return res.json({ user: publicUser(user) });
+  } catch (e) {
+    return res.json({ user: null });
+  }
+}
 export async function logout(req, res) { clearSession(res); return res.json({ message: 'Sesión cerrada.' }); }
 
 export async function listProducts(req, res) {
@@ -72,9 +97,134 @@ function cleanImageUrl(value) {
   return url;
 }
 
+export const DEFAULT_CATEGORIES = [
+  'Almacén',
+  'Bebidas',
+  'Limpieza',
+  'Hogar',
+  'Ferretería',
+  'Electrónica',
+  'Indumentaria',
+  'Salud y Cuidado',
+  'Mascotas',
+  'Otros',
+];
+
+function cleanCategoryName(value) {
+  return String(value ?? '').trim().replace(/\s+/g, ' ');
+}
+
+function validateCategoryName(name) {
+  if (!name) return 'El nombre de la categoría es obligatorio.';
+  if (name.length < 2) return 'El nombre de la categoría debe tener al menos 2 caracteres.';
+  if (name.length > 60) return 'El nombre de la categoría no puede superar los 60 caracteres.';
+  return null;
+}
+
+// Resuelve la categoría al nombre canónico registrado en el catálogo.
+// Si todavía no hay categorías cargadas (instalación nueva / tests sin seed),
+// acepta cualquier texto no vacío para no romper compatibilidad.
+async function resolveProductCategory(db, raw) {
+  const cleaned = cleanCategoryName(raw);
+  if (!cleaned) return { error: 'Completá nombre, SKU, categoría y un precio válido.' };
+  const catalog = await db.category.findMany({ select: { name: true } });
+  if (catalog.length === 0) return { name: cleaned };
+  const match = catalog.find(c => c.name.toLowerCase() === cleaned.toLowerCase());
+  if (!match) return { error: 'La categoría seleccionada no existe. Elegila del listado o creala en Configuración.' };
+  return { name: match.name };
+}
+
+export async function listCategories(req, res) {
+  try {
+    const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
+    const groups = await prisma.product.groupBy({
+      by: ['category'],
+      _count: { category: true },
+    });
+    const counts = new Map(groups.map(g => [String(g.category ?? '').toLowerCase(), g._count.category]));
+    res.json({
+      items: categories.map(c => ({
+        id: c.id,
+        name: c.name,
+        productCount: counts.get(c.name.toLowerCase()) ?? 0,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      })),
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos obtener las categorías.', details: e.message });
+  }
+}
+
+export async function createCategory(req, res) {
+  try {
+    const name = cleanCategoryName(req.body?.name);
+    const validationError = validateCategoryName(name);
+    if (validationError) return res.status(400).json({ message: validationError });
+    const duplicate = await prisma.category.findFirst({ where: { name: { equals: name, mode: 'insensitive' } } });
+    if (duplicate) return res.status(409).json({ message: `Ya existe la categoría "${duplicate.name}".` });
+    const created = await prisma.category.create({ data: { name } });
+    res.status(201).json({ id: created.id, message: 'Categoría creada correctamente.', item: created });
+  } catch (e) {
+    res.status(e.code === 'P2002' ? 409 : 500).json({ message: e.code === 'P2002' ? 'Ya existe una categoría con ese nombre.' : e.message });
+  }
+}
+
+export async function updateCategory(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la categoría no es válido.' });
+    const name = cleanCategoryName(req.body?.name);
+    const validationError = validateCategoryName(name);
+    if (validationError) return res.status(400).json({ message: validationError });
+    const existing = await prisma.category.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Categoría no encontrada.' });
+    const duplicate = await prisma.category.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' }, NOT: { id } },
+    });
+    if (duplicate) return res.status(409).json({ message: `Ya existe la categoría "${duplicate.name}".` });
+    await prisma.$transaction(async tx => {
+      await tx.category.update({ where: { id }, data: { name } });
+      // Mantener consistencia: los productos guardan la categoría como texto,
+      // así que se renombra en cascada al nombre canónico nuevo.
+      await tx.product.updateMany({
+        where: { category: { equals: existing.name, mode: 'insensitive' } },
+        data: { category: name },
+      });
+    });
+    res.json({ message: 'Categoría actualizada correctamente.' });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Categoría no encontrada.' : e.message });
+  }
+}
+
+export async function deleteCategory(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la categoría no es válido.' });
+    const existing = await prisma.category.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Categoría no encontrada.' });
+    const inUse = await prisma.product.count({
+      where: { category: { equals: existing.name, mode: 'insensitive' } },
+    });
+    if (inUse > 0) {
+      return res.status(409).json({
+        message: `No se puede eliminar "${existing.name}" porque tiene ${inUse} producto(s) asociado(s). Cambiales la categoría primero.`,
+      });
+    }
+    await prisma.category.delete({ where: { id } });
+    res.json({ message: 'Categoría eliminada correctamente.' });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Categoría no encontrada.' : e.message });
+  }
+}
+
 export async function createProductCompat(req, res) {
   const { name, sku, category, price, lowStockThreshold = 5, initialStock = 0, warehouseId, imageUrl } = req.body;
-  if (!name?.trim() || !sku?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) <= 0) return res.status(400).json({ message: 'Completá nombre, SKU, categoría y un precio válido.' });
+  if (!name?.trim() || !sku?.trim() || !cleanCategoryName(category) || !Number.isFinite(Number(price)) || Number(price) <= 0) return res.status(400).json({ message: 'Completá nombre, SKU, categoría y un precio válido.' });
+  const resolved = await resolveProductCategory(prisma, category);
+  if (resolved.error) return res.status(400).json({ message: resolved.error });
+  const canonicalCategory = resolved.name;
   let image = null;
   try { image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
   if (Number(initialStock) > 0 && !warehouseId) return res.status(400).json({ message: 'Elegí un depósito para el stock inicial.' });
@@ -82,7 +232,7 @@ export async function createProductCompat(req, res) {
   try {
     const result = await prisma.$transaction(async tx => {
       const nextTagId = await getNextAvailableAprilTagId(tx);
-      const p = await tx.product.create({ data: { name: name.trim(), code: sku.trim(), category: category.trim(), price: Number(price), lowStockThreshold: threshold, imageUrl: image, apriltagId: nextTagId } });
+      const p = await tx.product.create({ data: { name: name.trim(), code: sku.trim(), category: canonicalCategory, price: Number(price), lowStockThreshold: threshold, imageUrl: image, apriltagId: nextTagId } });
       const deposits = await tx.deposit.findMany({ select: { id: true } });
       if (deposits.length > 0) {
         await tx.stock.createMany({
@@ -116,7 +266,13 @@ export async function updateProductCompat(req, res) {
     try { if (imageUrl !== undefined) image = cleanImageUrl(imageUrl); } catch (e) { return res.status(e.status || 400).json({ message: e.message }); }
     if (active !== undefined && typeof active !== 'boolean') return res.status(400).json({ message: 'El estado debe ser verdadero o falso.' });
     const parsedThreshold = lowStockThreshold !== undefined ? Math.max(0, Number(lowStockThreshold) || 0) : undefined;
-    const p = await prisma.product.update({ where: { id }, data: { ...(name !== undefined && { name: String(name).trim() }), ...(sku !== undefined && { code: String(sku).trim() }), ...(category !== undefined && { category: String(category).trim() }), ...(price !== undefined && { price: Number(price) }), ...(parsedThreshold !== undefined && { lowStockThreshold: parsedThreshold }), ...(image !== undefined && { imageUrl: image }), ...(active !== undefined && { active }) } });
+    let canonicalCategory;
+    if (category !== undefined) {
+      const resolved = await resolveProductCategory(prisma, category);
+      if (resolved.error) return res.status(400).json({ message: resolved.error });
+      canonicalCategory = resolved.name;
+    }
+    const p = await prisma.product.update({ where: { id }, data: { ...(name !== undefined && { name: String(name).trim() }), ...(sku !== undefined && { code: String(sku).trim() }), ...(canonicalCategory !== undefined && { category: canonicalCategory }), ...(price !== undefined && { price: Number(price) }), ...(parsedThreshold !== undefined && { lowStockThreshold: parsedThreshold }), ...(image !== undefined && { imageUrl: image }), ...(active !== undefined && { active }) } });
     res.json({ message: 'Producto actualizado correctamente.', item: serializeProduct(p) });
   } catch (e) { res.status(e.code === 'P2002' ? 409 : e.code === 'P2025' ? 404 : 400).json({ message: e.code === 'P2002' ? 'Ya existe otro producto con ese SKU.' : e.message }); }
 }
@@ -960,9 +1116,300 @@ export async function recognition(req, res) {
     res.status(e.statusCode || e.status || 500).json({ message: e.message || 'No se pudo analizar la solicitud.' });
   }
 }
-export async function listTelegram(req, res) { const items = await prisma.telegramOffer.findMany({ orderBy: { createdAt: 'desc' } }); res.json({ items }); }
-export async function createTelegram(req, res) { const { message, productIds = [], customerIds = [], status = 'Lista para enviar' } = req.body; if (!message?.trim()) return res.status(400).json({ message: 'El mensaje no puede estar vacío.' }); const x = await prisma.telegramOffer.create({ data: { message: message.trim(), productIds, customerIds, status, userId: req.user.id } }); res.status(201).json({ id: x.id, message: 'Campaña guardada correctamente.' }); }
-export async function updateTelegram(req, res) { await prisma.telegramOffer.update({ where: { id: Number(req.params.id) }, data: { status: String(req.body.status) } }); res.json({ message: 'Estado actualizado.' }); }
+// ─── Ofertas por Telegram: CRUD completo con lógica de campaña ───
+// Ciclo de vida: Borrador → Lista para enviar → Enviada → Archivada
+// (con Cancelada como vía de escape y reapertura como Borrador).
+export async function listTelegram(req, res) {
+  try {
+    const status = String(req.query.status || '').trim();
+    const search = String(req.query.search || '').trim();
+    if (status && !isValidStatus(status))
+      return res.status(400).json({ message: `Estado inválido. Valores posibles: ${TELEGRAM_STATUSES.join(', ')}.` });
+    const rows = await prisma.telegramOffer.findMany({
+      where: {
+        ...(status ? { status } : {}),
+        ...(search
+          ? { OR: [{ title: { contains: search, mode: 'insensitive' } }, { message: { contains: search, mode: 'insensitive' } }] }
+          : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const items = await Promise.all(rows.map(r => enrichOffer(prisma, r)));
+    res.json({ items });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos obtener las ofertas.', details: e.message });
+  }
+}
+
+export async function getTelegram(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const offer = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!offer) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    res.json({ offer: await enrichOffer(prisma, offer) });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos obtener la oferta.', details: e.message });
+  }
+}
+
+export async function createTelegram(req, res) {
+  try {
+    const input = normalizeOfferInput(req.body);
+    const initialStatus = input.status || 'Borrador';
+    if (!isValidStatus(initialStatus))
+      return res.status(400).json({ message: `Estado inválido. Valores posibles: ${TELEGRAM_STATUSES.join(', ')}.` });
+    if (!['Borrador', 'Lista para enviar'].includes(initialStatus))
+      return res.status(400).json({ message: 'Una oferta nueva solo puede nacer como Borrador o Lista para enviar.' });
+    const { errors, dates } = validateOfferShape({ ...input, status: initialStatus });
+    if (errors.length) return res.status(400).json({ message: errors[0], errors });
+    const catalog = await assertOfferCatalog(prisma, input.items, input.customerIds);
+    if (catalog.errors.length) return res.status(400).json({ message: catalog.errors[0], errors: catalog.errors });
+    if (initialStatus === 'Lista para enviar') {
+      if (isExpired(dates.validUntil))
+        return res.status(400).json({ message: 'No se puede listar para enviar una oferta con vigencia finalizada.' });
+      if (catalog.withoutStock.length === input.items.length && input.items.length)
+        return res.status(400).json({ message: 'Ningún producto tiene stock disponible. Reponé antes de listar la oferta.' });
+    }
+    const productIds = input.items.map(i => i.productId);
+    const created = await prisma.telegramOffer.create({
+      data: {
+        title: input.title,
+        message: input.message,
+        status: initialStatus,
+        productIds,
+        customerIds: input.customerIds,
+        items: input.items,
+        discountPercent: input.discountPercent,
+        validFrom: dates.validFrom,
+        validUntil: dates.validUntil,
+        scheduledAt: dates.scheduledAt,
+        userId: req.user?.id ?? null,
+      },
+    });
+    const enriched = await enrichOffer(prisma, created);
+    res.status(201).json({ id: created.id, message: 'Oferta creada correctamente.', item: enriched, warnings: catalog.warnings });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos crear la oferta.', details: e.message });
+  }
+}
+
+export async function updateTelegramFull(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const existing = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    if (!EDITABLE_STATUSES.includes(existing.status))
+      return res.status(409).json({ message: `Una oferta ${existing.status} no se puede editar. Duplicala para reutilizarla.` });
+    const requestedStatus = typeof req.body?.status === 'string' && req.body.status.trim()
+      ? req.body.status.trim()
+      : existing.status;
+    if (requestedStatus !== existing.status && !canTransition(existing.status, requestedStatus))
+      return res.status(409).json({ message: `No se puede pasar de "${existing.status}" a "${requestedStatus}".` });
+    const input = normalizeOfferInput({ ...req.body, status: requestedStatus });
+    const { errors, dates } = validateOfferShape({ ...input, status: requestedStatus });
+    if (errors.length) return res.status(400).json({ message: errors[0], errors });
+    const catalog = await assertOfferCatalog(prisma, input.items, input.customerIds);
+    if (catalog.errors.length) return res.status(400).json({ message: catalog.errors[0], errors: catalog.errors });
+    if (requestedStatus === 'Lista para enviar') {
+      if (isExpired(dates.validUntil))
+        return res.status(400).json({ message: 'No se puede listar para enviar una oferta con vigencia finalizada.' });
+      if (catalog.withoutStock.length === input.items.length && input.items.length)
+        return res.status(400).json({ message: 'Ningún producto tiene stock disponible. Reponé antes de listar la oferta.' });
+    }
+    const updated = await prisma.telegramOffer.update({
+      where: { id },
+      data: {
+        title: input.title,
+        message: input.message,
+        status: requestedStatus,
+        productIds: input.items.map(i => i.productId),
+        customerIds: input.customerIds,
+        items: input.items,
+        discountPercent: input.discountPercent,
+        validFrom: dates.validFrom,
+        validUntil: dates.validUntil,
+        scheduledAt: dates.scheduledAt,
+      },
+    });
+    res.json({ message: 'Oferta actualizada correctamente.', item: await enrichOffer(prisma, updated), warnings: catalog.warnings });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Oferta no encontrada.' : e.message });
+  }
+}
+
+// PATCH /telegram/:id — solo cambia el estado respetando la máquina de estados.
+export async function updateTelegram(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const next = String(req.body?.status || '').trim();
+    if (!next || !isValidStatus(next))
+      return res.status(400).json({ message: `Estado inválido. Valores posibles: ${TELEGRAM_STATUSES.join(', ')}.` });
+    const existing = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    const hasCustomRecipients = Array.isArray(req.body?.customerIds);
+    const cleanedCustomerIds = hasCustomRecipients
+      ? [...new Set(req.body.customerIds.map(Number).filter(n => Number.isInteger(n) && n > 0))]
+      : undefined;
+    const isUpdatingSentRecipients = existing.status === 'Enviada' && next === 'Enviada' && hasCustomRecipients;
+    if (!isUpdatingSentRecipients && !canTransition(existing.status, next))
+      return res.status(409).json({ message: `No se puede pasar de "${existing.status}" a "${next}".` });
+    if (['Lista para enviar', 'Enviada'].includes(next)) {
+      if (isExpired(existing.validUntil))
+        return res.status(400).json({ message: 'La vigencia finalizó: actualizá las fechas antes de avanzar la oferta.' });
+      const items = Array.isArray(existing.items) && existing.items.length
+        ? existing.items
+        : (Array.isArray(existing.productIds) ? existing.productIds : []).map(pid => ({ productId: Number(pid) }));
+      const catalog = await assertOfferCatalog(prisma, items, cleanedCustomerIds ?? []);
+      if (catalog.errors.length)
+        return res.status(400).json({ message: catalog.errors[0], errors: catalog.errors });
+      if (catalog.withoutStock.length === items.length && items.length)
+        return res.status(400).json({ message: 'Ningún producto tiene stock disponible. Reponé antes de enviar.' });
+    }
+    const updated = await prisma.telegramOffer.update({
+      where: { id },
+      data: {
+        status: next,
+        ...(next === 'Enviada' ? { sentAt: new Date() } : {}),
+        ...(cleanedCustomerIds !== undefined ? { customerIds: cleanedCustomerIds } : {}),
+      },
+    });
+    res.json({ message: 'Estado actualizado.', item: await enrichOffer(prisma, updated) });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Oferta no encontrada.' : e.message });
+  }
+}
+
+export async function duplicateTelegram(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const existing = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    const baseTitle = (existing.title || 'Oferta').replace(/\s*\(copia(?:\s+\d+)?\)$/i, '').trim() || 'Oferta';
+    const suffix = ' (copia)';
+    const copyTitle = `${baseTitle.slice(0, 80 - suffix.length).trim()}${suffix}`;
+    const copy = await prisma.telegramOffer.create({
+      data: {
+        title: copyTitle,
+        message: existing.message,
+        status: 'Borrador',
+        productIds: existing.productIds,
+        customerIds: existing.customerIds,
+        items: existing.items,
+        discountPercent: existing.discountPercent ?? null,
+        validFrom: null,
+        validUntil: null,
+        scheduledAt: null,
+        sentAt: null,
+        userId: req.user?.id ?? null,
+      },
+    });
+    res.status(201).json({ id: copy.id, message: 'Oferta duplicada como borrador.', item: await enrichOffer(prisma, copy) });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos duplicar la oferta.', details: e.message });
+  }
+}
+
+// POST /telegram/:id/broadcast — difusión inmediata a TODOS los clientes.
+// A diferencia de "Enviar" (que respeta los destinatarios elegidos y exige
+// haber pasado por "Lista para enviar"), difundir limpia los destinatarios y
+// marca Enviada en un solo paso deliberado (el frontend pide confirmación).
+export async function broadcastTelegram(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const existing = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    if (!['Borrador', 'Lista para enviar'].includes(existing.status))
+      return res.status(409).json({ message: `Solo se puede difundir una oferta en Borrador o Lista para enviar (actual: ${existing.status}).` });
+    if (isExpired(existing.validUntil))
+      return res.status(400).json({ message: 'La vigencia finalizó: actualizá las fechas antes de difundir.' });
+    const items = Array.isArray(existing.items) && existing.items.length
+      ? existing.items
+      : (Array.isArray(existing.productIds) ? existing.productIds : []).map(pid => ({ productId: Number(pid) }));
+    if (!items.length) return res.status(400).json({ message: 'La oferta no tiene productos para difundir.' });
+    const catalog = await assertOfferCatalog(prisma, items, []);
+    if (catalog.errors.length) return res.status(400).json({ message: catalog.errors[0], errors: catalog.errors });
+    if (catalog.withoutStock.length === items.length)
+      return res.status(400).json({ message: 'Ningún producto tiene stock disponible. Reponé antes de difundir.' });
+    const updated = await prisma.telegramOffer.update({
+      where: { id },
+      data: { customerIds: [], status: 'Enviada', sentAt: new Date() },
+    });
+    res.json({ message: 'Difusión enviada a todos los clientes.', item: await enrichOffer(prisma, updated), warnings: catalog.warnings });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Oferta no encontrada.' : e.message });
+  }
+}
+
+export async function deleteTelegram(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const existing = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    if (!DELETABLE_STATUSES.includes(existing.status))
+      return res.status(409).json({ message: `Una oferta ${existing.status} es histórico y no se puede eliminar. Archivarla la conserva sin mostrarla como activa.` });
+    await prisma.telegramOffer.delete({ where: { id } });
+    res.json({ message: 'Oferta eliminada correctamente.' });
+  } catch (e) {
+    res.status(e.code === 'P2025' ? 404 : 500).json({ message: e.code === 'P2025' ? 'Oferta no encontrada.' : e.message });
+  }
+}
+
+export async function previewTelegram(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'El ID de la oferta no es válido.' });
+    const offer = await prisma.telegramOffer.findUnique({ where: { id } });
+    if (!offer) return res.status(404).json({ message: 'Oferta no encontrada.' });
+    const enriched = await enrichOffer(prisma, offer);
+    const customerId = req.query.customerId ? Number(req.query.customerId) : null;
+    let customer = null;
+    if (customerId) {
+      if (!Number.isInteger(customerId)) return res.status(400).json({ message: 'El ID del cliente no es válido.' });
+      customer = enriched.customers.find(c => c.id === customerId)
+        || await prisma.customer.findUnique({ where: { id: customerId } });
+      if (!customer) return res.status(404).json({ message: 'Cliente no encontrado.' });
+    } else if (enriched.customers.length === 1) {
+      customer = enriched.customers[0];
+    }
+    const realProducts = enriched.items.filter(i => !i.missing).map(i => ({ id: i.productId, name: i.name, price: i.price }));
+    const text = buildPersonalizedMessage({
+      baseMessage: enriched.message,
+      customerName: customer?.name?.split(' ')[0] || null,
+      products: realProducts,
+      items: enriched.items.map(i => ({ productId: i.productId, offerPrice: i.offerPrice ?? null })),
+      discountPercent: enriched.discountPercent,
+      validUntil: enriched.validUntil,
+    });
+    const waMeLink = buildWaMeLink(customer?.phone || customer?.contact || '', text);
+    res.json({
+      preview: text,
+      waMeLink,
+      customer: customer ? { id: customer.id, name: customer.name, phone: customer.phone ?? null, contact: customer.contact } : null,
+      offer: enriched,
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos generar la vista previa.', details: e.message });
+  }
+}
+
+export async function suggestTelegram(req, res) {
+  try {
+    const customerId = req.query.customerId ? Number(req.query.customerId) : null;
+    if (req.query.customerId && !Number.isInteger(customerId))
+      return res.status(400).json({ message: 'El ID del cliente no es válido.' });
+    const suggestion = await suggestOfferForCustomer(prisma, customerId);
+    if (suggestion.error) return res.status(404).json({ message: suggestion.error });
+    res.json(suggestion);
+  } catch (e) {
+    res.status(500).json({ message: 'No pudimos generar la sugerencia.', details: e.message });
+  }
+}
 
 export async function getAprilTagImage(req, res) {
   const tagId = Number(req.params.tagId);

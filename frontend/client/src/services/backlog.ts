@@ -180,24 +180,146 @@ export const customerService = {
   remove: (id: string | number) =>
     remove<{ message: string }>(`/customers/${id}`),
 };
+export type TelegramOfferItem = {
+  productId: number;
+  name?: string;
+  sku?: string;
+  category?: string;
+  price?: number;
+  offerPrice?: number | null;
+  effectivePrice?: number;
+  active?: boolean;
+  stock?: number;
+  missing?: boolean;
+  imageUrl?: string | null;
+};
+
+export type TelegramOffer = {
+  id: number;
+  title: string;
+  message: string;
+  status: string;
+  items: TelegramOfferItem[];
+  productIds: number[];
+  customerIds: number[];
+  customers?: Array<{
+    id: number;
+    name: string;
+    contact: string;
+    phone?: string | null;
+    email?: string | null;
+  }>;
+  customerCount: number;
+  isBroadcast: boolean;
+  discountPercent?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  scheduledAt?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  expired?: boolean;
+  outOfStockCount?: number;
+  baseTotal?: number;
+  offerTotal?: number;
+  totalSavings?: number;
+  waMeLink?: string;
+  warnings?: string[];
+  canEdit?: boolean;
+  canDelete?: boolean;
+  nextStatuses?: string[];
+};
+
+export type TelegramOfferInput = {
+  title: string;
+  message: string;
+  items: Array<{ productId: number; offerPrice?: number | null }>;
+  customerIds: number[];
+  discountPercent?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  scheduledAt?: string | null;
+  status?: string;
+};
+
+export type TelegramSuggestion = {
+  title: string;
+  message: string;
+  discountPercent?: number | null;
+  items: Array<{ productId: number; offerPrice?: number | null }>;
+  products: Array<{
+    productId: number;
+    name: string;
+    sku: string;
+    price: number;
+    units: number;
+  }>;
+  customerId: number | null;
+};
+
+export const TELEGRAM_STATUSES = [
+  "Borrador",
+  "Lista para enviar",
+  "Enviada",
+  "Archivada",
+  "Cancelada",
+] as const;
+
 export const telegramService = {
-  list: () =>
+  list: (filters: { status?: string; search?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.search) params.set("search", filters.search);
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<{
+      items: TelegramOffer[];
+    }>(`/telegram${q}`);
+  },
+  get: (id: string | number) =>
+    get<{ offer: TelegramOffer }>(`/telegram/${id}`),
+  // Compat legacy: acepta productIds o items.
+  create: (
+    input:
+      | TelegramOfferInput
+      | { message: string; productIds: number[]; customerIds: number[]; status: string }
+  ) => post<{ id: number; message: string; item?: TelegramOffer }>(`/telegram`, input),
+  update: (id: string | number, input: TelegramOfferInput) =>
+    put<{ message: string; item?: TelegramOffer }>(`/telegram/${id}`, input),
+  updateStatus: (id: number, status: string, customerIds?: number[]) =>
+    patch<{ message: string; item?: TelegramOffer }>(`/telegram/${id}`, {
+      status,
+      ...(customerIds !== undefined ? { customerIds } : {}),
+    }),
+  duplicate: (id: string | number) =>
+    post<{ id: number; message: string; item?: TelegramOffer }>(
+      `/telegram/${id}/duplicate`,
+      {}
+    ),
+  broadcast: (id: string | number) =>
+    post<{ message: string; item?: TelegramOffer }>(
+      `/telegram/${id}/broadcast`,
+      {}
+    ),
+  remove: (id: string | number) =>
+    remove<{ message: string }>(`/telegram/${id}`),
+  preview: (id: string | number, customerId?: string | number) =>
     get<{
-      items: Array<{
+      preview: string;
+      waMeLink?: string;
+      customer: {
         id: number;
-        message: string;
-        status: string;
-        createdAt: string;
-      }>;
-    }>("/telegram"),
-  create: (input: {
-    message: string;
-    productIds: number[];
-    customerIds: number[];
-    status: string;
-  }) => post<{ id: number; message: string }>("/telegram", input),
-  updateStatus: (id: number, status: string) =>
-    patch<{ message: string }>(`/telegram/${id}`, { status }),
+        name: string;
+        phone?: string | null;
+        contact?: string;
+      } | null;
+      offer: TelegramOffer;
+    }>(
+      `/telegram/${id}/preview${customerId ? `?customerId=${customerId}` : ""}`
+    ),
+  suggest: (customerId?: string | number) =>
+    get<TelegramSuggestion>(
+      `/telegram/suggest${customerId ? `?customerId=${customerId}` : ""}`
+    ),
 };
 export const reportService = {
   get: (from = "", to = "") =>

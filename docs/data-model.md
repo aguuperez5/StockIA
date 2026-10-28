@@ -179,11 +179,19 @@ erDiagram
 
     TelegramOffer {
         int id PK
-        string message
-        string status
-        json productIds
-        json customerIds
+        string title "3-80 caracteres"
+        string message "5-2000, con placeholders"
+        string status "Borrador→Lista→Enviada→Archivada/Cancelada"
+        json items "productId + offerPrice"
+        json productIds "Compat legacy"
+        json customerIds "Vacío = difusión general"
+        int discountPercent "1-90, opcional"
+        datetime validFrom "Opcional"
+        datetime validUntil "Opcional"
+        datetime scheduledAt "Opcional"
+        datetime sentAt "Al marcar Enviada"
         datetime createdAt
+        datetime updatedAt
         int userId FK "nullable"
     }
 ```
@@ -293,4 +301,21 @@ Remitos y documentación de traslado de mercadería intersucursal.
 ### `Customer` y `TelegramOffer` (Tablas `customers` y `telegram_offers`)
 Entidades complementarias para fidelización y difusión omnicanal.
 - **`Customer`**: `id`, `name`, `contact`, `email`, `phone`, `createdAt`, `updatedAt`.
-- **`TelegramOffer`**: `id`, `message`, `status`, `productIds` (`Json`), `customerIds` (`Json`), `userId`, `createdAt`.
+- **`TelegramOffer`**: campaña con ciclo de vida propio.
+  - `id`, `title` (3-80), `message` (5-2000, admite `{{nombre}}`, `{{productos}}`, `{{descuento}}`, `{{vigencia}}`).
+  - `status`: `Borrador` → `Lista para enviar` → `Enviada` → `Archivada`, con `Cancelada` como vía de escape.
+    Transiciones válidas: Borrador→{Lista para enviar, Cancelada}; Lista→{Enviada, Borrador, Cancelada};
+    Enviada→{Archivada}; Archivada→{Borrador}; Cancelada→{Borrador}.
+  - `items` (`Json`): `[{productId, offerPrice|null}]` (1-20 productos, todos activos; `offerPrice` < precio base).
+    `productIds`/`customerIds` (`Json`) se conservan por compatibilidad (`customerIds` vacío = difusión general, máx. 200).
+  - `discountPercent` (1-90, opcional), `validFrom`/`validUntil` (opcionales, `hasta >= desde`),
+    `scheduledAt`, `sentAt`, `createdAt`, `updatedAt`, `userId`.
+  - Reglas: no se lista ni se envía vencida ni sin stock en todos los productos;
+    Enviada/Archivada son histórico (no se editan ni eliminan, solo se archivan o duplican).
+  - Endpoints: `GET /telegram` (filtros `status`, `search`), `GET /telegram/suggest`,
+    `GET /telegram/:id`, `GET /telegram/:id/preview`, `POST /telegram`, `PUT /telegram/:id`,
+    `PATCH /telegram/:id` (solo estado), `POST /telegram/:id/duplicate`,
+    `POST /telegram/:id/broadcast` (difusión a todos: limpia destinatarios y marca Enviada
+    desde Borrador o Lista para enviar), `DELETE /telegram/:id`.
+  - UX: Enviar respeta los destinatarios elegidos (exige Lista para enviar);
+    Difundir es el botón aparte que manda a todos con confirmación previa.

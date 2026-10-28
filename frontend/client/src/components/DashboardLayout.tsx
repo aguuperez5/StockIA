@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   ReceiptText,
   Send,
+  Settings,
   Store,
   Sun,
   Users,
@@ -39,7 +40,7 @@ const navigation = [
     roles: ["administrador", "caja"],
   },
   {
-    label: "Telegram",
+    label: "Ofertas",
     path: "/telegram",
     icon: Send,
     roles: ["administrador", "caja"],
@@ -48,6 +49,12 @@ const navigation = [
     label: "Reportes",
     path: "/reports",
     icon: BarChart3,
+    roles: ["administrador"],
+  },
+  {
+    label: "Configuración",
+    path: "/settings",
+    icon: Settings,
     roles: ["administrador"],
   },
 ];

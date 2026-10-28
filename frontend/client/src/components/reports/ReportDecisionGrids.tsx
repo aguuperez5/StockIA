@@ -85,10 +85,12 @@ export function ReportDecisionGrids({
                 data.replenishment.items.map(item => (
                   <tr key={item.productId}>
                     <td>
-                      <b>{item.productName}</b>
-                      <small>
-                        {item.sku} · {item.category}
-                      </small>
+                      <div className="product-stack">
+                        <b>{item.productName}</b>
+                        <small>
+                          {item.sku} · {item.category}
+                        </small>
+                      </div>
                     </td>
                     <td>
                       <b>{item.currentStock}</b>{" "}
@@ -245,8 +247,10 @@ export function ReportDecisionGrids({
                       </span>
                     </td>
                     <td>
-                      <b>{p.productName}</b>
-                      {p.sku && <small>{p.sku}</small>}
+                      <div className="product-stack">
+                        <b>{p.productName}</b>
+                        {p.sku && <small>{p.sku}</small>}
+                      </div>
                     </td>
                     <td>{p.units.toLocaleString("es-AR")} un.</td>
                     <td>
@@ -334,10 +338,12 @@ export function ReportDecisionGrids({
                 data.stagnantStock.items.map(st => (
                   <tr key={st.id}>
                     <td>
-                      <b>{st.name}</b>
-                      <small>
-                        {st.sku} · {st.category}
-                      </small>
+                      <div className="product-stack">
+                        <b>{st.name}</b>
+                        <small>
+                          {st.sku} · {st.category}
+                        </small>
+                      </div>
                     </td>
                     <td>
                       <b>{st.stock}</b> un.

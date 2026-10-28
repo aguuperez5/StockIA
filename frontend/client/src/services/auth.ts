@@ -9,7 +9,7 @@ export type StockUser = {
 };
 export type AuthResponse = { user: StockUser; message: string };
 export const authService = {
-  me: () => get<{ user: StockUser }>("/auth/me"),
+  me: () => get<{ user: StockUser | null }>("/auth/me"),
   login: (input: { email: string; password: string }) =>
     post<AuthResponse>("/auth/login", input),
   register: (input: {

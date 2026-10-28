@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Award,
@@ -46,6 +46,7 @@ export function WarehouseReportModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "inventory" | "sales">("overview");
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // Filtros de inventario
   const [inventorySearch, setInventorySearch] = useState("");
@@ -75,11 +76,18 @@ export function WarehouseReportModal({
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
       isMounted = false;
       window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = prevOverflow;
     };
   }, [warehouse.id, from, to, onClose]);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
 
   // Ventas del período (ya filtradas exactamente por el backend en PostgreSQL)
   const periodSales = useMemo(() => {
@@ -293,58 +301,6 @@ export function WarehouseReportModal({
           </div>
         </header>
 
-        {/* KPIs Principales del Depósito */}
-        <section className="metric-grid warehouse-kpi-grid">
-          <article className="metric-card">
-            <span className="metric-icon-bubble">
-              <DollarSign size={18} />
-            </span>
-            <div>
-              <p>Facturación período</p>
-              <h2>{money(warehouse.totalCents)}</h2>
-              <small>
-                {warehouse.count} venta{warehouse.count === 1 ? "" : "s"} registrada
-                {warehouse.count === 1 ? "" : "s"}
-              </small>
-            </div>
-          </article>
-
-          <article className="metric-card">
-            <span className="metric-icon-bubble">
-              <ShoppingBag size={18} />
-            </span>
-            <div>
-              <p>Ticket promedio</p>
-              <h2>{money(avgTicket)}</h2>
-              <small>Gasto medio en esta sucursal</small>
-            </div>
-          </article>
-
-          <article className="metric-card">
-            <span className="metric-icon-bubble">
-              <Boxes size={18} />
-            </span>
-            <div>
-              <p>Existencias en depósito</p>
-              <h2>
-                {stockStats.totalUnits.toLocaleString("es-AR")} <small>un.</small>
-              </h2>
-              <small>{stockStats.positiveItemsCount} productos con stock activo</small>
-            </div>
-          </article>
-
-          <article className="metric-card">
-            <span className="metric-icon-bubble">
-              <TrendingUp size={18} />
-            </span>
-            <div>
-              <p>Valuación de inventario</p>
-              <h2>{money(stockStats.totalValuationCents)}</h2>
-              <small>A precio de lista actual</small>
-            </div>
-          </article>
-        </section>
-
         {/* Pestañas de Navegación del Depósito */}
         <nav className="warehouse-modal-tabs">
           <button
@@ -376,7 +332,59 @@ export function WarehouseReportModal({
         </nav>
 
         {/* Contenido del Modal según pestaña */}
-        <div className="warehouse-modal-body">
+        <div className="warehouse-modal-body" ref={bodyRef}>
+          {/* KPIs Principales del Depósito */}
+          <section className="metric-grid warehouse-kpi-grid">
+            <article className="metric-card">
+              <span className="metric-icon-bubble">
+                <DollarSign size={18} />
+              </span>
+              <div>
+                <p>Facturación período</p>
+                <h2>{money(warehouse.totalCents)}</h2>
+                <small>
+                  {warehouse.count} venta{warehouse.count === 1 ? "" : "s"} registrada
+                  {warehouse.count === 1 ? "" : "s"}
+                </small>
+              </div>
+            </article>
+
+            <article className="metric-card">
+              <span className="metric-icon-bubble">
+                <ShoppingBag size={18} />
+              </span>
+              <div>
+                <p>Ticket promedio</p>
+                <h2>{money(avgTicket)}</h2>
+                <small>Gasto medio en esta sucursal</small>
+              </div>
+            </article>
+
+            <article className="metric-card">
+              <span className="metric-icon-bubble">
+                <Boxes size={18} />
+              </span>
+              <div>
+                <p>Existencias en depósito</p>
+                <h2>
+                  {stockStats.totalUnits.toLocaleString("es-AR")} <small>un.</small>
+                </h2>
+                <small>{stockStats.positiveItemsCount} productos con stock activo</small>
+              </div>
+            </article>
+
+            <article className="metric-card">
+              <span className="metric-icon-bubble">
+                <TrendingUp size={18} />
+              </span>
+              <div>
+                <p>Valuación de inventario</p>
+                <h2>{money(stockStats.totalValuationCents)}</h2>
+                <small>A precio de lista actual</small>
+              </div>
+            </article>
+          </section>
+
           {loading && (
             <div className="warehouse-modal-loading">
               <div className="spinner" />
@@ -426,8 +434,10 @@ export function WarehouseReportModal({
                                   <span className={`rank-pill rank-${idx + 1}`}>{idx + 1}</span>
                                 </td>
                                 <td>
-                                  <b>{p.productName}</b>
-                                  {p.sku && <small>{p.sku}</small>}
+                                  <div className="product-stack">
+                                    <b>{p.productName}</b>
+                                    {p.sku && <small>{p.sku}</small>}
+                                  </div>
                                 </td>
                                 <td>{p.units.toLocaleString("es-AR")} un.</td>
                                 <td>
@@ -596,8 +606,10 @@ export function WarehouseReportModal({
                             return (
                               <tr key={item.productId}>
                                 <td>
-                                  <b>{item.productName}</b>
-                                  <small>{item.sku}</small>
+                                  <div className="product-stack">
+                                    <b>{item.productName}</b>
+                                    <small>{item.sku}</small>
+                                  </div>
                                 </td>
                                 <td>
                                   <span className="category-pill">
