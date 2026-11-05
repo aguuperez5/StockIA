@@ -42,10 +42,13 @@ export function readSession(req) {
     .find(v => v.startsWith(`${COOKIE}=`))
     ?.slice(COOKIE.length + 1);
 
-  if (!raw) return null;
+  const authHeader = req.headers?.authorization;
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+  if (!raw && !bearerToken) return null;
+  const tokenToVerify = raw || bearerToken;
 
   try {
-    const decoded = jwt.verify(raw, SESSION_SECRET, { algorithms: ['HS256'] });
+    const decoded = jwt.verify(tokenToVerify, SESSION_SECRET, { algorithms: ['HS256'] });
     return typeof decoded === 'object' && decoded.userId ? Number(decoded.userId) : null;
   } catch {
     return null;

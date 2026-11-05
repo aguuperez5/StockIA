@@ -52,8 +52,10 @@ export async function registerCompat(req, res) {
     const userCount = await prisma.user.count();
     const isFirst = userCount === 0;
     const user = await prisma.user.create({ data: { name: (fullName || name).trim(), legajo: legajo.trim(), email: normalized, password: await bcrypt.hash(password, 10), role: isFirst ? 'ADMIN' : 'USER', appRole: isFirst ? 'administrador' : 'caja' } });
-    setSession(res, createSession(user.id));
-    return res.status(201).json({ message: 'Usuario registrado exitosamente.', user: publicUser(user) });
+
+    const token = createSession(user.id);
+    setSession(res, token);
+    return res.status(201).json({ message: 'Usuario registrado exitosamente.', user: publicUser(user), token });
   } catch (e) { return res.status(500).json({ message: 'No pudimos registrar el usuario.', details: e.message }); }
 }
 export async function login(req, res) {
@@ -62,8 +64,10 @@ export async function login(req, res) {
   if (!user || !(await bcrypt.compare(password || '', user.password))) return res.status(401).json({ message: 'Email o contraseña incorrectos.' });
   resetLoginAttempts(email);
   if (req.ip) resetLoginAttempts(req.ip);
-  setSession(res, createSession(user.id));
-  return res.json({ message: 'Sesión iniciada.', user: publicUser(user) });
+
+  const token = createSession(user.id);
+  setSession(res, token);
+  return res.json({ message: 'Sesión iniciada.', user: publicUser(user), token });
 }
 export async function me(req, res) {
   try {
