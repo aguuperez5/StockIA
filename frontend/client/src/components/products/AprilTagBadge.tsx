@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getAprilTagImageUrl } from "@/services/http";
 import { QrCode, ZoomIn, X } from "lucide-react";
 
 interface AprilTagBadgeProps {
@@ -28,8 +29,8 @@ export const AprilTagBadge: React.FC<AprilTagBadgeProps> = ({
   }
 
   const formattedId = `#${String(tagId).padStart(3, "0")}`;
-  const imgUrl = `/api/apriltags/${tagId}/image?size=160`;
-  const largeImgUrl = `/api/apriltags/${tagId}/image?size=400`;
+  const imgUrl = getAprilTagImageUrl(tagId, 160);
+  const largeImgUrl = getAprilTagImageUrl(tagId, 400);
 
   const badgeSizeClass =
     size === "sm"

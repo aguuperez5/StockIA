@@ -1,6 +1,10 @@
-const API_URL = (import.meta.env.VITE_API_URL ?? "")
+export const API_URL = (import.meta.env.VITE_API_URL ?? "")
   .replace(/\/+$/, "")
   .replace(/\/api$/, "");
+
+export function getAprilTagImageUrl(tagId: number | string, size = 160): string {
+  return `${API_URL}/api/apriltags/${tagId}/image?size=${size}`;
+}
 
 export class ApiError extends Error {
   constructor(

@@ -13,6 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { type Product } from "@/services/products";
+import { getAprilTagImageUrl } from "@/services/http";
 
 interface PrintAprilTagsModalProps {
   products: Product[];
@@ -263,7 +264,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-2">
                               <img
-                                src={`/api/apriltags/${product.apriltagId}/image?size=80`}
+                                src={getAprilTagImageUrl(product.apriltagId!, 80)}
                                 alt={`Tag ${formattedTag}`}
                                 width={26}
                                 height={26}
@@ -352,7 +353,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
                     style={{ width: "29mm", height: "37mm" }}
                   >
                     <img
-                      src={`/api/apriltags/${item.product.apriltagId}/image?size=250`}
+                      src={getAprilTagImageUrl(item.product.apriltagId!, 250)}
                       alt={`Tag ${item.product.apriltagId}`}
                       style={{
                         width: "25mm",
@@ -473,7 +474,7 @@ export const PrintAprilTagsModal: React.FC<PrintAprilTagsModalProps> = ({
               }}
             >
               <img
-                src={`/api/apriltags/${item.product.apriltagId}/image?size=300`}
+                src={getAprilTagImageUrl(item.product.apriltagId!, 300)}
                 alt={`Tag ${item.product.apriltagId}`}
                 style={{
                   width: "25mm",
