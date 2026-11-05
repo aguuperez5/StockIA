@@ -10,7 +10,9 @@ import saleRoutes from './routes/sale.routes.js';
 import { requireAuth, requireAppRole } from './middleware.js';
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
+app.set('trust proxy', 1);
+const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/+$/, '') : 'http://localhost:3000';
+app.use(cors({ origin: frontendUrl, credentials: true }));
 app.use(express.json({ limit: '5mb' }));
 
 app.use('/api', integrationRoutes);

@@ -68,13 +68,15 @@ export async function requireAuth(req, res, next) {
 export function setSession(res, token) {
   const isProd = process.env.NODE_ENV === 'production';
   const secure = isProd ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800${secure}`);
+  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
+  res.setHeader('Set-Cookie', `${COOKIE}=${token}; HttpOnly; Path=/; ${sameSite}; Max-Age=604800${secure}`);
 }
 
 export function clearSession(res) {
   const isProd = process.env.NODE_ENV === 'production';
   const secure = isProd ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0${secure}`);
+  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
+  res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; ${sameSite}; Max-Age=0${secure}`);
 }
 
 export function appRole(user) {
