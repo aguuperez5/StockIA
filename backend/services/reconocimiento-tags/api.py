@@ -82,4 +82,4 @@ async def detectar_productos(
 
 if __name__ == "__main__":
     puerto = int(os.environ.get("PORT", 8000))
-    uvicorn.run("api:app", host="127.0.0.1", port=puerto)
+    uvicorn.run("api:app", host="0.0.0.0", port=puerto)
