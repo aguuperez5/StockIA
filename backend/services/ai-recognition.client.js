@@ -44,7 +44,8 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
   const token = process.env.AI_SERVICE_TOKEN?.trim();
 
   const { bytes, mimeType } = readImage(photoData, photoMimeType);
-  const isAprilTags = serviceUrl.includes(':8000') || serviceUrl.endsWith('/api');
+  const isAprilTags = !serviceUrl.includes(':8010');
+  const baseServiceUrl = serviceUrl.replace(/\/api$/, '');
 
   const form = new FormData();
   if (isAprilTags) {
@@ -54,7 +55,7 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
   }
 
   const endpoint = isAprilTags
-    ? `${serviceUrl}/api/detectar?incluir_imagen=false`
+    ? `${baseServiceUrl}/api/detectar?incluir_imagen=false`
     : `${serviceUrl}/v1/analyze`;
 
   const headers = {};
@@ -63,7 +64,7 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
   }
 
   const controller = new AbortController();
-  const timeoutMs = Math.max(1_000, Number(process.env.AI_SERVICE_TIMEOUT_MS) || 15_000);
+  const timeoutMs = Math.max(1_000, Number(process.env.AI_SERVICE_TIMEOUT_MS) || 45_000);
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
