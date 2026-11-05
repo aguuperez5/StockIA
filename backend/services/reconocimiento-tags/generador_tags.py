@@ -13,7 +13,9 @@ def generar_tag_imagen(tag_id, tamaño_px=300, borde_bits=1):
         tag_img = cv2.aruco.generateImageMarker(diccionario, tag_id, tamaño_px, borderBits=borde_bits)
     else:
         tag_img = cv2.aruco.drawMarker(diccionario, tag_id, tamaño_px, borderBits=borde_bits)
-    return tag_img
+    pad = max(8, tamaño_px // 8)
+    tag_con_borde = cv2.copyMakeBorder(tag_img, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=255)
+    return cv2.resize(tag_con_borde, (tamaño_px, tamaño_px), interpolation=cv2.INTER_NEAREST)
 
 def crear_tarjeta_producto(tag_id, nombre_producto, ancho=600, alto=680):
     """Genera una tarjeta individual con borde guía y AprilTag."""

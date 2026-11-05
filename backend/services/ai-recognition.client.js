@@ -32,6 +32,14 @@ function readImage(photoData, declaredMimeType) {
   return { bytes, mimeType };
 }
 
+function buildMultipartForm(bytes, mimeType, isAprilTags) {
+  const form = new FormData();
+  const ext = mimeType === "image/jpeg" ? "jpg" : mimeType.slice(6);
+  const field = isAprilTags ? "archivo" : "image";
+  form.append(field, new Blob([bytes], { type: mimeType }), `stockia.${ext}`);
+  return form;
+}
+
 export async function analyzeProductImage({ photoData, photoMimeType }) {
   const rawServiceUrl = process.env.AI_SERVICE_URL?.trim();
   if (!rawServiceUrl) {
@@ -47,13 +55,6 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
   const isAprilTags = !serviceUrl.includes(':8010');
   const baseServiceUrl = serviceUrl.replace(/\/api$/, '');
 
-  const form = new FormData();
-  if (isAprilTags) {
-    form.append("archivo", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
-  } else {
-    form.append("image", new Blob([bytes], { type: mimeType }), `stockia.${mimeType.slice(6)}`);
-  }
-
   const endpoint = isAprilTags
     ? `${baseServiceUrl}/api/detectar?incluir_imagen=false`
     : `${serviceUrl}/v1/analyze`;
@@ -68,16 +69,28 @@ export async function analyzeProductImage({ photoData, photoMimeType }) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(endpoint, {
+    let response = await fetch(endpoint, {
       method: "POST",
       headers,
-      body: form,
+      body: buildMultipartForm(bytes, mimeType, isAprilTags),
       signal: controller.signal,
     });
+
+    if (isAprilTags && (response.status === 502 || response.status === 503 || response.status === 504)) {
+      await fetch(`${baseServiceUrl}/api/health`, { signal: controller.signal }).catch(() => null);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: buildMultipartForm(bytes, mimeType, isAprilTags),
+        signal: controller.signal,
+      });
+    }
+
     const result = await response.json().catch(() => null);
     if (!response.ok) {
       throw new AIRecognitionError(
-        result?.detail || "El servicio de reconocimiento no pudo analizar la imagen.",
+        result?.detail || `El servicio de reconocimiento no pudo analizar la imagen (HTTP ${response.status} en ${endpoint}).`,
         502,
       );
     }

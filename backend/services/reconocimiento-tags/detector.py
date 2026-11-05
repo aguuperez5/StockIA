@@ -83,6 +83,17 @@ class DetectorProductosAprilTag:
                 gris, self.diccionario_aruco, parameters=self.parametros_detector
             )
 
+        if ids is None or len(ids) == 0:
+            gris_pad = cv2.copyMakeBorder(gris, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=255)
+            if max(gris_pad.shape[:2]) < 400:
+                gris_pad = cv2.resize(gris_pad, (0, 0), fx=2.0, fy=2.0, interpolation=cv2.INTER_NEAREST)
+            if self.detector is not None:
+                esquinas, ids, rejected = self.detector.detectMarkers(gris_pad)
+            else:
+                esquinas, ids, rejected = cv2.aruco.detectMarkers(
+                    gris_pad, self.diccionario_aruco, parameters=self.parametros_detector
+                )
+
         imagen_anotada = imagen.copy()
         lista_detecciones = []
 
