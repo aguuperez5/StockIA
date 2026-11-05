@@ -12,7 +12,18 @@ import { requireAuth, requireAppRole } from './middleware.js';
 const app = express();
 app.set('trust proxy', 1);
 const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/+$/, '') : 'http://localhost:3000';
-app.use(cors({ origin: frontendUrl, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    if (cleanOrigin === frontendUrl || cleanOrigin === 'http://localhost:3000' || cleanOrigin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json({ limit: '5mb' }));
 
 app.use('/api', integrationRoutes);

@@ -6,6 +6,32 @@ export function getAprilTagImageUrl(tagId: number | string, size = 160): string 
   return `${API_URL}/api/apriltags/${tagId}/image?size=${size}`;
 }
 
+let memoryToken: string | null = null;
+
+function getSessionToken(): string | null {
+  if (memoryToken) return memoryToken;
+  try {
+    if (typeof window !== "undefined") {
+      return window.localStorage?.getItem("stockia_session_token") ?? null;
+    }
+  } catch {
+    // ignore storage errors on iOS private mode
+  }
+  return null;
+}
+
+function setSessionToken(token: string | null) {
+  memoryToken = token;
+  try {
+    if (typeof window !== "undefined") {
+      if (token) window.localStorage?.setItem("stockia_session_token", token);
+      else window.localStorage?.removeItem("stockia_session_token");
+    }
+  } catch {
+    // ignore storage errors on iOS private mode
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -26,11 +52,16 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     normalizedPath === "/auth/me" ||
     normalizedPath === "/auth/login" ||
     normalizedPath === "/users/register";
+  const currentToken = getSessionToken();
   try {
     response = await fetch(`${API_URL}/api${normalizedPath}`, {
       ...init,
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
+        ...(init.headers ?? {}),
+      },
     });
   } catch {
     throw new ApiError(
@@ -39,6 +70,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     );
   }
   const body = await response.json().catch(() => ({}));
+  if (body && typeof body.token === "string" && body.token) {
+    setSessionToken(body.token);
+  } else if (
+    normalizedPath === "/auth/logout" ||
+    (response.status === 401 && !isAuthEndpoint) ||
+    (normalizedPath === "/auth/me" && response.ok && body?.user === null)
+  ) {
+    setSessionToken(null);
+  }
   if (response.status === 401 && !isAuthEndpoint)
     window.dispatchEvent(new Event("stockia:unauthorized"));
   if (!response.ok)
