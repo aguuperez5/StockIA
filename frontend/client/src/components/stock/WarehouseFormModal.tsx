@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ModernSelect } from "@/components/ModernSelect";
+import { resizeImageToDataUrl } from "@/components/products/productFormUtils";
 import { type Warehouse, warehouseService } from "@/services/inventory";
 
 export interface WarehouseFormData {
@@ -88,32 +89,34 @@ export function WarehouseFormModal({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       toast.error("Por favor, seleccioná un archivo de imagen válido.");
+      event.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen supera el límite permitido de 5MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("La imagen supera el límite permitido de 20MB.");
+      event.target.value = "";
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setForm(prev => ({ ...prev, imageUrl: result }));
+    try {
+      // Redimensiona y comprime la foto (ej. fotos de celular en 4:3 de alta resolución)
+      // a un máximo de 1200x900 y calidad 0.85, evitando superar los límites de carga (413 Payload Too Large).
+      const dataUrl = await resizeImageToDataUrl(file, 1200, 900, 0.85);
+      setForm(prev => ({ ...prev, imageUrl: dataUrl }));
       setImageUrlInput("");
       toast.success("Foto de portada cargada correctamente.");
-    };
-    reader.onerror = () => {
-      toast.error("Error al procesar la imagen seleccionada.");
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al procesar la imagen seleccionada.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const handleApplyUrl = () => {

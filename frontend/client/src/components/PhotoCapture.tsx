@@ -68,6 +68,7 @@ export default function PhotoCapture({
   const requestRef = useRef(0);
   const [cameraOpen, setCameraOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const previewUrlRef = useRef("");
 
@@ -96,6 +97,10 @@ export default function PhotoCapture({
 
   const openCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+        return;
+      }
       setError("Tu navegador no permite acceder a la cámara.");
       return;
     }
@@ -114,6 +119,10 @@ export default function PhotoCapture({
         if (videoRef.current) videoRef.current.srcObject = streamRef.current;
       });
     } catch {
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+        return;
+      }
       setError(
         "No se pudo abrir la cámara. Revisá los permisos del navegador."
       );
@@ -394,6 +403,14 @@ export default function PhotoCapture({
             <Camera size={15} />
             <span>Abrir cámara</span>
           </button>
+          <input
+            ref={cameraInputRef}
+            hidden
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={file}
+          />
           <label
             className="button-secondary photo-action-btn"
             title="Elegir archivo de imagen"

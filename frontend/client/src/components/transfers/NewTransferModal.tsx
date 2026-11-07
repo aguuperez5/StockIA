@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -34,6 +34,206 @@ export interface NewTransferModalProps {
   initialOriginWarehouseId?: number | string;
   initialProductId?: number;
   initialQuantity?: number;
+}
+
+function useHoldRepeat(
+  initialAction: () => void,
+  repeatAction: () => void,
+  canRepeat: boolean
+) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialRef = useRef(initialAction);
+  const repeatRef = useRef(repeatAction);
+  const canRepeatRef = useRef(canRepeat);
+
+  initialRef.current = initialAction;
+  repeatRef.current = repeatAction;
+  canRepeatRef.current = canRepeat;
+
+  const stop = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    timerRef.current = null;
+    intervalRef.current = null;
+  }, []);
+
+  const start = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      if ("button" in e && e.button !== 0) return;
+      e.preventDefault();
+
+      initialRef.current();
+
+      stop();
+      if (!canRepeatRef.current) return;
+
+      timerRef.current = setTimeout(() => {
+        intervalRef.current = setInterval(() => {
+          if (!canRepeatRef.current) {
+            stop();
+            return;
+          }
+          repeatRef.current();
+        }, 65);
+      }, 300);
+    },
+    [stop]
+  );
+
+  useEffect(() => {
+    return stop;
+  }, [stop]);
+
+  return {
+    onMouseDown: start,
+    onMouseUp: stop,
+    onMouseLeave: stop,
+    onTouchStart: start,
+    onTouchEnd: stop,
+    onTouchCancel: stop,
+  };
+}
+
+interface TransferCartStepperProps {
+  productId: number;
+  quantity: number;
+  maxAvailable: number;
+  productName: string;
+  onStep: (productId: number, delta: number) => void;
+  onSetQuantity: (productId: number, quantity: number) => void;
+}
+
+function TransferCartStepper({
+  productId,
+  quantity,
+  maxAvailable,
+  productName,
+  onStep,
+  onSetQuantity,
+}: TransferCartStepperProps) {
+  const [localInput, setLocalInput] = useState(String(quantity));
+  const isFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFocusedRef.current) {
+      setLocalInput(String(quantity));
+    }
+  }, [quantity]);
+
+  const minusDisabled = quantity <= 0;
+  const plusDisabled = quantity >= maxAvailable;
+
+  const minusRepeat = useHoldRepeat(
+    () => onStep(productId, -1),
+    () => onStep(productId, -1),
+    quantity > 1
+  );
+
+  const plusRepeat = useHoldRepeat(
+    () => onStep(productId, 1),
+    () => onStep(productId, 1),
+    quantity < maxAvailable
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalInput(val);
+
+    if (val.trim() === "") return;
+
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed)) {
+      if (parsed > maxAvailable) {
+        toast.info(
+          `Stock disponible de "${productName}" limitado a ${maxAvailable} u.`
+        );
+        onSetQuantity(productId, maxAvailable);
+        setLocalInput(String(maxAvailable));
+      } else if (parsed > 0) {
+        onSetQuantity(productId, parsed);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    isFocusedRef.current = false;
+    const parsed = parseInt(localInput, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      onSetQuantity(productId, 1);
+      setLocalInput("1");
+    } else if (parsed > maxAvailable) {
+      onSetQuantity(productId, maxAvailable);
+      setLocalInput(String(maxAvailable));
+    } else {
+      setLocalInput(String(parsed));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      onStep(productId, 1);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      onStep(productId, -1);
+    }
+  };
+
+  return (
+    <div className="cart-stepper">
+      <button
+        type="button"
+        className="stepper-btn"
+        disabled={minusDisabled}
+        title="Quitar una unidad (mantené presionado para restar rápido)"
+        aria-label="Disminuir cantidad"
+        onClick={e => {
+          if (e.detail === 0) onStep(productId, -1);
+        }}
+        {...minusRepeat}
+      >
+        <Minus size={13} />
+      </button>
+
+      <input
+        type="number"
+        className="stepper-input"
+        min={1}
+        max={maxAvailable}
+        value={localInput}
+        onFocus={e => {
+          isFocusedRef.current = true;
+          e.target.select();
+        }}
+        onChange={handleInputChange}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        aria-label={`Cantidad a transferir de ${productName}`}
+        title={`Escribí una cantidad directa (máx. ${maxAvailable} u.) o usá las flechas arriba/abajo`}
+      />
+
+      <button
+        type="button"
+        className="stepper-btn"
+        disabled={plusDisabled}
+        title={
+          plusDisabled
+            ? "Límite de stock disponible alcanzado"
+            : "Sumar una unidad (mantené presionado para sumar rápido)"
+        }
+        aria-label="Aumentar cantidad"
+        onClick={e => {
+          if (e.detail === 0) onStep(productId, 1);
+        }}
+        {...plusRepeat}
+      >
+        <Plus size={13} />
+      </button>
+    </div>
+  );
 }
 
 export function NewTransferModal({
@@ -188,6 +388,18 @@ export function NewTransferModal({
         return rest;
       }
       return { ...prev, [productId]: next };
+    });
+  };
+
+  const setItemQuantity = (productId: number, quantity: number) => {
+    setSelected(prev => {
+      const maxAvailable = availableOf(productId);
+      const clamped = Math.max(0, Math.min(maxAvailable, quantity));
+      if (clamped === 0) {
+        const { [productId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [productId]: clamped };
     });
   };
 
@@ -426,30 +638,14 @@ export function NewTransferModal({
                       </div>
 
                       <div className="cart-item-actions">
-                        <div className="cart-stepper">
-                          <button
-                            type="button"
-                            className="stepper-btn"
-                            onClick={() => stepItem(item.productId, -1)}
-                            title="Quitar una unidad"
-                          >
-                            <Minus size={13} />
-                          </button>
-                          <span className="stepper-val">{item.quantity}</span>
-                          <button
-                            type="button"
-                            className="stepper-btn"
-                            onClick={() => stepItem(item.productId, 1)}
-                            disabled={item.quantity >= item.maxAvailable}
-                            title={
-                              item.quantity >= item.maxAvailable
-                                ? "Límite de stock disponible alcanzado"
-                                : "Sumar una unidad"
-                            }
-                          >
-                            <Plus size={13} />
-                          </button>
-                        </div>
+                        <TransferCartStepper
+                          productId={item.productId}
+                          quantity={item.quantity}
+                          maxAvailable={item.maxAvailable}
+                          productName={item.name}
+                          onStep={stepItem}
+                          onSetQuantity={setItemQuantity}
+                        />
 
                         <button
                           type="button"

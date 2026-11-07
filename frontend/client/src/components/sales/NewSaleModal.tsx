@@ -74,6 +74,7 @@ export function NewSaleModal({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
 
   // Estado para el panel de análisis y verificación de stock
   const [analyzedProducts, setAnalyzedProducts] = useState<DetectedProduct[] | null>(null);
@@ -441,7 +442,7 @@ export function NewSaleModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="presentation">
+    <div className="modal-backdrop new-sale-backdrop" onClick={onClose} role="presentation">
       <div
         className="modal-card new-sale-modal"
         role="dialog"
@@ -473,6 +474,33 @@ export function NewSaleModal({
           </button>
         </header>
 
+        {/* Barra de pestañas móvil (< 900px) para evitar triple scroll */}
+        <div className="new-sale-mobile-tabs" role="tablist" aria-label="Vista de nueva venta">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === "catalog"}
+            className={`new-sale-mobile-tab ${mobileTab === "catalog" ? "is-active" : ""}`}
+            onClick={() => setMobileTab("catalog")}
+          >
+            <Store size={15} />
+            <span>Catálogo y Escáner</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === "cart"}
+            className={`new-sale-mobile-tab ${mobileTab === "cart" ? "is-active" : ""}`}
+            onClick={() => setMobileTab("cart")}
+          >
+            <ShoppingCart size={15} />
+            <span>Comprobante</span>
+            {totalCartUnits > 0 && (
+              <span className="new-sale-mobile-tab-badge">{totalCartUnits}</span>
+            )}
+          </button>
+        </div>
+
         {/* Cuerpo del Modal */}
         <div className="new-sale-modal-body">
           {error && (
@@ -487,531 +515,557 @@ export function NewSaleModal({
               <LoadingPanel rows={4} />
             </div>
           ) : (
-            <div className="new-sale-modal-grid">
-              {/* COLUMNA IZQUIERDA: VISIÓN AI Y CATÁLOGO */}
-              <div className="new-sale-catalog-col">
-                {/* 1. MÓDULO DE RECONOCIMIENTO INTELIGENTE (STOCKIA VISION) - SIEMPRE VISIBLE */}
-                <div className="sale-vision-hero-card">
-                  <div className="sale-vision-hero-top">
-                    <div className="sale-vision-brand">
-                      <span className="sale-vision-sparkle-icon">
-                        <Sparkles size={16} />
-                      </span>
-                      <div>
-                        <div className="sale-vision-title-row">
-                          <h3 className="sale-vision-title">StockIA Vision · IA de Reconocimiento</h3>
+            <>
+              <div className="new-sale-modal-grid" data-mobile-view={mobileTab}>
+                {/* COLUMNA IZQUIERDA: VISIÓN AI Y CATÁLOGO */}
+                <div className="new-sale-catalog-col">
+                  {/* 1. MÓDULO DE RECONOCIMIENTO INTELIGENTE (STOCKIA VISION) - SIEMPRE VISIBLE */}
+                  <div className="sale-vision-hero-card">
+                    <div className="sale-vision-hero-top">
+                      <div className="sale-vision-brand">
+                        <span className="sale-vision-sparkle-icon">
+                          <Sparkles size={16} />
+                        </span>
+                        <div>
+                          <div className="sale-vision-title-row">
+                            <h3 className="sale-vision-title">StockIA Vision · IA de Reconocimiento</h3>
+                          </div>
+                          <p className="sale-vision-desc">
+                            Escaneá comprobantes físicos, abrí la cámara o analizá artículos para detectar stock al instante.
+                          </p>
                         </div>
-                        <p className="sale-vision-desc">
-                          Escaneá comprobantes físicos, abrí la cámara o analizá artículos para detectar stock al instante.
-                        </p>
+                      </div>
+                      {photo && (
+                        <div className="sale-photo-status-pill">
+                          <span>✓ Comprobante adjunto</span>
+                          <button
+                            type="button"
+                            className="remove-photo-link"
+                            onClick={() => setPhoto(undefined)}
+                            title="Eliminar foto adjunta"
+                            aria-label="Eliminar foto adjunta"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="sale-vision-capture-wrapper">
+                      <PhotoCapture
+                        scanMode="sales"
+                        onPhoto={(data, mimeType) => setPhoto({ data, mimeType })}
+                        onDetected={handleDetected}
+                        onAnalysisComplete={handleAnalysisComplete}
+                        canCreateProduct={canCreateProduct}
+                        onCreateProduct={code => setCreateProductSku(code)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 1.1 PANEL SELECTOR DE AMBIGÜEDAD (MÚLTIPLES PRODUCTOS DETECTADOS) */}
+                  {analysisStatus === "ambiguous" && analyzedProducts && analyzedProducts.length > 0 && (
+                    <div
+                      className="ambiguous-selector-panel"
+                      style={{
+                        marginTop: "16px",
+                        padding: "16px",
+                        borderRadius: "10px",
+                        backgroundColor: "var(--scanner-soft)",
+                        border: "1px solid var(--scanner-border)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "12px",
+                          flexWrap: "wrap",
+                          gap: "6px",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Sparkles size={18} style={{ color: "var(--scanner)" }} />
+                          <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>
+                            Múltiples productos detectados (Ambigüedad)
+                          </h4>
+                        </div>
+                        <span style={{ fontSize: "0.8rem", color: "var(--muted-ink)" }}>
+                          Marcá los que deseás incluir en la venta
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+                          gap: "10px",
+                        }}
+                      >
+                        {analyzedProducts.map(prod => {
+                          const isInCart = cart.some(line => line.productId === prod.id);
+                          return (
+                            <div
+                              key={prod.id}
+                              onClick={() => toggleProductInCart(prod)}
+                              role="button"
+                              tabIndex={0}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                padding: "10px 12px",
+                                borderRadius: "8px",
+                                border: isInCart ? "1.5px solid var(--brand)" : "1px solid var(--line)",
+                                backgroundColor: isInCart ? "var(--brand-soft)" : "var(--surface)",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isInCart}
+                                readOnly
+                                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                              />
+                              <div style={{ overflow: "hidden", flex: 1 }}>
+                                <b
+                                  style={{
+                                    display: "block",
+                                    fontSize: "0.85rem",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {prod.name}
+                                </b>
+                                <small style={{ color: "var(--muted-ink)", fontSize: "0.75rem" }}>
+                                  SKU: {prod.sku} {prod.suggestedQuantity ? `· x${prod.suggestedQuantity} u.` : ""}
+                                </small>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                    {photo && (
-                      <div className="sale-photo-status-pill">
-                        <span>✓ Comprobante adjunto</span>
+                  )}
+
+                  {/* 2. PANEL DE RESULTADOS DE ANÁLISIS Y VERIFICACIÓN DE STOCK POR DEPÓSITO */}
+                  {analysisDetails && (
+                    <div className="analysis-verification-box modal-analysis-box">
+                      <div className="analysis-verification-header">
+                        <div className="analysis-header-title">
+                          <Sparkles size={18} className="analysis-icon" />
+                          <div>
+                            <h3>Resultado del análisis y verificación de stock</h3>
+                            <p>Revisá las existencias en cada depósito antes de despachar.</p>
+                          </div>
+                        </div>
                         <button
                           type="button"
-                          className="remove-photo-link"
-                          onClick={() => setPhoto(undefined)}
-                          title="Eliminar foto adjunta"
-                          aria-label="Eliminar foto adjunta"
+                          className="button-ghost close-analysis-btn"
+                          onClick={() => setAnalyzedProducts(null)}
+                          title="Cerrar panel de análisis"
                         >
-                          <X size={12} />
+                          <X size={15} /> Cerrar
                         </button>
+                      </div>
+
+                      {analysisDetails.showAlert && (
+                        <div className="analysis-alert-banner">
+                          <AlertTriangle size={20} className="alert-icon-warning" />
+                          <div>
+                            <strong>¡Atención! Productos detectados en diferentes depósitos</strong>
+                            <p>
+                              {analysisDetails.hasCartConflict
+                                ? `La venta actual está asociada a "${activeWarehouseName}", pero algunos de los productos analizados solo disponen de stock en otros depósitos.`
+                                : "Los productos analizados tienen existencias distribuidas en diferentes depósitos. Cada venta debe despacharse desde un único depósito."}
+                            </p>
+                            <small>Seleccioná abajo desde qué depósito querés despachar cada ítem.</small>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="analysis-products-list">
+                        {analysisDetails.items.map(prod => (
+                          <div className="analysis-product-card" key={prod.id}>
+                            <div className="analysis-product-info">
+                              <div className="analysis-product-title">
+                                <b>{prod.name}</b>
+                                <span className="analysis-product-sku">SKU: {prod.sku}</span>
+                              </div>
+                              <div className="analysis-product-meta">
+                                {prod.priceCents ? (
+                                  <span className="analysis-price">{money(prod.priceCents)}</span>
+                                ) : null}
+                                {prod.matchMethod && (
+                                  <span
+                                    className={`analysis-match-evidence ${prod.reviewRequired ? "needs-review" : ""}`}
+                                  >
+                                    {{
+                                      barcode_ocr: "Barras + número impreso (OCR)",
+                                      barcode: "Código de barras",
+                                      ocr_code: "Número impreso (OCR)",
+                                      ocr_name: "Texto del envase (OCR)",
+                                    }[prod.matchMethod]}
+                                    {prod.reviewRequired ? " · verificá el producto" : " · corroborado por OCR"}
+                                  </span>
+                                )}
+                                <span
+                                  className={`analysis-total-stock ${prod.totalQuantity > 0 ? "stock-ok" : "stock-zero"}`}
+                                >
+                                  {prod.totalQuantity > 0
+                                    ? `Total: ${prod.totalQuantity} u. en red`
+                                    : "Sin stock disponible"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="analysis-warehouses-grid">
+                              {prod.stocksByWarehouse.map(stockInfo => {
+                                const isCurrentActive = activeWarehouseId === stockInfo.warehouseId;
+                                const hasStock = stockInfo.quantity > 0;
+                                const isMismatch = activeWarehouseId !== null && !isCurrentActive;
+
+                                return (
+                                  <div
+                                    key={stockInfo.warehouseId}
+                                    className={`analysis-warehouse-pill ${hasStock ? "has-stock" : "no-stock"} ${isCurrentActive ? "active-warehouse" : ""}`}
+                                  >
+                                    <div className="warehouse-pill-data">
+                                      <Building2 size={14} />
+                                      <div>
+                                        <span className="warehouse-name">{stockInfo.warehouseName}</span>
+                                        <span className="warehouse-qty">
+                                          {hasStock
+                                            ? `${stockInfo.quantity} u. disponibles`
+                                            : "0 u. (Agotado)"}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="warehouse-pill-action">
+                                      {isMismatch ? (
+                                        <button
+                                          type="button"
+                                          className="button-secondary button-xs"
+                                          disabled={!hasStock}
+                                          onClick={() =>
+                                            stockInfo.inventoryItem && add(stockInfo.inventoryItem)
+                                          }
+                                          title={`Cambiar venta a ${stockInfo.warehouseName}`}
+                                        >
+                                          Vender desde aquí
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="button-primary button-xs"
+                                          disabled={!hasStock}
+                                          onClick={() =>
+                                            addProductFromWarehouse(prod.id, stockInfo.warehouseId)
+                                          }
+                                        >
+                                          <Plus size={12} /> {isCurrentActive ? "Agregar" : "Seleccionar"}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. SECCIÓN DE CATÁLOGO GENERAL Y AGREGADO MANUAL */}
+                  <div className="catalog-manual-section">
+                    <div className="catalog-manual-header">
+                      <div className="catalog-manual-title-group">
+                        <Store size={16} />
+                        <h4>Agregar productos manualmente</h4>
+                      </div>
+                      <span className="catalog-manual-count">
+                        {shown.length} producto{shown.length === 1 ? "" : "s"} disponible{shown.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+
+                    {/* Herramientas de búsqueda y filtros */}
+                    <div className="new-sale-filters-bar">
+                      <div className="filter-item-wrapper">
+                        <ModernSelect
+                          value={selectedWarehouseFilter}
+                          onChange={setSelectedWarehouseFilter}
+                          options={[
+                            { value: "", label: "Todos los depósitos" },
+                            ...warehouses.map(w => ({ value: w.id, label: w.name })),
+                          ]}
+                          icon={<WarehouseIcon size={14} />}
+                          ariaLabel="Filtrar por depósito"
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="filter-item-wrapper">
+                        <ModernSelect
+                          value={categoryFilter}
+                          onChange={setCategoryFilter}
+                          options={categories}
+                          icon={<Filter size={14} />}
+                          ariaLabel="Filtrar por categoría"
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="new-sale-search-input">
+                        <Search size={14} />
+                        <input
+                          value={query}
+                          onChange={e => setQuery(e.target.value)}
+                          placeholder="Buscar por producto o SKU..."
+                          aria-label="Buscar producto"
+                        />
+                        {query && (
+                          <button
+                            type="button"
+                            className="clear-search-btn"
+                            onClick={() => setQuery("")}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Banner de depósito fijado */}
+                    {activeWarehouseName && (
+                      <div className="active-warehouse-indicator-bar compact">
+                        <WarehouseIcon size={14} />
+                        <span>
+                          Venta fijada en: <b>{activeWarehouseName}</b> (todos los artículos deben pertenecer a este depósito).
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Cuadrícula de productos disponibles */}
+                    {shown.length ? (
+                      <div className="new-sale-cards-grid">
+                        {shown.map(item => {
+                          const isMismatch =
+                            activeWarehouseId !== null &&
+                            activeWarehouseId !== item.warehouseId;
+                          const inCart = cart.find(
+                            l => l.inventoryId === item.inventoryId
+                          );
+
+                          return (
+                            <div
+                              key={item.inventoryId}
+                              className={`new-sale-card ${isMismatch ? "is-mismatch" : ""} ${inCart ? "is-in-cart" : ""}`}
+                              onClick={() => add(item)}
+                            >
+                              <div className="card-top">
+                                {item.imageUrl ? (
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.productName}
+                                    className="card-thumb"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    onError={e => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                      const parent = target.parentElement;
+                                      if (parent && !parent.querySelector(".card-glyph")) {
+                                        const fallback = document.createElement("span");
+                                        fallback.className = "card-glyph";
+                                        fallback.textContent = item.productName.slice(0, 1).toUpperCase();
+                                        parent.insertBefore(fallback, target);
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="card-glyph">
+                                    {item.productName.slice(0, 1).toUpperCase()}
+                                  </span>
+                                )}
+                                <div className="card-text">
+                                  <b className="card-title">{item.productName}</b>
+                                  <div className="card-tags">
+                                    <span className="card-sku">{item.sku}</span>
+                                    <span className="card-depot">{item.warehouseName}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="card-bottom">
+                                <div className="card-pricing">
+                                  <span className="card-price">{money(item.priceCents)}</span>
+                                  <span className="card-stock">
+                                    Disp: <b>{item.quantity} u.</b>
+                                  </span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className={`card-add-btn ${inCart ? "btn-active" : ""}`}
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    add(item);
+                                  }}
+                                >
+                                  <Plus size={13} />
+                                  {inCart ? `En venta (${inCart.cartQuantity})` : "Sumar"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        title="No encontramos artículos con stock"
+                        detail={
+                          selectedWarehouseFilter
+                            ? "El depósito seleccionado no tiene unidades disponibles que coincidan con la búsqueda."
+                            : "Probá cambiar el filtro o la búsqueda."
+                        }
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* COLUMNA DERECHA: RESUMEN Y CARRITO */}
+                <aside className="new-sale-cart-aside">
+                  <div className="cart-aside-header">
+                    <div className="aside-title">
+                      <ShoppingCart size={17} />
+                      <h4>Comprobante de Venta</h4>
+                    </div>
+                    {cart.length > 0 && (
+                      <span className="aside-count-badge">
+                        {totalCartUnits} u. en {cart.length} ítem{cart.length === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Selector de Cliente */}
+                  <div className="cart-field-row">
+                    <label className="field-label">Cliente (opcional)</label>
+                    <ModernSelect
+                      value={customerId}
+                      onChange={setCustomerId}
+                      options={[
+                        { value: "", label: "Consumidor final / Mostrador" },
+                        ...customers.map(c => ({
+                          value: c.id,
+                          label: c.name,
+                        })),
+                      ]}
+                      ariaLabel="Cliente"
+                      minWidth="100%"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Depósito activo */}
+                  {activeWarehouseName && (
+                    <div className="cart-warehouse-badge">
+                      <Store size={14} />
+                      <span>
+                        Despacho: <b>{activeWarehouseName}</b>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Lista de productos en el carrito */}
+                  <div className="cart-lines-container">
+                    {cart.length ? (
+                      <div className="cart-lines-scroll">
+                        {cart.map(line => (
+                          <SaleCartLine
+                            key={line.inventoryId}
+                            line={line}
+                            onChangeQuantity={change}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="cart-empty-panel">
+                        <PackagePlus size={26} />
+                        <p>La venta está vacía</p>
+                        <span>Hacé clic en "+ Sumar" sobre los productos para agregarlos.</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="sale-vision-capture-wrapper">
-                    <PhotoCapture
-                      scanMode="sales"
-                      onPhoto={(data, mimeType) => setPhoto({ data, mimeType })}
-                      onDetected={handleDetected}
-                      onAnalysisComplete={handleAnalysisComplete}
-                      canCreateProduct={canCreateProduct}
-                      onCreateProduct={code => setCreateProductSku(code)}
-                    />
-                  </div>
-                </div>
-
-                {/* 1.1 PANEL SELECTOR DE AMBIGÜEDAD (MÚLTIPLES PRODUCTOS DETECTADOS) */}
-                {analysisStatus === "ambiguous" && analyzedProducts && analyzedProducts.length > 0 && (
-                  <div
-                    className="ambiguous-selector-panel"
-                    style={{
-                      marginTop: "16px",
-                      padding: "16px",
-                      borderRadius: "10px",
-                      backgroundColor: "var(--scanner-soft)",
-                      border: "1px solid var(--scanner-border)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Sparkles size={18} style={{ color: "var(--scanner)" }} />
-                        <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>
-                          Múltiples productos detectados (Ambigüedad)
-                        </h4>
-                      </div>
-                      <span style={{ fontSize: "0.8rem", color: "var(--muted-ink)" }}>
-                        Marcá los que deseás incluir en la venta
-                      </span>
+                  {/* Totales y botón de confirmación */}
+                  <div className="cart-bottom-card">
+                    <div className="cart-total-row">
+                      <span className="total-title">Total a cobrar:</span>
+                      <b className="total-amount">{money(computedTotal)}</b>
                     </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
-                        gap: "10px",
-                      }}
-                    >
-                      {analyzedProducts.map(prod => {
-                        const isInCart = cart.some(line => line.productId === prod.id);
-                        return (
-                          <div
-                            key={prod.id}
-                            onClick={() => toggleProductInCart(prod)}
-                            role="button"
-                            tabIndex={0}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              padding: "10px 12px",
-                              borderRadius: "8px",
-                              border: isInCart ? "1.5px solid var(--brand)" : "1px solid var(--line)",
-                              backgroundColor: isInCart ? "var(--brand-soft)" : "var(--surface)",
-                              cursor: "pointer",
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isInCart}
-                              readOnly
-                              style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                            />
-                            <div style={{ overflow: "hidden", flex: 1 }}>
-                              <b
-                                style={{
-                                  display: "block",
-                                  fontSize: "0.85rem",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
-                                {prod.name}
-                              </b>
-                              <small style={{ color: "var(--muted-ink)", fontSize: "0.75rem" }}>
-                                SKU: {prod.sku} {prod.suggestedQuantity ? `· x${prod.suggestedQuantity} u.` : ""}
-                              </small>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
-                {/* 2. PANEL DE RESULTADOS DE ANÁLISIS Y VERIFICACIÓN DE STOCK POR DEPÓSITO */}
-                {analysisDetails && (
-                  <div className="analysis-verification-box modal-analysis-box">
-                    <div className="analysis-verification-header">
-                      <div className="analysis-header-title">
-                        <Sparkles size={18} className="analysis-icon" />
-                        <div>
-                          <h3>Resultado del análisis y verificación de stock</h3>
-                          <p>Revisá las existencias en cada depósito antes de despachar.</p>
-                        </div>
-                      </div>
+                    <div className="cart-actions-row">
                       <button
                         type="button"
-                        className="button-ghost close-analysis-btn"
-                        onClick={() => setAnalyzedProducts(null)}
-                        title="Cerrar panel de análisis"
+                        className="button-secondary"
+                        onClick={onClose}
+                        disabled={pending}
                       >
-                        <X size={15} /> Cerrar
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="button-primary sale-confirm-btn"
+                        onClick={confirmSale}
+                        disabled={pending || !cart.length}
+                      >
+                        {pending ? (
+                          <>
+                            <div className="spinner-sm" /> Confirmando...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={16} /> Confirmar venta
+                          </>
+                        )}
                       </button>
                     </div>
 
-                    {analysisDetails.showAlert && (
-                      <div className="analysis-alert-banner">
-                        <AlertTriangle size={20} className="alert-icon-warning" />
-                        <div>
-                          <strong>¡Atención! Productos detectados en diferentes depósitos</strong>
-                          <p>
-                            {analysisDetails.hasCartConflict
-                              ? `La venta actual está asociada a "${activeWarehouseName}", pero algunos de los productos analizados solo disponen de stock en otros depósitos.`
-                              : "Los productos analizados tienen existencias distribuidas en diferentes depósitos. Cada venta debe despacharse desde un único depósito."}
-                          </p>
-                          <small>Seleccioná abajo desde qué depósito querés despachar cada ítem.</small>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="analysis-products-list">
-                      {analysisDetails.items.map(prod => (
-                        <div className="analysis-product-card" key={prod.id}>
-                          <div className="analysis-product-info">
-                            <div className="analysis-product-title">
-                              <b>{prod.name}</b>
-                              <span className="analysis-product-sku">SKU: {prod.sku}</span>
-                            </div>
-                            <div className="analysis-product-meta">
-                              {prod.priceCents ? (
-                                <span className="analysis-price">{money(prod.priceCents)}</span>
-                              ) : null}
-                              {prod.matchMethod && (
-                                <span
-                                  className={`analysis-match-evidence ${prod.reviewRequired ? "needs-review" : ""}`}
-                                >
-                                  {{
-                                    barcode_ocr: "Barras + número impreso (OCR)",
-                                    barcode: "Código de barras",
-                                    ocr_code: "Número impreso (OCR)",
-                                    ocr_name: "Texto del envase (OCR)",
-                                  }[prod.matchMethod]}
-                                  {prod.reviewRequired ? " · verificá el producto" : " · corroborado por OCR"}
-                                </span>
-                              )}
-                              <span
-                                className={`analysis-total-stock ${prod.totalQuantity > 0 ? "stock-ok" : "stock-zero"}`}
-                              >
-                                {prod.totalQuantity > 0
-                                  ? `Total: ${prod.totalQuantity} u. en red`
-                                  : "Sin stock disponible"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="analysis-warehouses-grid">
-                            {prod.stocksByWarehouse.map(stockInfo => {
-                              const isCurrentActive = activeWarehouseId === stockInfo.warehouseId;
-                              const hasStock = stockInfo.quantity > 0;
-                              const isMismatch = activeWarehouseId !== null && !isCurrentActive;
-
-                              return (
-                                <div
-                                  key={stockInfo.warehouseId}
-                                  className={`analysis-warehouse-pill ${hasStock ? "has-stock" : "no-stock"} ${isCurrentActive ? "active-warehouse" : ""}`}
-                                >
-                                  <div className="warehouse-pill-data">
-                                    <Building2 size={14} />
-                                    <div>
-                                      <span className="warehouse-name">{stockInfo.warehouseName}</span>
-                                      <span className="warehouse-qty">
-                                        {hasStock
-                                          ? `${stockInfo.quantity} u. disponibles`
-                                          : "0 u. (Agotado)"}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  <div className="warehouse-pill-action">
-                                    {isMismatch ? (
-                                      <button
-                                        type="button"
-                                        className="button-secondary button-xs"
-                                        disabled={!hasStock}
-                                        onClick={() =>
-                                          stockInfo.inventoryItem && add(stockInfo.inventoryItem)
-                                        }
-                                        title={`Cambiar venta a ${stockInfo.warehouseName}`}
-                                      >
-                                        Vender desde aquí
-                                      </button>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="button-primary button-xs"
-                                        disabled={!hasStock}
-                                        onClick={() =>
-                                          addProductFromWarehouse(prod.id, stockInfo.warehouseId)
-                                        }
-                                      >
-                                        <Plus size={12} /> {isCurrentActive ? "Agregar" : "Seleccionar"}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <p className="cart-legal-hint">
+                      <ReceiptText size={13} />
+                      Descuenta stock automáticamente del depósito asignado.
+                    </p>
                   </div>
-                )}
-
-                {/* 3. SECCIÓN DE CATÁLOGO GENERAL Y AGREGADO MANUAL */}
-                <div className="catalog-manual-section">
-                  <div className="catalog-manual-header">
-                    <div className="catalog-manual-title-group">
-                      <Store size={16} />
-                      <h4>Agregar productos manualmente</h4>
-                    </div>
-                    <span className="catalog-manual-count">
-                      {shown.length} producto{shown.length === 1 ? "" : "s"} disponible{shown.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
-
-                  {/* Herramientas de búsqueda y filtros */}
-                  <div className="new-sale-filters-bar">
-                    <div className="filter-item-wrapper">
-                      <ModernSelect
-                        value={selectedWarehouseFilter}
-                        onChange={setSelectedWarehouseFilter}
-                        options={[
-                          { value: "", label: "Todos los depósitos" },
-                          ...warehouses.map(w => ({ value: w.id, label: w.name })),
-                        ]}
-                        icon={<WarehouseIcon size={14} />}
-                        ariaLabel="Filtrar por depósito"
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div className="filter-item-wrapper">
-                      <ModernSelect
-                        value={categoryFilter}
-                        onChange={setCategoryFilter}
-                        options={categories}
-                        icon={<Filter size={14} />}
-                        ariaLabel="Filtrar por categoría"
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div className="new-sale-search-input">
-                      <Search size={14} />
-                      <input
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                        placeholder="Buscar por producto o SKU..."
-                        aria-label="Buscar producto"
-                      />
-                      {query && (
-                        <button
-                          type="button"
-                          className="clear-search-btn"
-                          onClick={() => setQuery("")}
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Banner de depósito fijado */}
-                  {activeWarehouseName && (
-                    <div className="active-warehouse-indicator-bar compact">
-                      <WarehouseIcon size={14} />
-                      <span>
-                        Venta fijada en: <b>{activeWarehouseName}</b> (todos los artículos deben pertenecer a este depósito).
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Cuadrícula de productos disponibles */}
-                  {shown.length ? (
-                    <div className="new-sale-cards-grid">
-                      {shown.map(item => {
-                        const isMismatch =
-                          activeWarehouseId !== null &&
-                          activeWarehouseId !== item.warehouseId;
-                        const inCart = cart.find(
-                          l => l.inventoryId === item.inventoryId
-                        );
-
-                        return (
-                          <div
-                            key={item.inventoryId}
-                            className={`new-sale-card ${isMismatch ? "is-mismatch" : ""} ${inCart ? "is-in-cart" : ""}`}
-                            onClick={() => add(item)}
-                          >
-                            <div className="card-top">
-                              {item.imageUrl ? (
-                                <img
-                                  src={item.imageUrl}
-                                  alt={item.productName}
-                                  className="card-thumb"
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                  onError={e => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = "none";
-                                    const parent = target.parentElement;
-                                    if (parent && !parent.querySelector(".card-glyph")) {
-                                      const fallback = document.createElement("span");
-                                      fallback.className = "card-glyph";
-                                      fallback.textContent = item.productName.slice(0, 1).toUpperCase();
-                                      parent.insertBefore(fallback, target);
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <span className="card-glyph">
-                                  {item.productName.slice(0, 1).toUpperCase()}
-                                </span>
-                              )}
-                              <div className="card-text">
-                                <b className="card-title">{item.productName}</b>
-                                <div className="card-tags">
-                                  <span className="card-sku">{item.sku}</span>
-                                  <span className="card-depot">{item.warehouseName}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="card-bottom">
-                              <div className="card-pricing">
-                                <span className="card-price">{money(item.priceCents)}</span>
-                                <span className="card-stock">
-                                  Disp: <b>{item.quantity} u.</b>
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                className={`card-add-btn ${inCart ? "btn-active" : ""}`}
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  add(item);
-                                }}
-                              >
-                                <Plus size={13} />
-                                {inCart ? `En venta (${inCart.cartQuantity})` : "Sumar"}
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      title="No encontramos artículos con stock"
-                      detail={
-                        selectedWarehouseFilter
-                          ? "El depósito seleccionado no tiene unidades disponibles que coincidan con la búsqueda."
-                          : "Probá cambiar el filtro o la búsqueda."
-                      }
-                    />
-                  )}
-                </div>
+                </aside>
               </div>
 
-              {/* COLUMNA DERECHA: RESUMEN Y CARRITO */}
-              <aside className="new-sale-cart-aside">
-                <div className="cart-aside-header">
-                  <div className="aside-title">
-                    <ShoppingCart size={17} />
-                    <h4>Comprobante de Venta</h4>
-                  </div>
-                  {cart.length > 0 && (
-                    <span className="aside-count-badge">
-                      {totalCartUnits} u. en {cart.length} ítem{cart.length === 1 ? "" : "s"}
-                    </span>
-                  )}
-                </div>
-
-                {/* Selector de Cliente */}
-                <div className="cart-field-row">
-                  <label className="field-label">Cliente (opcional)</label>
-                  <ModernSelect
-                    value={customerId}
-                    onChange={setCustomerId}
-                    options={[
-                      { value: "", label: "Consumidor final / Mostrador" },
-                      ...customers.map(c => ({
-                        value: c.id,
-                        label: c.name,
-                      })),
-                    ]}
-                    ariaLabel="Cliente"
-                    minWidth="100%"
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Depósito activo */}
-                {activeWarehouseName && (
-                  <div className="cart-warehouse-badge">
-                    <Store size={14} />
+              {/* Barra inferior fija en móvil cuando se explora el catálogo */}
+              {mobileTab === "catalog" && (
+                <div className="new-sale-mobile-bottom-bar">
+                  <div className="new-sale-mobile-bottom-summary">
                     <span>
-                      Despacho: <b>{activeWarehouseName}</b>
+                      {cart.length
+                        ? `${totalCartUnits} u. en ${cart.length} ítem${cart.length === 1 ? "" : "s"}`
+                        : "Comprobante sin artículos"}
                     </span>
+                    <strong>{money(computedTotal)}</strong>
                   </div>
-                )}
-
-                {/* Lista de productos en el carrito */}
-                <div className="cart-lines-container">
-                  {cart.length ? (
-                    <div className="cart-lines-scroll">
-                      {cart.map(line => (
-                        <SaleCartLine
-                          key={line.inventoryId}
-                          line={line}
-                          onChangeQuantity={change}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="cart-empty-panel">
-                      <PackagePlus size={26} />
-                      <p>La venta está vacía</p>
-                      <span>Hacé clic en "+ Sumar" sobre los productos para agregarlos.</span>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={() => setMobileTab("cart")}
+                  >
+                    <ShoppingCart size={15} />
+                    <span>Ver comprobante ({cart.length})</span>
+                  </button>
                 </div>
-
-                {/* Totales y botón de confirmación */}
-                <div className="cart-bottom-card">
-                  <div className="cart-total-row">
-                    <span className="total-title">Total a cobrar:</span>
-                    <b className="total-amount">{money(computedTotal)}</b>
-                  </div>
-
-                  <div className="cart-actions-row">
-                    <button
-                      type="button"
-                      className="button-secondary"
-                      onClick={onClose}
-                      disabled={pending}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="button-primary sale-confirm-btn"
-                      onClick={confirmSale}
-                      disabled={pending || !cart.length}
-                    >
-                      {pending ? (
-                        <>
-                          <div className="spinner-sm" /> Confirmando...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 size={16} /> Confirmar venta
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <p className="cart-legal-hint">
-                    <ReceiptText size={13} />
-                    Descuenta stock automáticamente del depósito asignado.
-                  </p>
-                </div>
-              </aside>
-            </div>
+              )}
+            </>
           )}
         </div>
 

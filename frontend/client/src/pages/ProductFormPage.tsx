@@ -70,6 +70,7 @@ export default function ProductFormPage() {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
@@ -140,7 +141,7 @@ export default function ProductFormPage() {
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         toast.error(
-          "Tu navegador no soporta captura de cámara en directo. Podés subir una imagen con 'Subir foto'."
+          cameraInputRef.current ? (cameraInputRef.current.click(), "Abriendo cámara del dispositivo...") : "Tu navegador no soporta captura de cámara en directo. Podés subir una imagen con 'Subir foto'."
         );
         return;
       }
@@ -384,6 +385,14 @@ export default function ProductFormPage() {
               type="file"
               ref={fileInputRef}
               accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+            <input
+              type="file"
+              ref={cameraInputRef}
+              accept="image/*"
+              capture="environment"
               style={{ display: "none" }}
               onChange={handleFileChange}
             />

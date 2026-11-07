@@ -23,6 +23,21 @@ async function findOrCreateStock(client, productId, depositId, quantity) {
   return client.stock.create({ data: { productId, depositId, quantity } });
 }
 
+async function findOrCreateProduct(client, { code, name, category, price, lowStockThreshold = 5 }) {
+  const existing = await client.product.findUnique({ where: { code } });
+  if (existing) {
+    if (existing.apriltagId === null) {
+      const nextId = await getNextAvailableAprilTagId(client);
+      return client.product.update({ where: { id: existing.id }, data: { apriltagId: nextId } });
+    }
+    return existing;
+  }
+  const nextId = await getNextAvailableAprilTagId(client);
+  return client.product.create({
+    data: { name, code, category, price, lowStockThreshold, apriltagId: nextId }
+  });
+}
+
 async function main() {
   const password = await bcrypt.hash('test1234', 10);
   const admin = await prisma.user.upsert({
@@ -54,25 +69,18 @@ async function main() {
     await prisma.category.upsert({ where: { name }, update: {}, create: { name } });
   }
 
+  // Depósito principal del sistema
   const central = await findOrCreateDeposit(prisma, 'Depósito Central', 'Sede principal');
+
+  /*
+  // =========================================================================
+  // DATOS DEMO (Comentados para inicializar cuentas/base de datos limpias)
+  // Descomentar si se desean cargar productos, sucursales y ventas de prueba.
+  // =========================================================================
+
   const norte = await findOrCreateDeposit(prisma, 'Depósito Norte', 'Sucursal Norte');
   const sur = await findOrCreateDeposit(prisma, 'Depósito Sur', 'Av. Independencia 1840, Rosario');
   await prisma.deposit.update({ where: { id: sur.id }, data: { type: 'Sucursal', manager: 'Mariana López', capacity: 180 } });
-
-async function findOrCreateProduct(client, { code, name, category, price, lowStockThreshold = 5 }) {
-  const existing = await client.product.findUnique({ where: { code } });
-  if (existing) {
-    if (existing.apriltagId === null) {
-      const nextId = await getNextAvailableAprilTagId(client);
-      return client.product.update({ where: { id: existing.id }, data: { apriltagId: nextId } });
-    }
-    return existing;
-  }
-  const nextId = await getNextAvailableAprilTagId(client);
-  return client.product.create({
-    data: { name, code, category, price, lowStockThreshold, apriltagId: nextId }
-  });
-}
 
   const valvula = await findOrCreateProduct(prisma, { name: 'Válvula Industrial 2"', code: 'VAL-20E-ST', category: 'Válvulas', price: 1500.0 });
   const tornillo = await findOrCreateProduct(prisma, { name: 'Tornillo M8 (caja x100)', code: 'TOR-08M-CX', category: 'Ferretería', price: 3200.0 });
@@ -215,6 +223,7 @@ async function findOrCreateProduct(client, { code, name, category, price, lowSto
       ],
     });
   }
+  */
 
   console.log('Seed completado.');
 }

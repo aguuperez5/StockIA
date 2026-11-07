@@ -2695,7 +2695,7 @@ button.data-table-row:hover {
 }
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 9px;
   padding: 17px 26px;
   background: var(--surface-sunken);
@@ -2996,7 +2996,7 @@ button.data-table-row:hover {
   padding: 14px 0 8px;
   margin-top: 10px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 12px;
 }
 
@@ -4139,7 +4139,8 @@ button.data-table-row:hover {
 
 /* Badge superior: ● ESCÁNER ACTIVO */
 .camera-viewfinder-guide::before {
-  content: "● ESCÁNER ACTIVO";
+  content: none;
+  display: none !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4155,7 +4156,7 @@ button.data-table-row:hover {
   border-radius: 999px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  animation: hudScannerPulse 2s ease-in-out infinite alternate;
+  animation: none;
 }
 
 /* Haz de láser animado que barre el visor */
@@ -4168,7 +4169,8 @@ button.data-table-row:hover {
   background: linear-gradient(90deg, transparent, var(--scanner), transparent);
   box-shadow: 0 0 14px var(--scanner);
   pointer-events: none;
-  animation: laserScanLine 3.4s ease-in-out infinite alternate;
+  display: none !important;
+  animation: none;
   opacity: 0.85;
   z-index: 1;
 }
@@ -5834,7 +5836,7 @@ button.data-table-row:hover {
   }
   .warehouse-modal-actions {
     width: 100%;
-    justify-content: flex-end;
+    justify-content: space-between;
   }
   .warehouse-kpi-grid {
     gap: 8px;
@@ -7111,12 +7113,18 @@ button.data-table-row:hover {
   background: transparent;
   color: var(--ink);
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
   transition: background-color 0.12s ease;
 }
 
 .stepper-btn:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--brand);
+}
+
+.stepper-btn:active:not(:disabled) {
+  background: var(--surface-active, rgba(0, 0, 0, 0.08));
 }
 
 .stepper-btn:disabled {
@@ -7130,6 +7138,33 @@ button.data-table-row:hover {
   font-size: 12px;
   font-weight: 750;
   color: var(--ink);
+}
+
+.stepper-input {
+  width: 48px;
+  height: 26px;
+  padding: 0 4px;
+  border: none;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  background: transparent;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--ink);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepper-input:focus {
+  background: var(--surface-hover);
+  color: var(--brand);
 }
 
 .cart-remove-btn {
@@ -8570,7 +8605,7 @@ button.data-table-row:hover {
 .warehouse-form-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
   padding: 16px 24px;
   border-top: 1px solid var(--line);
@@ -9262,7 +9297,7 @@ button.data-table-row:hover {
 
 .client-edit-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
   margin-top: 4px;
 }
@@ -9456,7 +9491,7 @@ button.data-table-row:hover {
 .client-modal-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
   padding: 10px 20px;
   border-top: 1px solid var(--line);
@@ -10925,7 +10960,7 @@ button.data-table-row:hover {
 .telegram-chat-meta {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 4px;
   margin-top: 8px;
   font-size: 10.5px;
@@ -11898,7 +11933,7 @@ button.data-table-row:hover {
 .telegram-bubble-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 5px;
   font-size: 10.5px;
   color: var(--subtle-ink);
@@ -13470,3 +13505,396 @@ button.data-table-row:hover {
 
 
 
+/* ==========================================================================
+   Ajustes de Visor de Cámara y Adaptabilidad Móvil (Mobile UX)
+   ========================================================================== */
+
+.form-actions,
+.product-modal-dialog .form-actions,
+.warehouse-form-footer,
+.client-edit-actions,
+.client-modal-footer,
+.telegram-chat-meta,
+.telegram-bubble-footer {
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .warehouse-modal-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* Visor de cámara sin cartel de escáner activo ni barrido láser */
+.camera-viewfinder-guide {
+  justify-content: flex-end;
+}
+
+.camera-viewfinder-guide::before,
+.camera-viewfinder-inner::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+/* Barra conmutadora móvil en Nueva Venta (oculta en escritorio) */
+.new-sale-mobile-tabs,
+.new-sale-mobile-bottom-bar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .new-sale-backdrop,
+  .modal-backdrop:has(.new-sale-modal) {
+    padding: 0;
+  }
+
+  .new-sale-modal {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .new-sale-modal-header {
+    padding: 12px 16px;
+  }
+
+  .new-sale-modal-header .modal-desc {
+    display: none;
+  }
+
+  .new-sale-mobile-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .new-sale-mobile-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted-ink);
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .new-sale-mobile-tab.is-active {
+    background: var(--surface-elevated);
+    border-color: var(--brand);
+    color: var(--ink);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .new-sale-mobile-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--brand);
+    color: var(--brand-ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .new-sale-modal-grid {
+    grid-template-columns: 1fr;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .new-sale-catalog-col,
+  .new-sale-cart-aside {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: none;
+    padding: 14px;
+  }
+
+  .new-sale-modal-grid[data-mobile-view="catalog"] .new-sale-cart-aside {
+    display: none;
+  }
+
+  .new-sale-modal-grid[data-mobile-view="cart"] .new-sale-catalog-col {
+    display: none;
+  }
+
+  .new-sale-mobile-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface-elevated);
+    border-top: 1px solid var(--line);
+    box-shadow: var(--shadow-float);
+    flex-shrink: 0;
+  }
+
+  .new-sale-mobile-bottom-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .new-sale-mobile-bottom-summary span {
+    font-size: 11.5px;
+    color: var(--muted-ink);
+    font-weight: 600;
+  }
+
+  .new-sale-mobile-bottom-summary strong {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+}
+
+@media (max-width: 760px) {
+  /* Evitar repintado pesado en scroll móvil */
+  .main-stage {
+    background-attachment: scroll;
+  }
+
+  /* Evitar auto-zoom en iOS Safari al enfocar campos */
+  input,
+  select,
+  textarea,
+  .search-control input,
+  .filter-select,
+  .filter-date-group input[type="date"],
+  .photo-search-box input,
+  .new-sale-search-input input {
+    font-size: 16px !important;
+  }
+
+  /* Filtros y barras de búsqueda adaptables a pantallas de 320px-390px */
+  .filter-popover-content {
+    min-width: 0 !important;
+    width: min(350px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .search-control {
+    max-width: none;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .filter-date-group {
+    flex: 1 1 100%;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .filter-date-group input[type="date"] {
+    flex: 1 1 120px;
+    min-width: 0;
+    width: auto;
+  }
+
+  /* Encabezados de página y acciones principales en móvil */
+  .page-header {
+    gap: 12px;
+  }
+
+  .page-header .header-action {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .page-header .header-action > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .stock-reference-page .page-header h1 {
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .stock-reference-page th,
+  .stock-reference-page td {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Objetivos táctiles (touch targets) cómodos para pulgar */
+  .icon-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .quantity-stepper button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .quantity-stepper input {
+    width: 48px;
+    height: 34px;
+  }
+
+  .stepper-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .stepper-input {
+    width: 52px;
+    height: 32px;
+  }
+
+  .cart-remove-btn,
+  .remove-line {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Controles de PhotoCapture apilados en móvil */
+  .photo-capture-section {
+    padding: 14px;
+  }
+
+  .photo-capture-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .photo-search-box {
+    min-width: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .photo-search-box input {
+    min-width: 140px;
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .photo-analyze-btn {
+    width: 100%;
+    justify-content: center;
+    height: 38px;
+  }
+
+  .photo-media-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .photo-action-btn {
+    width: 100%;
+    justify-content: center;
+    height: 40px;
+  }
+
+  /* Tablas de clientes desplazables sin aplastar columnas */
+  .client-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .client-frequent-table,
+  .client-sales-table {
+    min-width: 480px;
+  }
+
+  .client-modal-header {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .client-modal-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Visor de cámara adaptado al formato vertical del celular */
+  .camera-viewfinder-inner {
+    aspect-ratio: 4 / 3;
+    max-height: 320px;
+  }
+
+  .camera-viewfinder-guide {
+    inset: 10px;
+    padding: 8px;
+  }
+
+  .camera-actions-bar {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  .camera-actions-bar button {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  /* Modales con altura dinámica dvh para respetar barras del navegador móvil */
+  .modal-backdrop,
+  .product-modal-backdrop {
+    padding: 8px;
+  }
+
+  .new-transfer-modal,
+  .transfer-detail-modal,
+  .product-modal-dialog,
+  .warehouse-detail-modal,
+  .client-detail-modal,
+  .client-create-modal,
+  .warehouse-form-modal {
+    max-height: 92dvh;
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .product-modal-header,
+  .warehouse-form-header {
+    padding: 14px 16px;
+  }
+
+  .product-modal-body,
+  .warehouse-form-body {
+    padding: 14px 16px;
+  }
+
+  .product-modal-dialog .form-actions,
+  .warehouse-form-footer {
+    padding: 12px 16px;
+  }
+}
