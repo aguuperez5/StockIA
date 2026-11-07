@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  Eye,
   ReceiptText,
   Search,
   ShoppingCart,
@@ -8,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
 import {
   EmptyState,
@@ -155,6 +157,19 @@ export default function SalesHistoryPage() {
             placeholder="Buscar comprobante, cliente..."
             aria-label="Buscar comprobante o cliente"
           />
+          {search && (
+            <button
+              type="button"
+              className="telegram-search-clear"
+              onClick={() => {
+                setSearch("");
+                setDebouncedSearch("");
+              }}
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={12} />
+            </button>
+          )}
         </label>
 
         <ModernSelect
@@ -304,7 +319,20 @@ export default function SalesHistoryPage() {
                 </thead>
                 <tbody>
                   {filteredItems.map(item => (
-                    <tr key={item.id}>
+                    <tr
+                      key={item.id}
+                      className="clickable-sale-row"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Ver comprobante ${item.receiptNumber}`}
+                      onClick={() => setLocation(`/sales/${item.id}/ticket`)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setLocation(`/sales/${item.id}/ticket`);
+                        }
+                      }}
+                    >
                       <td>
                         <div className="receipt-number">
                           <ReceiptText size={17} />
@@ -321,15 +349,17 @@ export default function SalesHistoryPage() {
                         <span className="status-confirmed">Confirmada</span>
                       </td>
                       <td className="mono strong">{money(item.totalCents)}</td>
-                      <td>
+                      <td onClick={e => e.stopPropagation()}>
                         <button
-                          className="icon-button"
+                          type="button"
+                          className="sales-ticket-btn"
                           onClick={() =>
                             setLocation(`/sales/${item.id}/ticket`)
                           }
                           aria-label={`Ver comprobante ${item.receiptNumber}`}
                         >
-                          <Search size={16} />
+                          <Eye size={14} />
+                          Ver ticket
                         </button>
                       </td>
                     </tr>
@@ -354,9 +384,20 @@ export default function SalesHistoryPage() {
         <NewSaleModal
           isOpen={isNewSaleOpen}
           onClose={() => setIsNewSaleOpen(false)}
-          onSuccess={() => {
+          onSuccess={createdSale => {
             setIsNewSaleOpen(false);
             load();
+            if (createdSale?.id) {
+              toast.success(
+                `Comprobante ${createdSale.receiptNumber} emitido (${money(createdSale.totalCents)})`,
+                {
+                  action: {
+                    label: "Ver ticket",
+                    onClick: () => setLocation(`/sales/${createdSale.id}/ticket`),
+                  },
+                }
+              );
+            }
           }}
         />
       )}

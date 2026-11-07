@@ -23,7 +23,16 @@ export function WarehouseCard({
   return (
     <article
       className={`warehouse-card ${isSelected ? "warehouse-card-selected" : ""} ${hasCover ? "has-cover-image" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Ver inventario de ${warehouse.name}`}
       onClick={onSelect}
+      onKeyDown={event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
     >
       {hasCover && (
         <div className="warehouse-card-cover-banner">
@@ -44,6 +53,7 @@ export function WarehouseCard({
         {canManage && (
           <>
             <button
+              type="button"
               className="icon-button"
               onClick={event => {
                 event.stopPropagation();
@@ -55,6 +65,7 @@ export function WarehouseCard({
               <Edit3 size={15} />
             </button>
             <button
+              type="button"
               className="icon-button danger"
               onClick={event => {
                 event.stopPropagation();

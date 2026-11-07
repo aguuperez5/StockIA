@@ -251,7 +251,6 @@ export function NewTransferModal({
 
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [notes, setNotes] = useState("");
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [productSearch, setProductSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todas");
@@ -771,7 +770,7 @@ export function NewTransferModal({
               )}
             </div>
 
-            {/* SECCIÓN 4: CONSTANCIA FOTOGRÁFICA / COMPROBANTE ADJUNTO (OPCIONAL) */}
+            {/* SECCIÓN 4: ESCANEO RÁPIDO DE PRODUCTOS POR CÁMARA / IMAGEN (OPCIONAL) */}
             <div className="photo-optional-toggle">
               <button
                 type="button"
@@ -781,12 +780,9 @@ export function NewTransferModal({
                 <Camera size={15} />
                 <span>
                   {showPhotoSection
-                    ? "Ocultar captura de comprobante"
-                    : photo
-                    ? "Comprobante fotográfico adjunto (Hacé clic para ver o cambiar)"
-                    : "Adjuntar constancia fotográfica o remito firmado (opcional)"}
+                    ? "Ocultar escáner fotográfico"
+                    : "Escanear productos por cámara o imagen (AprilTags)"}
                 </span>
-                {photo && <span className="attached-pill">1 foto adjunta</span>}
               </button>
 
               {showPhotoSection && (
@@ -824,102 +820,35 @@ export function NewTransferModal({
                       }
                     }}
                   />
-                  {photo && (
-                    <div className="photo-current-preview">
-                      <span>Vista previa de constancia adjunta:</span>
-                      <img src={photo.data} alt="Remito adjunto" className="photo-thumb" />
-                      <button
-                        type="button"
-                        className="button-link text-xs danger-text"
-                        onClick={() => setPhoto(undefined)}
-                      >
-                        Eliminar foto adjunta
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
-            </div>
-
-            {/* SECCIÓN 5: OBSERVACIONES / MOTIVO (OPCIONAL) */}
-            <div className="transfer-notes-section" style={{ marginTop: "16px", marginBottom: "8px" }}>
-              <label
-                htmlFor="transfer-notes"
-                style={{
-                  display: "block",
-                  marginBottom: "6px",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "var(--ink)",
-                }}
-              >
-                Observaciones / Motivo (opcional):
-              </label>
-              <textarea
-                id="transfer-notes"
-                className="input-control"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Ej. Reposición de fin de semana para sucursal comercial..."
-                rows={2}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--input-border)",
-                  backgroundColor: "var(--surface-sunken)",
-                  color: "var(--ink)",
-                  fontSize: "0.875rem",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                }}
-              />
             </div>
           </div>
 
           {/* Pie del modal con acciones */}
           <footer className="modal-footer new-transfer-modal-footer">
             {/* Banner destacado: Total de unidades a mover */}
-            {chosenItems.length > 0 && (
-              <div
-                className="transfer-total-banner"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  padding: "10px 14px",
-                  backgroundColor: "var(--brand-soft)",
-                  border: "1px solid var(--line)",
-                  borderRadius: "8px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Boxes size={18} style={{ color: "var(--brand)" }} />
-                  <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+            {chosenItems.length > 0 ? (
+              <div className="transfer-total-banner">
+                <div className="transfer-total-banner-main">
+                  <Boxes size={18} className="transfer-total-banner-icon" />
+                  <span>
                     Total de unidades a mover:{" "}
-                    <strong style={{ color: "var(--brand-text)", fontSize: "1.05rem" }}>
+                    <strong>
                       {totalUnits} artículo{totalUnits === 1 ? "" : "s"}
                     </strong>{" "}
                     ({chosenItems.length} producto{chosenItems.length === 1 ? "" : "s"})
                   </span>
                 </div>
-                <span style={{ fontSize: "0.82rem", color: "var(--muted-ink)" }}>
+                <span className="transfer-total-banner-route">
                   {originObj?.name || "Origen"} → {destObj?.name || "Destino"}
                 </span>
               </div>
-            )}
-
-            <div className="footer-summary-text">
-              {chosenItems.length > 0 ? (
-                <span>
-                  Listo para mover <b>{totalUnits} unidades</b> de {originObj?.name || "origen"} a {destObj?.name || "destino"}
-                </span>
-              ) : (
+            ) : (
+              <div className="footer-summary-text">
                 <span>Completá origen, destino y agregá productos al remito</span>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="footer-buttons">
               <button

@@ -168,10 +168,19 @@ export default function ProductsPage() {
   }, [search, category, showInactive]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.search.includes("new=1")) {
-      setCreateModalOpen(true);
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const editId = Number(params.get("edit"));
+      if (params.get("new") === "1" || params.get("new") === "true") {
+        setCreateModalOpen(true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (Number.isInteger(editId) && editId > 0) {
+        productService
+          .get(String(editId))
+          .then(res => setEditingProduct(res.item))
+          .catch(() => {});
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, []);
 
@@ -213,6 +222,16 @@ export default function ProductsPage() {
             placeholder="Buscar por nombre o SKU"
             aria-label="Buscar productos"
           />
+          {search && (
+            <button
+              type="button"
+              className="telegram-search-clear"
+              onClick={() => setSearch("")}
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={12} />
+            </button>
+          )}
         </label>
         <ModernSelect
           value={category}

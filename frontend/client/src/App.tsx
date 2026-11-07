@@ -3,7 +3,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import DashboardLayout from "@/components/DashboardLayout";
 import Home from "@/pages/Home";
 import LoginPage from "@/pages/LoginPage";
-import ProductFormPage from "@/pages/ProductFormPage";
 import ProductsPage from "@/pages/ProductsPage";
 import RegisterPage from "@/pages/RegisterPage";
 import SalesHistoryPage from "@/pages/SalesHistoryPage";
@@ -43,9 +42,17 @@ function WorkspaceRoutes() {
           </RequireRole>
         </Route>
         <Route path="/products/:id/edit">
-          <RequireRole roles={["administrador"]}>
-            <ProductFormPage />
-          </RequireRole>
+          {params => (
+            <RequireRole roles={["administrador"]}>
+              <Redirect
+                to={
+                  params?.id
+                    ? `/products?edit=${encodeURIComponent(params.id)}`
+                    : "/products"
+                }
+              />
+            </RequireRole>
+          )}
         </Route>
         <Route path="/warehouses">
           <Redirect to="/stock" />
@@ -84,7 +91,9 @@ function WorkspaceRoutes() {
         <Route path="/team">
           <Redirect to="/" />
         </Route>
-        <Route component={Home} />
+        <Route>
+          <Redirect to="/" />
+        </Route>
       </Switch>
     </DashboardLayout>
   );

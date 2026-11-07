@@ -170,6 +170,11 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
         );
         return;
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      setIsCameraActive(true);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
@@ -179,6 +184,10 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
       });
       streamRef.current = stream;
       setIsCameraActive(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        void videoRef.current.play().catch(() => {});
+      }
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -186,6 +195,11 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
         }
       }, 100);
     } catch {
+      setIsCameraActive(false);
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+        return;
+      }
       toast.error(
         "No se pudo acceder a la cámara. Revisá los permisos o subí una foto desde el dispositivo."
       );
@@ -495,7 +509,16 @@ export function ProductModal({ editId, initialSku, onClose, onSuccess }: Product
                   <div className="camera-viewfinder-card">
                     <div className="camera-viewfinder-inner">
                       <video
-                        ref={videoRef}
+                        ref={node => {
+                          videoRef.current = node;
+                          if (node && streamRef.current && node.srcObject !== streamRef.current) {
+                            node.srcObject = streamRef.current;
+                            void node.play().catch(() => {});
+                          }
+                        }}
+                        onLoadedMetadata={e => {
+                          void e.currentTarget.play().catch(() => {});
+                        }}
                         autoPlay
                         playsInline
                         muted

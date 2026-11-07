@@ -9571,7 +9571,7 @@ button.data-table-row:hover {
   .no-print,
   nav,
   aside,
-  header,
+  .topbar,
   .sidebar,
   .app-header {
     display: none !important;
@@ -13842,28 +13842,50 @@ button.data-table-row:hover {
   }
 }
 
-@media (max-width: 640px) {
-  /* Visor de cámara adaptado al formato vertical del celular */
+@media (max-width: 760px) {
+  /* Visor de cámara amplio y vertical en celulares para ver todos los productos que entran en la toma */
+  .camera-viewfinder-panel,
+  .camera-viewfinder-card {
+    margin-left: -8px;
+    margin-right: -8px;
+    border-radius: 12px;
+  }
+
   .camera-viewfinder-inner {
-    aspect-ratio: 4 / 3;
-    max-height: 320px;
+    aspect-ratio: 3 / 4;
+    min-height: 420px;
+    height: 62dvh;
+    max-height: 580px;
+    background: #05080f;
+  }
+
+  .camera-viewfinder-inner video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
   .camera-viewfinder-guide {
-    inset: 10px;
+    inset: 8px;
     padding: 8px;
+    box-shadow: none;
   }
 
   .camera-actions-bar {
     flex-wrap: wrap;
-    padding: 10px 12px;
+    padding: 12px;
+    gap: 10px;
   }
 
   .camera-actions-bar button {
     flex: 1 1 auto;
     justify-content: center;
-    min-height: 40px;
+    min-height: 44px;
+    font-size: 14px;
   }
+}
+
+@media (max-width: 640px) {
 
   /* Modales con altura dinámica dvh para respetar barras del navegador móvil */
   .modal-backdrop,
@@ -13897,4 +13919,298 @@ button.data-table-row:hover {
   .warehouse-form-footer {
     padding: 12px 16px;
   }
+}
+
+/* ==========================================================================
+   Corrección de pie y secciones en Modal de Nueva Transferencia
+   ========================================================================== */
+
+.origin-catalog-section,
+.transfer-notes-section {
+  flex-shrink: 0;
+}
+
+.transfer-notes-section {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.transfer-cart-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.new-transfer-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 22px;
+}
+
+.transfer-total-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 320px;
+  min-width: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 9px 14px;
+  background-color: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line));
+  border-radius: 10px;
+  margin: 0;
+}
+
+.transfer-total-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.transfer-total-banner-icon {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+.transfer-total-banner-main strong {
+  color: var(--brand-text);
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+.transfer-total-banner-route {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-ink);
+  white-space: nowrap;
+}
+
+.new-transfer-modal-footer .footer-buttons {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  .new-transfer-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .transfer-total-banner {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .new-transfer-modal-footer .footer-buttons {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .new-transfer-modal-footer .footer-buttons > button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+
+/* ==========================================================================
+   Mejoras versión definitiva: Impresión, ErrorBoundary, Accesibilidad y Tablas
+   ========================================================================== */
+
+@media print {
+  .paper-ticket header,
+  .transfer-modal-header {
+    display: flex !important;
+  }
+
+  .paper-ticket header {
+    display: block !important;
+    color: #000000 !important;
+  }
+
+  /* Cuando el modal de detalle de remito está abierto e imprimiendo */
+  body:has(.transfer-detail-modal) .app-shell > :not(.modal-backdrop),
+  body:has(.transfer-detail-modal) .page-shell > :not(.modal-backdrop),
+  .transfer-detail-modal .modal-close-btn,
+  .transfer-detail-modal .transfer-modal-footer {
+    display: none !important;
+  }
+
+  .modal-backdrop:has(.transfer-detail-modal) {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .transfer-detail-modal {
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: 1px solid #d4d4d8 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .transfer-detail-modal .transfer-modal-body,
+  .transfer-detail-modal .transfer-items-table-wrapper {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+/* Filas interactivas en Historial de Ventas */
+.clickable-sale-row {
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.clickable-sale-row:hover {
+  background-color: var(--surface-hover);
+}
+
+.clickable-sale-row:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  background-color: var(--surface-hover);
+}
+
+.sales-ticket-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sales-ticket-btn:hover {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  background: var(--brand-soft);
+  color: var(--brand-text);
+}
+
+/* Accesibilidad teclado en tarjetas de depósito */
+.warehouse-card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-color: var(--brand);
+}
+
+/* ErrorBoundary integrado al sistema de diseño de StockIA */
+.error-boundary-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.error-boundary-card {
+  width: min(560px, 100%);
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.error-boundary-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--status-critical-bg);
+  color: var(--status-critical-text);
+  border: 1px solid var(--status-critical-border);
+}
+
+.error-boundary-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.error-boundary-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted-ink);
+}
+
+.error-boundary-details {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.error-boundary-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--muted-ink);
+  user-select: none;
+}
+
+.error-boundary-details pre {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--subtle-ink);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+}
+
+.error-boundary-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+/* Indicador de validación de contraseña en Registro */
+.password-validation-hint {
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.password-validation-hint.valid {
+  color: var(--status-ok-text);
+}
+
+.password-validation-hint.invalid {
+  color: var(--status-critical-text);
 }

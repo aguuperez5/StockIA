@@ -9,7 +9,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   recognitionService,
   type RecognitionDetection,
@@ -67,10 +67,31 @@ export default function PhotoCapture({
   );
   const requestRef = useRef(0);
   const [cameraOpen, setCameraOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const viewfinderPanelRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const previewUrlRef = useRef("");
+
+  const syncStreamToVideo = useCallback((videoEl: HTMLVideoElement | null) => {
+    videoRef.current = videoEl;
+    if (videoEl && streamRef.current) {
+      if (videoEl.srcObject !== streamRef.current) {
+        videoEl.srcObject = streamRef.current;
+      }
+      void videoEl.play().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      void videoRef.current.play().catch(() => {});
+    }
+  }, [cameraOpen, cameraStarting]);
 
   useEffect(
     () => () => {
@@ -104,21 +125,44 @@ export default function PhotoCapture({
       setError("Tu navegador no permite acceder a la cámara.");
       return;
     }
+
+    // Si ya había un stream previo abierto, lo detenemos antes de iniciar uno limpio
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    // Montamos el visor inmediatamente en el primer toque para evitar condiciones de carrera en móviles
+    setError("");
+    setCameraOpen(true);
+    setCameraStarting(true);
+
     try {
-      streamRef.current = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
           width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          height: { ideal: 1440 },
         },
         audio: false,
       });
-      setCameraOpen(true);
-      setError("");
+      streamRef.current = stream;
+      setCameraStarting(false);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        void videoRef.current.play().catch(() => {});
+      }
+
       requestAnimationFrame(() => {
-        if (videoRef.current) videoRef.current.srcObject = streamRef.current;
+        viewfinderPanelRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
       });
     } catch {
+      setCameraStarting(false);
+      setCameraOpen(false);
       if (cameraInputRef.current) {
         cameraInputRef.current.click();
         return;
@@ -132,6 +176,7 @@ export default function PhotoCapture({
   const closeCamera = () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
+    setCameraStarting(false);
     setCameraOpen(false);
   };
 
@@ -290,12 +335,22 @@ export default function PhotoCapture({
       )}
 
       {cameraOpen && (
-        <div className="camera-viewfinder-panel">
+        <div ref={viewfinderPanelRef} className="camera-viewfinder-panel">
           <div className="camera-viewfinder-inner">
-            <video ref={videoRef} autoPlay playsInline muted />
+            <video
+              ref={syncStreamToVideo}
+              autoPlay
+              playsInline
+              muted
+              onLoadedMetadata={e => {
+                void e.currentTarget.play().catch(() => {});
+              }}
+            />
             <div className="camera-viewfinder-guide">
               <span className="guide-label">
-                Centrá el producto o código de barras
+                {cameraStarting
+                  ? "Iniciando cámara…"
+                  : "Encuadrá los productos dentro del visor"}
               </span>
             </div>
           </div>
@@ -304,6 +359,7 @@ export default function PhotoCapture({
               type="button"
               className="button-primary capture-btn"
               onClick={capture}
+              disabled={cameraStarting}
             >
               <Camera size={15} />
               Capturar foto
@@ -401,7 +457,7 @@ export default function PhotoCapture({
             title="Abrir cámara del dispositivo"
           >
             <Camera size={15} />
-            <span>Abrir cámara</span>
+            <span>{cameraOpen ? "Reiniciar cámara" : "Abrir cámara"}</span>
           </button>
           <input
             ref={cameraInputRef}

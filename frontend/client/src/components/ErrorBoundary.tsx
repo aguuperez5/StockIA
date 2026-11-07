@@ -1,5 +1,4 @@
-import { cn } from "@/lib/utils";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { AlertTriangle, Home, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
 
 interface Props {
@@ -24,32 +23,53 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen p-8 bg-background">
-          <div className="flex flex-col items-center w-full max-w-2xl p-8">
-            <AlertTriangle
-              size={48}
-              className="text-destructive mb-6 flex-shrink-0"
-            />
-
-            <h2 className="text-xl mb-4">Ocurrió un error inesperado.</h2>
-
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
+        <div className="error-boundary-shell" role="alert">
+          <div className="error-boundary-card">
+            <div className="error-boundary-icon" aria-hidden="true">
+              <AlertTriangle size={24} />
             </div>
 
-            <button
-              onClick={() => window.location.reload()}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground",
-                "hover:opacity-90 cursor-pointer"
-              )}
-            >
-              <RotateCcw size={16} />
-              Recargar página
-            </button>
+            <div>
+              <h2 className="error-boundary-title">
+                Se produjo un problema inesperado en la vista
+              </h2>
+              <p className="error-boundary-desc">
+                Los datos de tu inventario están seguros. Podés recargar la
+                aplicación o volver al panel principal para continuar operando.
+              </p>
+            </div>
+
+            {this.state.error && (
+              <details className="error-boundary-details">
+                <summary>Ver detalle técnico del error</summary>
+                <pre>
+                  {this.state.error.message}
+                  {this.state.error.stack ? `\n\n${this.state.error.stack}` : ""}
+                </pre>
+              </details>
+            )}
+
+            <div className="error-boundary-actions">
+              <button
+                type="button"
+                className="button-primary"
+                onClick={() => window.location.reload()}
+              >
+                <RotateCcw size={16} />
+                Recargar aplicación
+              </button>
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.href = "/";
+                }}
+              >
+                <Home size={16} />
+                Volver al inicio
+              </button>
+            </div>
           </div>
         </div>
       );

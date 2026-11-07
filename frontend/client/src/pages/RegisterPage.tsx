@@ -29,6 +29,12 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const passwordsMatch =
+    form.confirmPassword.length > 0 && form.password === form.confirmPassword;
+  const passwordsMismatch =
+    form.confirmPassword.length > 0 && form.password !== form.confirmPassword;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -81,7 +87,9 @@ export default function RegisterPage() {
           <button
             className="theme-toggle"
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+            aria-label={
+              theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
+            }
             title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
             type="button"
           >
@@ -109,7 +117,11 @@ export default function RegisterPage() {
           </p>
           {errors.form && <div className="auth-error">{errors.form}</div>}{" "}
           <form onSubmit={submit} noValidate>
-            <Field label="Nombre completo" error={errors.fullName} htmlFor="register-fullname">
+            <Field
+              label="Nombre completo"
+              error={errors.fullName}
+              htmlFor="register-fullname"
+            >
               <input
                 id="register-fullname"
                 value={form.fullName}
@@ -118,7 +130,11 @@ export default function RegisterPage() {
                 placeholder="Tu nombre y apellido"
               />
             </Field>
-            <Field label="Legajo" error={errors.legajo} htmlFor="register-legajo">
+            <Field
+              label="Legajo"
+              error={errors.legajo}
+              htmlFor="register-legajo"
+            >
               <input
                 id="register-legajo"
                 value={form.legajo}
@@ -137,7 +153,11 @@ export default function RegisterPage() {
                 placeholder="vos@comercio.com"
               />
             </Field>
-            <Field label="Contraseña" error={errors.password} htmlFor="register-password">
+            <Field
+              label="Contraseña"
+              error={errors.password}
+              htmlFor="register-password"
+            >
               <div className="password-input">
                 <input
                   id="register-password"
@@ -158,17 +178,46 @@ export default function RegisterPage() {
                 </button>
               </div>
             </Field>
-            <Field label="Repetir contraseña" error={errors.confirmPassword} htmlFor="register-confirm-password">
-              <input
-                id="register-confirm-password"
-                type="password"
-                value={form.confirmPassword}
-                onChange={e =>
-                  setForm({ ...form, confirmPassword: e.target.value })
-                }
-                autoComplete="new-password"
-                placeholder="Volvé a escribirla"
-              />
+            <Field
+              label="Repetir contraseña"
+              error={
+                errors.confirmPassword ||
+                (passwordsMismatch ? "Las contraseñas no coinciden." : undefined)
+              }
+              htmlFor="register-confirm-password"
+            >
+              <div className="password-input">
+                <input
+                  id="register-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={form.confirmPassword}
+                  onChange={e =>
+                    setForm({ ...form, confirmPassword: e.target.value })
+                  }
+                  autoComplete="new-password"
+                  placeholder="Volvé a escribirla"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(value => !value)}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Ocultar repetición de contraseña"
+                      : "Mostrar repetición de contraseña"
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={17} />
+                  ) : (
+                    <Eye size={17} />
+                  )}
+                </button>
+              </div>
+              {passwordsMatch && form.password.length >= 8 && (
+                <span className="password-validation-hint valid">
+                  ✓ Las contraseñas coinciden
+                </span>
+              )}
             </Field>
             <button className="auth-submit" disabled={pending}>
               {pending ? "Creando cuenta…" : "Crear cuenta"}
@@ -184,4 +233,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
