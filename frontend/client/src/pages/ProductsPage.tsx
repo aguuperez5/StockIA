@@ -368,9 +368,17 @@ export default function ProductsPage() {
                               alt={item.name}
                               className="product-thumb"
                               loading="lazy"
+                              referrerPolicy="no-referrer"
                               onError={e => {
-                                (e.target as HTMLImageElement).style.display =
-                                  "none";
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = "none";
+                                const parent = target.parentElement;
+                                if (parent && !parent.querySelector(".product-glyph")) {
+                                  const fallback = document.createElement("span");
+                                  fallback.className = "product-glyph";
+                                  fallback.textContent = item.name.slice(0, 1).toUpperCase();
+                                  parent.insertBefore(fallback, target);
+                                }
                               }}
                             />
                           ) : (

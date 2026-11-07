@@ -31,6 +31,7 @@ export type InventoryItem = {
   category: string;
   priceCents: number;
   lowStockThreshold: number;
+  imageUrl?: string | null;
   warehouseId: number;
   warehouseName: string;
   priceRules?: PriceRuleItem[];
@@ -54,6 +55,7 @@ export const warehouseService = {
         priceCents: number;
         quantity: number;
         threshold: number;
+        imageUrl?: string | null;
       }>;
       sales: Array<{
         id: number;

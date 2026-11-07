@@ -307,7 +307,35 @@ export function WarehouseDetailModal({
                     filteredModalStock.map(item => (
                       <tr key={item.productId}>
                         <td>
-                          <b>{item.productName}</b>
+                          <div className="product-cell">
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.productName}
+                                className="product-thumb"
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                onError={e => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  const parent = target.parentElement;
+                                  if (parent && !parent.querySelector(".product-glyph")) {
+                                    const fallback = document.createElement("span");
+                                    fallback.className = "product-glyph";
+                                    fallback.textContent = (item.productName || "?").slice(0, 1).toUpperCase();
+                                    parent.insertBefore(fallback, target);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span className="product-glyph">
+                                {(item.productName || "?").slice(0, 1).toUpperCase()}
+                              </span>
+                            )}
+                            <div>
+                              <b>{item.productName}</b>
+                            </div>
+                          </div>
                         </td>
                         <td>{item.sku}</td>
                         <td>{item.category || "General"}</td>

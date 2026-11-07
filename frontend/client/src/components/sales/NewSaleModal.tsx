@@ -837,9 +837,30 @@ export function NewSaleModal({
                             onClick={() => add(item)}
                           >
                             <div className="card-top">
-                              <span className="card-glyph">
-                                {item.productName.slice(0, 1)}
-                              </span>
+                              {item.imageUrl ? (
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.productName}
+                                  className="card-thumb"
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                  onError={e => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = "none";
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector(".card-glyph")) {
+                                      const fallback = document.createElement("span");
+                                      fallback.className = "card-glyph";
+                                      fallback.textContent = item.productName.slice(0, 1).toUpperCase();
+                                      parent.insertBefore(fallback, target);
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <span className="card-glyph">
+                                  {item.productName.slice(0, 1).toUpperCase()}
+                                </span>
+                              )}
                               <div className="card-text">
                                 <b className="card-title">{item.productName}</b>
                                 <div className="card-tags">

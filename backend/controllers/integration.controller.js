@@ -334,7 +334,8 @@ export async function warehouseSummary(req, res) {
       category: stock.product.category || '',
       priceCents: moneyToCents(stock.product.price),
       quantity: stock.quantity,
-      threshold: stock.product.lowStockThreshold
+      threshold: stock.product.lowStockThreshold,
+      imageUrl: stock.product.imageUrl || null
     })),
     sales: sales.map(sale => ({
       id: sale.id,
@@ -452,6 +453,7 @@ export async function listInventory(req, res) {
         productName: s.product.name,
         sku: s.product.code,
         category: s.product.category || '',
+        imageUrl: s.product.imageUrl || null,
         priceCents: moneyToCents(s.product.price),
         lowStockThreshold: s.product.lowStockThreshold,
         warehouseId: s.depositId,
@@ -497,6 +499,7 @@ export async function listLowStock(req, res) {
         productName: s.product.name,
         sku: s.product.code,
         category: s.product.category || '',
+        imageUrl: s.product.imageUrl || null,
         priceCents: moneyToCents(s.product.price),
         lowStockThreshold: s.product.lowStockThreshold,
         warehouseId: s.depositId,
