@@ -545,28 +545,47 @@ export async function createSaleCompat(req, res) {
   if (!Array.isArray(items) || !items.length) return res.status(400).json({ message: 'Agregá al menos un producto a la venta.' });
   try {
     const photo = photoFields(req.body);
-    const result = await prisma.$transaction(async tx => {
-      if (customerId && !await tx.customer.findUnique({ where: { id: customerId } })) throw Object.assign(new Error('El cliente seleccionado no existe.'), { status: 400 });
-      const grouped = new Map();
-      for (const item of items) {
-        const pid = Number(item.productId), did = Number(item.warehouseId), qty = Number(item.quantity);
-        if (!Number.isInteger(pid) || !Number.isInteger(did) || !Number.isInteger(qty) || qty <= 0) throw Object.assign(new Error('Cada artículo requiere producto, depósito y cantidad válidos.'), { status: 400 });
-        const key = `${did}:${pid}`; grouped.set(key, { productId: pid, depositId: did, quantity: (grouped.get(key)?.quantity || 0) + qty });
+    const grouped = new Map();
+    for (const item of items) {
+      const pid = Number(item.productId), did = Number(item.warehouseId), qty = Number(item.quantity);
+      if (!Number.isInteger(pid) || !Number.isInteger(did) || !Number.isInteger(qty) || qty <= 0) {
+        return res.status(400).json({ message: 'Cada artículo requiere producto, depósito y cantidad válidos.' });
       }
-      const groups = [...grouped.values()];
-      if (new Set(groups.map(group => group.depositId)).size > 1) throw Object.assign(new Error('Una venta debe corresponder a un único depósito.'), { status: 400 });
+      const key = `${did}:${pid}`;
+      grouped.set(key, { productId: pid, depositId: did, quantity: (grouped.get(key)?.quantity || 0) + qty });
+    }
+    const groups = [...grouped.values()].sort((a, b) => a.productId - b.productId);
+    if (new Set(groups.map(group => group.depositId)).size > 1) {
+      return res.status(400).json({ message: 'Una venta debe corresponder a un único depósito.' });
+    }
+    const saleDepositId = groups[0].depositId;
+    const productIds = groups.map(group => group.productId);
+
+    const result = await prisma.$transaction(async tx => {
+      const [customer, dep, products, stocks] = await Promise.all([
+        customerId ? tx.customer.findUnique({ where: { id: customerId } }) : Promise.resolve(true),
+        tx.deposit.findUnique({ where: { id: saleDepositId } }),
+        tx.product.findMany({ where: { id: { in: productIds } }, include: { priceRules: true } }),
+        tx.stock.findMany({ where: { depositId: saleDepositId, productId: { in: productIds } } }),
+      ]);
+      if (customerId && !customer) throw Object.assign(new Error('El cliente seleccionado no existe.'), { status: 400 });
+      if (!dep) throw Object.assign(new Error('Uno de los depósitos no existe.'), { status: 400 });
+
+      const productMap = new Map(products.map(p => [p.id, p]));
+      const stockMap = new Map(stocks.map(s => [s.productId, s]));
       const lineItems = [];
+
       for (const group of groups) {
-        const dep = await tx.deposit.findUnique({ where: { id: group.depositId } }); if (!dep) throw Object.assign(new Error('Uno de los depósitos no existe.'), { status: 400 });
-        const product = await tx.product.findUnique({ where: { id: group.productId }, include: { priceRules: true } }); if (!product) throw Object.assign(new Error('Uno de los productos no existe.'), { status: 404 });
-        const stock = await tx.stock.findUnique({ where: { productId_depositId: { productId: group.productId, depositId: group.depositId } } });
-        if (!stock || stock.quantity < group.quantity) throw Object.assign(new Error(`Stock insuficiente para "${product.name}": disponible ${stock?.quantity || 0}, solicitado ${group.quantity}`), { status: 400 });
+        const product = productMap.get(group.productId);
+        if (!product) throw Object.assign(new Error('Uno de los productos no existe.'), { status: 404 });
+        const stock = stockMap.get(group.productId);
+        if (!stock || stock.quantity < group.quantity) {
+          throw Object.assign(new Error(`Stock insuficiente para "${product.name}": disponible ${stock?.quantity || 0}, solicitado ${group.quantity}`), { status: 400 });
+        }
         const rule = [...product.priceRules].filter(r => r.minQuantity <= group.quantity).sort((a, b) => b.minQuantity - a.minQuantity)[0];
         lineItems.push({ productId: product.id, quantity: group.quantity, price: Number(rule?.price ?? product.price), productName: product.name });
       }
-      const total = lineItems.reduce((n, i) => n + i.price * i.quantity, 0);
-      const saleDepositId = groups[0].depositId;
-      const sale = await tx.sale.create({ data: { depositId: saleDepositId, customerId, userId: req.user.id, total, ...photo, items: { create: lineItems.map(l => ({ productId: l.productId, quantity: l.quantity, price: l.price })) } }, include: { items: { include: { product: true } }, deposit: true } });
+
       for (const line of lineItems) {
         const updateResult = await tx.stock.updateMany({
           where: {
@@ -584,10 +603,33 @@ export async function createSaleCompat(req, res) {
             { status: 400 }
           );
         }
-        await tx.stockMovement.create({ data: { productId: line.productId, depositId: saleDepositId, saleId: sale.id, quantity: -line.quantity, reason: `Venta #${sale.id}` } });
       }
-      return sale;
-    });
+
+      const total = lineItems.reduce((n, i) => n + i.price * i.quantity, 0);
+      const sale = await tx.sale.create({
+        data: {
+          depositId: saleDepositId,
+          customerId,
+          userId: req.user.id,
+          total,
+          ...photo,
+          items: { create: lineItems.map(l => ({ productId: l.productId, quantity: l.quantity, price: l.price })) },
+        },
+        select: { id: true, total: true },
+      });
+
+      await tx.stockMovement.createMany({
+        data: lineItems.map(line => ({
+          productId: line.productId,
+          depositId: saleDepositId,
+          saleId: sale.id,
+          quantity: -line.quantity,
+          reason: `Venta #${sale.id}`,
+        })),
+      });
+
+      return { ...sale, photoData: photo.photoData, photoMimeType: photo.photoMimeType };
+    }, { maxWait: 10_000, timeout: 20_000 });
     res.status(201).json({ message: 'Venta confirmada con éxito.', sale: { id: result.id, receiptNumber: receiptNumber(result.id), totalCents: moneyToCents(result.total), photoData: result.photoData, photoMimeType: result.photoMimeType } });
   } catch (e) {
     if (e.code === '23514' || String(e.message).includes('23514')) {

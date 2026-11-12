@@ -48,30 +48,32 @@ export async function transferStock({ originId, destinationId, items, userId, ph
     grouped.set(pid, (grouped.get(pid) || 0) + qty);
   }
 
+  const sortedEntries = [...grouped.entries()].sort(([a], [b]) => a - b);
+  const productIds = sortedEntries.map(([productId]) => productId);
+
   try {
     return await prisma.$transaction(async tx => {
-      // 1. Validate both warehouses exist
-      const [originDeposit, destinationDeposit] = await Promise.all([
+      // 1. Validate both warehouses and all products in parallel
+      const [originDeposit, destinationDeposit, products] = await Promise.all([
         tx.deposit.findUnique({ where: { id: origin } }),
         tx.deposit.findUnique({ where: { id: dest } }),
+        tx.product.findMany({ where: { id: { in: productIds } } }),
       ]);
 
       if (!originDeposit || !destinationDeposit) {
         throw Object.assign(new Error('Uno de los depósitos no existe.'), { status: 400 });
       }
 
-      // 2. Validate products exist and fetch names for clear error reporting
-      const productsMap = new Map();
-      for (const productId of grouped.keys()) {
-        const product = await tx.product.findUnique({ where: { id: productId } });
-        if (!product) {
+      // 2. Validate products exist and map names for clear error reporting
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      for (const productId of productIds) {
+        if (!productsMap.has(productId)) {
           throw Object.assign(new Error('Uno de los productos no existe.'), { status: 404 });
         }
-        productsMap.set(productId, product);
       }
 
       // 3. Atomically decrement origin stock using conditional update
-      for (const [productId, quantity] of grouped.entries()) {
+      for (const [productId, quantity] of sortedEntries) {
         const product = productsMap.get(productId);
 
         const updateResult = await tx.stock.updateMany({
@@ -93,7 +95,7 @@ export async function transferStock({ originId, destinationId, items, userId, ph
         }
       }
 
-      // 4. Create Transfer record
+      // 4. Create Transfer record (avoid echoing large photoData payload back from DB)
       const transfer = await tx.transfer.create({
         data: {
           originWarehouseId: origin,
@@ -101,43 +103,54 @@ export async function transferStock({ originId, destinationId, items, userId, ph
           userId: userId || null,
           ...(photo ? { photoData: photo.photoData, photoMimeType: photo.photoMimeType } : {}),
           items: {
-            create: [...grouped.entries()].map(([productId, quantity]) => ({
+            create: sortedEntries.map(([productId, quantity]) => ({
               productId,
               quantity,
             })),
           },
         },
+        select: {
+          id: true,
+          originWarehouseId: true,
+          destinationWarehouseId: true,
+          status: true,
+          createdAt: true,
+        },
       });
 
       // 5. Increment destination stock (upsert) and register signed StockMovements
-      for (const [productId, quantity] of grouped.entries()) {
+      const movementRows = [];
+      for (const [productId, quantity] of sortedEntries) {
         await tx.stock.upsert({
           where: { productId_depositId: { productId, depositId: dest } },
           update: { quantity: { increment: quantity } },
           create: { productId, depositId: dest, quantity },
         });
 
-        // Signed movements: negative at origin, positive at destination, single depositId per movement
-        await tx.stockMovement.createMany({
-          data: [
-            {
-              productId,
-              depositId: origin,
-              quantity: -quantity,
-              reason: `Transferencia ${transfer.id}`,
-            },
-            {
-              productId,
-              depositId: dest,
-              quantity,
-              reason: `Transferencia ${transfer.id}`,
-            },
-          ],
-        });
+        movementRows.push(
+          {
+            productId,
+            depositId: origin,
+            quantity: -quantity,
+            reason: `Transferencia ${transfer.id}`,
+          },
+          {
+            productId,
+            depositId: dest,
+            quantity,
+            reason: `Transferencia ${transfer.id}`,
+          }
+        );
       }
 
-      return transfer;
-    });
+      await tx.stockMovement.createMany({ data: movementRows });
+
+      return {
+        ...transfer,
+        photoData: photo?.photoData ?? null,
+        photoMimeType: photo?.photoMimeType ?? null,
+      };
+    }, { maxWait: 10_000, timeout: 20_000 });
   } catch (error) {
     // Map PostgreSQL CHECK constraint violation 23514 to 400 Bad Request
     if (error.code === '23514' || String(error.message).includes('23514')) {
